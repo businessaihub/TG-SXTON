@@ -454,10 +454,14 @@ async def get_giveaways(status: str = "active"):
 
 # ============ ADMIN ENDPOINTS ============
 
+class AdminLoginRequest(BaseModel):
+    username: str
+    password: str
+
 @api_router.post("/admin/login")
-async def admin_login(username: str, password: str):
-    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-        token = f"{username}:{password}"
+async def admin_login(request: AdminLoginRequest):
+    if request.username == ADMIN_USERNAME and request.password == ADMIN_PASSWORD:
+        token = f"{request.username}:{request.password}"
         return {"success": True, "token": token, "is_admin": True}
     raise HTTPException(status_code=401, detail="Invalid credentials")
 

@@ -600,8 +600,41 @@ async def delete_banner(banner_id: str):
 
 # Activity Management Endpoints
 @api_router.get("/admin/activity", dependencies=[Depends(verify_admin)])
-async def get_admin_activities():
-    activities = await db.activity.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+async def get_admin_activities(
+    collection: Optional[str] = None,
+    action: Optional[str] = None,
+    time_range: Optional[str] = None,
+    limit: int = 100
+):
+    """Get activities with filters for admin"""
+    query = {}
+    
+    # Filter by collection
+    if collection and collection != "all":
+        query["pack_name"] = collection
+    
+    # Filter by action type
+    if action and action != "all":
+        query["action"] = action
+    
+    # Filter by time range
+    if time_range and time_range != "all":
+        from datetime import timedelta
+        now = datetime.now(timezone.utc)
+        
+        if time_range == "1h":
+            cutoff = now - timedelta(hours=1)
+        elif time_range == "24h":
+            cutoff = now - timedelta(hours=24)
+        elif time_range == "7d":
+            cutoff = now - timedelta(days=7)
+        else:
+            cutoff = None
+        
+        if cutoff:
+            query["created_at"] = {"$gte": cutoff.isoformat()}
+    
+    activities = await db.activity.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return activities
 
 @api_router.post("/admin/activity", dependencies=[Depends(verify_admin)])

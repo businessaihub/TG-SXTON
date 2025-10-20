@@ -392,10 +392,13 @@ async def get_activity(filter_type: str = "all", limit: int = 50):
     """Get activity feed"""
     query = {}
     if filter_type == "paid":
-        # Show only activities paid with TON or SXTON
-        query["price_type"] = {"$in": ["TON", "SXTON"]}
+        # Show only activities paid with TON, SXTON, or STARS
+        query["price_type"] = {"$in": ["TON", "SXTON", "STARS"]}
     elif filter_type == "free":
         query["is_free"] = True
+    elif filter_type == "finished":
+        # Show completed or expired listings
+        query["action"] = {"$in": ["sold", "burned"]}
     
     activities = await db.activity.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return activities

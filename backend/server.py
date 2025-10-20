@@ -37,6 +37,7 @@ class User(BaseModel):
     referrer_id: Optional[str] = None
     referral_count: int = 0
     language: str = "en"
+    subscribed_channels: List[str] = []
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class StickerPack(BaseModel):
@@ -47,7 +48,11 @@ class StickerPack(BaseModel):
     image_url: str
     price: float
     price_type: str = "TON"  # TON, STARS, SXTON
-    rarity: str = "common"  # common, rare, epic, legendary
+    purchase_types: List[str] = ["TON", "STARS", "SXTON"]  # Allowed purchase methods
+    requires_subscription: bool = False
+    required_channel_id: Optional[str] = None
+    required_channel_link: Optional[str] = None
+    rarity: str = "common"
     sticker_count: int
     is_featured: bool = False
     is_upcoming: bool = False
@@ -58,6 +63,18 @@ class StickerPack(BaseModel):
     burn_enabled: bool = False
     burn_reward_points: float = 100
     show_number: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class BannerAd(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str
+    cover_image_url: Optional[str] = None
+    link_url: str  # Channel or website link
+    link_type: str = "channel"  # channel or website
+    is_active: bool = True
+    position: int = 0  # Display order
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class Sticker(BaseModel):
@@ -76,7 +93,7 @@ class Activity(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     pack_name: str
-    action: str  # bought, opened, burned, listed, sold
+    action: str
     price: float
     price_type: str = "TON"
     is_free: bool = False
@@ -92,7 +109,7 @@ class Transaction(BaseModel):
     pack_id: Optional[str] = None
     amount: float
     currency: str = "TON"
-    transaction_type: str  # buy, sell, spin, deposit, withdraw
+    transaction_type: str
     status: str = "completed"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -106,7 +123,7 @@ class Giveaway(BaseModel):
     requires_subscription: bool = False
     required_referrals: int = 0
     winner_id: Optional[str] = None
-    status: str = "active"  # active, finished
+    status: str = "active"
     end_date: str
     participants: List[str] = []
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -125,7 +142,7 @@ class Settings(BaseModel):
     simulation_enabled: bool = False
     simulation_daily_volume: int = 50
     simulation_min_volume_ton: float = 500.0
-    hot_mode: str = "manual"  # manual or auto
+    hot_mode: str = "manual"
     hot_collections: List[str] = []
     external_sources_enabled: Dict[str, bool] = {"mrkt": True, "igloo": True, "palace": True}
 
@@ -144,18 +161,18 @@ async def verify_admin(authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     return True
 
+def remove_id(doc):
+    """Remove MongoDB _id field from document"""
+    if doc and "_id" in doc:
+        doc.pop("_id")
+    return doc
+
 # ============ USER ENDPOINTS ============
 
 class TelegramAuthRequest(BaseModel):
     telegram_id: str
     username: Optional[str] = None
     referrer_id: Optional[str] = None
-
-def remove_id(doc):
-    """Remove MongoDB _id field from document"""
-    if doc and "_id" in doc:
-        doc.pop("_id")
-    return doc
 
 @api_router.post("/auth/telegram")
 async def telegram_auth(request: TelegramAuthRequest):
@@ -208,11 +225,20 @@ async def mock_balance_update(user_id: str, ton: float = 0, stars: float = 0, po
     )
     return {"success": True}
 
+@api_router.post("/user/subscribe")
+async def subscribe_channel(user_id: str, channel_id: str):
+    """Mock channel subscription"""
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$addToSet": {"subscribed_channels": channel_id}}
+    )
+    return {"success": True}
+
 # ============ MARKETPLACE ENDPOINTS ============
 
 @api_router.get("/packs")
 async def get_packs(filter_type: str = "all"):
-    """Get sticker packs with filters: all, my, external"""
+    """Get sticker packs with filters"""
     query = {}
     if filter_type == "external":
         query["is_external"] = True
@@ -235,9 +261,15 @@ async def get_pack(pack_id: str):
         raise HTTPException(status_code=404, detail="Pack not found")
     return pack
 
+@api_router.get("/banners")
+async def get_banners():
+    """Get active banner ads"""
+    banners = await db.banner_ads.find({"is_active": True}, {"_id": 0}).sort("position", 1).to_list(10)
+    return banners
+
 @api_router.post("/buy/pack")
-async def buy_pack(user_id: str, pack_id: str):
-    """Buy a sticker pack"""
+async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON"):
+    """Buy a sticker pack with subscription verification"""
     pack = await db.sticker_packs.find_one({"id": pack_id}, {"_id": 0})
     if not pack:
         raise HTTPException(status_code=404, detail="Pack not found")
@@ -246,20 +278,33 @@ async def buy_pack(user_id: str, pack_id: str):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check balance based on price type
-    if pack["price_type"] == "TON" and user["ton_balance"] < pack["price"]:
+    # Check if payment type is allowed
+    if payment_type not in pack.get("purchase_types", ["TON"]):
+        raise HTTPException(status_code=400, detail=f"Payment type {payment_type} not allowed for this pack")
+    
+    # Check subscription requirement
+    if pack.get("requires_subscription", False) and pack.get("required_channel_id"):
+        if pack["required_channel_id"] not in user.get("subscribed_channels", []):
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Must subscribe to channel first: {pack.get('required_channel_link', 'Required channel')}"
+            )
+    
+    # Check balance based on payment type
+    if payment_type == "TON" and user["ton_balance"] < pack["price"]:
         raise HTTPException(status_code=400, detail="Insufficient TON balance")
-    elif pack["price_type"] == "STARS" and user["stars_balance"] < pack["price"]:
+    elif payment_type == "STARS" and user["stars_balance"] < pack["price"]:
         raise HTTPException(status_code=400, detail="Insufficient Stars balance")
-    elif pack["price_type"] == "SXTON" and user["sxton_points"] < pack["price"]:
+    elif payment_type == "SXTON" and user["sxton_points"] < pack["price"]:
         raise HTTPException(status_code=400, detail="Insufficient SXTON points")
     
     # Deduct balance
-    balance_field = f"{pack['price_type'].lower()}_balance" if pack['price_type'] != "SXTON" else "sxton_points"
-    await db.users.update_one(
-        {"id": user_id},
-        {"$inc": {balance_field: -pack["price"], "sxton_points": 500}}
-    )
+    if payment_type == "TON":
+        await db.users.update_one({"id": user_id}, {"$inc": {"ton_balance": -pack["price"], "sxton_points": 500}})
+    elif payment_type == "STARS":
+        await db.users.update_one({"id": user_id}, {"$inc": {"stars_balance": -pack["price"], "sxton_points": 500}})
+    elif payment_type == "SXTON":
+        await db.users.update_one({"id": user_id}, {"$inc": {"sxton_points": -pack["price"]}})
     
     # Create stickers for the pack
     for i in range(pack["sticker_count"]):
@@ -276,7 +321,7 @@ async def buy_pack(user_id: str, pack_id: str):
         pack_name=pack["name"],
         action="bought",
         price=pack["price"],
-        price_type=pack["price_type"]
+        price_type=payment_type
     )
     await db.activity.insert_one(activity.model_dump())
     
@@ -289,7 +334,7 @@ async def buy_pack(user_id: str, pack_id: str):
             {"$inc": {"sxton_points": level1_points}}
         )
     
-    return {"success": True, "message": "Pack purchased successfully"}
+    return {"success": True, "message": "Pack purchased successfully", "payment_type": payment_type}
 
 @api_router.post("/sell/sticker")
 async def sell_sticker(sticker_id: str, price: float):
@@ -344,7 +389,7 @@ async def burn_sticker(user_id: str, sticker_id: str):
 
 @api_router.get("/activity")
 async def get_activity(filter_type: str = "all", limit: int = 50):
-    """Get activity feed with filters: all, paid, free, finished"""
+    """Get activity feed"""
     query = {}
     if filter_type == "paid":
         query["is_free"] = False
@@ -358,7 +403,7 @@ async def get_activity(filter_type: str = "all", limit: int = 50):
 
 @api_router.post("/spin")
 async def spin_roulette(user_id: str):
-    """Spin the roulette for a random pack"""
+    """Spin the roulette"""
     settings = await db.settings.find_one({"id": "global_settings"}, {"_id": 0}) or Settings().model_dump()
     spin_price = settings["spin_price_ton"]
     
@@ -379,7 +424,7 @@ async def spin_roulette(user_id: str):
     
     won_pack = random.choice(all_packs)
     
-    # Create stickers for the won pack
+    # Create stickers
     for i in range(won_pack["sticker_count"]):
         sticker = Sticker(
             pack_id=won_pack["id"],
@@ -416,7 +461,6 @@ async def get_hot_collections():
                 packs.append(pack)
         return packs
     else:
-        # Auto mode: get by activity
         packs = await db.sticker_packs.find({}, {"_id": 0}).limit(5).to_list(5)
         return packs
 
@@ -467,7 +511,7 @@ async def admin_login(request: AdminLoginRequest):
 
 @api_router.get("/admin/analytics", dependencies=[Depends(verify_admin)])
 async def get_analytics():
-    total_users = await db.users.count_documents({})
+    total_users = await db.users.count_documents({})  
     total_packs = await db.sticker_packs.count_documents({})
     total_transactions = await db.activity.count_documents({})
     
@@ -479,7 +523,7 @@ async def get_analytics():
     users = await db.users.find({}, {"_id": 0, "sxton_points": 1}).to_list(10000)
     total_sxton_distributed = sum(u.get("sxton_points", 0) for u in users)
     
-    # Get override stats if they exist
+    # Get override stats
     override_stats = await db.settings.find_one({"id": "analytics_override"}, {"_id": 0})
     
     return {
@@ -525,6 +569,35 @@ async def delete_pack(pack_id: str):
         raise HTTPException(status_code=404, detail="Pack not found")
     return {"success": True}
 
+# Banner Ads Management
+@api_router.get("/admin/banners", dependencies=[Depends(verify_admin)])
+async def get_admin_banners():
+    banners = await db.banner_ads.find({}, {"_id": 0}).sort("position", 1).to_list(100)
+    return banners
+
+@api_router.post("/admin/banners", dependencies=[Depends(verify_admin)])
+async def create_banner(banner_data: Dict[str, Any]):
+    banner = BannerAd(**banner_data)
+    await db.banner_ads.insert_one(banner.model_dump())
+    return {"success": True, "banner": banner.model_dump()}
+
+@api_router.put("/admin/banners/{banner_id}", dependencies=[Depends(verify_admin)])
+async def update_banner(banner_id: str, banner_data: Dict[str, Any]):
+    result = await db.banner_ads.update_one(
+        {"id": banner_id},
+        {"$set": banner_data}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Banner not found")
+    return {"success": True}
+
+@api_router.delete("/admin/banners/{banner_id}", dependencies=[Depends(verify_admin)])
+async def delete_banner(banner_id: str):
+    result = await db.banner_ads.delete_one({"id": banner_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Banner not found")
+    return {"success": True}
+
 @api_router.get("/admin/settings", dependencies=[Depends(verify_admin)])
 async def get_settings():
     settings = await db.settings.find_one({"id": "global_settings"}, {"_id": 0})
@@ -544,7 +617,7 @@ async def update_settings(settings_data: Dict[str, Any]):
 
 @api_router.post("/admin/simulate-activity", dependencies=[Depends(verify_admin)])
 async def simulate_activity(count: int = 10):
-    """Simulate random activity for testing"""
+    """Simulate random activity"""
     packs = await db.sticker_packs.find({}, {"_id": 0}).to_list(100)
     if not packs:
         raise HTTPException(status_code=404, detail="No packs available")

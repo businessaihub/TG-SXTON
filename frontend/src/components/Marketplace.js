@@ -212,27 +212,27 @@ const Marketplace = ({ user, language }) => {
       )}
 
       {/* Filters & Sorting */}
-      <div className="space-y-3 relative z-10">
+      <div className="space-y-2 relative z-10">
         <Tabs value={filter} onValueChange={setFilter} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/10">
+          <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/10 h-9">
             <TabsTrigger 
               value="all" 
               data-testid="filter-all"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500 text-sm"
             >
               {t.marketplace.all}
             </TabsTrigger>
             <TabsTrigger 
               value="my" 
               data-testid="filter-my"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 text-sm"
             >
               {t.marketplace.myStickers}
             </TabsTrigger>
             <TabsTrigger 
               value="external" 
               data-testid="filter-external"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500 text-sm"
             >
               {t.marketplace.external}
             </TabsTrigger>
@@ -241,9 +241,9 @@ const Marketplace = ({ user, language }) => {
 
         {/* Sort Dropdown */}
         <div className="flex items-center gap-2">
-          <ArrowUpDown className="text-gray-400" size={18} />
+          <ArrowUpDown className="text-gray-400" size={16} />
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-48 bg-slate-800/50 border-white/10 text-white">
+            <SelectTrigger className="w-40 bg-slate-800/50 border-white/10 text-white h-8 text-sm">
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>
             <SelectContent className="glass-card border-white/10">

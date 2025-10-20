@@ -1,50 +1,42 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import axios from "axios";
+import MiniApp from "./pages/MiniApp";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminLogin from "./pages/AdminLogin";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
+export const API = `${BACKEND_URL}/api`;
 
 function App() {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminToken, setAdminToken] = useState(localStorage.getItem("admin_token") || "");
+
+  useEffect(() => {
+    if (adminToken) {
+      setIsAdmin(true);
+    }
+  }, [adminToken]);
+
   return (
     <div className="App">
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
+          {/* Mini App Routes */}
+          <Route path="/" element={<MiniApp isAdmin={isAdmin} />} />
+          <Route path="/marketplace" element={<MiniApp isAdmin={isAdmin} />} />
+          <Route path="/activity" element={<MiniApp isAdmin={isAdmin} />} />
+          <Route path="/hot" element={<MiniApp isAdmin={isAdmin} />} />
+          <Route path="/profile" element={<MiniApp isAdmin={isAdmin} />} />
+          <Route path="/roulette" element={<MiniApp isAdmin={isAdmin} />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin setIsAdmin={setIsAdmin} setAdminToken={setAdminToken} />} />
+          <Route 
+            path="/admin/*" 
+            element={isAdmin ? <AdminDashboard setIsAdmin={setIsAdmin} /> : <Navigate to="/admin/login" />} 
+          />
         </Routes>
       </BrowserRouter>
     </div>

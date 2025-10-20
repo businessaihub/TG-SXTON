@@ -313,14 +313,17 @@ const ActivityManagement = () => {
           </Select>
 
           <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-            <SelectTrigger className="w-40 bg-slate-800/50 border-white/10 text-white">
+            <SelectTrigger className="w-48 bg-slate-800/50 border-white/10 text-white">
               <SelectValue placeholder="Payment" />
             </SelectTrigger>
             <SelectContent className="glass-card border-white/10">
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="paid">Paid (TON/SXTON)</SelectItem>
+              <SelectItem value="paid">Paid (TON/SXTON/STARS)</SelectItem>
               <SelectItem value="free">Free</SelectItem>
-              <SelectItem value="stars">STARS</SelectItem>
+              <SelectItem value="finished">Finished</SelectItem>
+              <SelectItem value="ton">TON only</SelectItem>
+              <SelectItem value="sxton">SXTON only</SelectItem>
+              <SelectItem value="stars">STARS only</SelectItem>
             </SelectContent>
           </Select>
         </div>

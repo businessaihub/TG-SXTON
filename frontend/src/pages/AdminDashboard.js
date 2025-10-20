@@ -25,6 +25,7 @@ const AdminDashboard = ({ setIsAdmin }) => {
     { id: "analytics", label: "Analytics", icon: LayoutDashboard },
     { id: "packs", label: "Packs", icon: Package },
     { id: "banners", label: "Banners", icon: Image },
+    { id: "activity", label: "Activity Management", icon: List },
     { id: "settings", label: "Settings", icon: Settings },
     { id: "simulation", label: "Activity Simulation", icon: Activity },
   ];

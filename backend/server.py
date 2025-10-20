@@ -605,6 +605,7 @@ async def get_admin_activities(
     collection: Optional[str] = None,
     action: Optional[str] = None,
     time_range: Optional[str] = None,
+    payment_type: Optional[str] = None,
     limit: int = 100
 ):
     """Get activities with filters for admin"""
@@ -617,6 +618,16 @@ async def get_admin_activities(
     # Filter by action type
     if action and action != "all":
         query["action"] = action
+    
+    # Filter by payment type
+    if payment_type and payment_type != "all":
+        if payment_type == "paid":
+            # Show only TON or SXTON payments
+            query["price_type"] = {"$in": ["TON", "SXTON"]}
+        elif payment_type == "free":
+            query["is_free"] = True
+        elif payment_type == "stars":
+            query["price_type"] = "STARS"
     
     # Filter by time range
     if time_range and time_range != "all":

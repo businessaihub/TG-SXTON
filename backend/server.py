@@ -488,7 +488,7 @@ async def get_analytics():
 
 @api_router.put("/admin/analytics/override", dependencies=[Depends(verify_admin)])
 async def override_analytics(data: Dict[str, Any]):
-    \"\"\"Override analytics stats for display\"\"\"
+    """Override analytics stats for display"""
     await db.settings.update_one(
         {"id": "analytics_override"},
         {"$set": data},

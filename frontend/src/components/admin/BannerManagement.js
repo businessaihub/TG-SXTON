@@ -15,6 +15,7 @@ const BannerManagement = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
+  const [imageUploadMode, setImageUploadMode] = useState("url"); // "url" or "file"
   const [formData, setFormData] = useState({
     title: "",
     description: "",

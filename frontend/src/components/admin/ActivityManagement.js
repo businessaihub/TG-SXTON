@@ -44,6 +44,7 @@ const ActivityManagement = () => {
       if (collectionFilter !== "all") params.append("collection", collectionFilter);
       if (actionFilter !== "all") params.append("action", actionFilter);
       if (timeFilter !== "all") params.append("time_range", timeFilter);
+      if (paymentFilter !== "all") params.append("payment_type", paymentFilter);
       
       const queryString = params.toString();
       const url = `${API}/admin/activity${queryString ? `?${queryString}` : ''}`;

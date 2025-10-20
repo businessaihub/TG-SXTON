@@ -90,6 +90,24 @@ const PackManagement = () => {
     }
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Check file size (limit to 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Image must be smaller than 2MB");
+        return;
+      }
+      
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, image_url: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleEdit = (pack) => {
     setEditingPack(pack);
     setFormData({

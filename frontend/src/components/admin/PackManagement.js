@@ -247,6 +247,64 @@ const PackManagement = () => {
                 </Select>
               </div>
               
+              {/* Purchase Configuration */}
+              <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/30 space-y-3">
+                <h4 className="text-sm font-semibold text-cyan-400">Purchase Configuration</h4>
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400">Allowed Purchase Types</label>
+                  <div className="flex gap-3">
+                    {["TON", "STARS", "SXTON"].map(type => (
+                      <label key={type} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.purchase_types.includes(type)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({...formData, purchase_types: [...formData.purchase_types, type]});
+                            } else {
+                              setFormData({...formData, purchase_types: formData.purchase_types.filter(t => t !== type)});
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm text-white">{type}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-400">Require Channel Subscription</label>
+                  <Switch
+                    checked={formData.requires_subscription}
+                    onCheckedChange={(checked) => setFormData({...formData, requires_subscription: checked})}
+                  />
+                </div>
+                
+                {formData.requires_subscription && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm text-gray-400">Channel ID</label>
+                      <Input
+                        value={formData.required_channel_id}
+                        onChange={(e) => setFormData({...formData, required_channel_id: e.target.value})}
+                        className="bg-white/5 border-white/10 text-white"
+                        placeholder="@yourchannel"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-gray-400">Channel Link</label>
+                      <Input
+                        value={formData.required_channel_link}
+                        onChange={(e) => setFormData({...formData, required_channel_link: e.target.value})}
+                        className="bg-white/5 border-white/10 text-white"
+                        placeholder="https://t.me/yourchannel"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-gray-400">Featured</label>

@@ -3,12 +3,13 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API } from "../App";
 import { Button } from "../components/ui/button";
-import { LayoutDashboard, Package, Settings, Activity, LogOut, Image } from "lucide-react";
+import { LayoutDashboard, Package, Settings, Activity, LogOut, Image, List } from "lucide-react";
 import Analytics from "../components/admin/Analytics";
 import PackManagement from "../components/admin/PackManagement";
 import BannerManagement from "../components/admin/BannerManagement";
 import SettingsPanel from "../components/admin/SettingsPanel";
 import ActivitySimulation from "../components/admin/ActivitySimulation";
+import ActivityManagement from "../components/admin/ActivityManagement";
 
 const AdminDashboard = ({ setIsAdmin }) => {
   const navigate = useNavigate();

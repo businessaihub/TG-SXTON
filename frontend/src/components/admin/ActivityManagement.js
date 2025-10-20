@@ -15,6 +15,12 @@ const ActivityManagement = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState(null);
+  
+  // Filters
+  const [collectionFilter, setCollectionFilter] = useState("all");
+  const [actionFilter, setActionFilter] = useState("all");
+  const [timeFilter, setTimeFilter] = useState("all");
+  
   const [formData, setFormData] = useState({
     pack_name: "",
     action: "bought",

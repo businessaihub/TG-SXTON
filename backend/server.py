@@ -177,7 +177,9 @@ async def telegram_auth(request: TelegramAuthRequest):
             {"$inc": {"referral_count": 1}}
         )
     
-    return {"user": doc, "is_new": True}
+    # Fetch the created user without _id
+    new_user = await db.users.find_one({"id": doc["id"]}, {"_id": 0})
+    return {"user": new_user, "is_new": True}
 
 @api_router.get("/user/{user_id}")
 async def get_user(user_id: str):

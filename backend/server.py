@@ -598,6 +598,35 @@ async def delete_banner(banner_id: str):
         raise HTTPException(status_code=404, detail="Banner not found")
     return {"success": True}
 
+# Activity Management Endpoints
+@api_router.get("/admin/activity", dependencies=[Depends(verify_admin)])
+async def get_admin_activities():
+    activities = await db.activity.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return activities
+
+@api_router.post("/admin/activity", dependencies=[Depends(verify_admin)])
+async def create_activity(activity_data: Dict[str, Any]):
+    activity = Activity(**activity_data)
+    await db.activity.insert_one(activity.model_dump())
+    return {"success": True, "activity": activity.model_dump()}
+
+@api_router.put("/admin/activity/{activity_id}", dependencies=[Depends(verify_admin)])
+async def update_activity(activity_id: str, activity_data: Dict[str, Any]):
+    result = await db.activity.update_one(
+        {"id": activity_id},
+        {"$set": activity_data}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    return {"success": True}
+
+@api_router.delete("/admin/activity/{activity_id}", dependencies=[Depends(verify_admin)])
+async def delete_activity(activity_id: str):
+    result = await db.activity.delete_one({"id": activity_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    return {"success": True}
+
 @api_router.get("/admin/settings", dependencies=[Depends(verify_admin)])
 async def get_settings():
     settings = await db.settings.find_one({"id": "global_settings"}, {"_id": 0})

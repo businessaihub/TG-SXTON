@@ -8,14 +8,14 @@
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #0a0a0f;
+  background: #0f0f1a;
   color: #ffffff;
   overflow-x: hidden;
 }
 
 .App {
   min-height: 100vh;
-  background: radial-gradient(ellipse at top, #1a1a2e 0%, #0a0a0f 50%, #000000 100%);
+  background: radial-gradient(ellipse at top, #1e1e2e 0%, #14141f 50%, #0f0f1a 100%);
   position: relative;
 }
 

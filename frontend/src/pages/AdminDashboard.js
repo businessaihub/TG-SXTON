@@ -22,6 +22,7 @@ const AdminDashboard = ({ setIsAdmin }) => {
   const menuItems = [
     { id: "analytics", label: "Analytics", icon: LayoutDashboard },
     { id: "packs", label: "Packs", icon: Package },
+    { id: "banners", label: "Banners", icon: Image },
     { id: "settings", label: "Settings", icon: Settings },
     { id: "simulation", label: "Activity Simulation", icon: Activity },
   ];

@@ -151,6 +151,12 @@ class TelegramAuthRequest(BaseModel):
     username: Optional[str] = None
     referrer_id: Optional[str] = None
 
+def remove_id(doc):
+    """Remove MongoDB _id field from document"""
+    if doc and "_id" in doc:
+        doc.pop("_id")
+    return doc
+
 @api_router.post("/auth/telegram")
 async def telegram_auth(request: TelegramAuthRequest):
     """Authenticate or create user via Telegram"""

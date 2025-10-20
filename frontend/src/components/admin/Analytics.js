@@ -195,7 +195,7 @@ const Analytics = () => {
           return (
             <div
               key={stat.label}
-              className={`glass-card p-6 border ${stat.borderColor} ${stat.bgColor} transform hover:scale-105 active:scale-100 transition-all duration-300 cursor-pointer shadow-xl hover:shadow-2xl relative overflow-hidden`}
+              className={`glass-card p-6 border ${stat.borderColor} ${stat.bgColor} transition-colors duration-300 shadow-xl hover:shadow-2xl relative overflow-hidden`}
               data-testid={`stat-${stat.label.toLowerCase().replace(/\s+/g, '-')}`}
             >
               {/* Cosmic particles */}

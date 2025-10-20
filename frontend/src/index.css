@@ -46,25 +46,25 @@ code {
         --radius: 0.5rem;
     }
     .dark {
-        --background: 222 47% 4%;
+        --background: 215 28% 7%;
         --foreground: 210 40% 98%;
-        --card: 222 47% 5%;
+        --card: 215 28% 8%;
         --card-foreground: 210 40% 98%;
-        --popover: 222 47% 6%;
+        --popover: 217 33% 10%;
         --popover-foreground: 210 40% 98%;
-        --primary: 210 40% 98%;
-        --primary-foreground: 222 47% 11%;
-        --secondary: 217 33% 10%;
+        --primary: 188 94% 55%;
+        --primary-foreground: 215 28% 7%;
+        --secondary: 217 25% 15%;
         --secondary-foreground: 210 40% 98%;
-        --muted: 217 33% 12%;
-        --muted-foreground: 215 20% 65%;
-        --accent: 217 33% 14%;
-        --accent-foreground: 210 40% 98%;
+        --muted: 217 25% 16%;
+        --muted-foreground: 215 16% 65%;
+        --accent: 217 30% 18%;
+        --accent-foreground: 189 94% 70%;
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 210 40% 98%;
-        --border: 217 33% 17%;
-        --input: 217 33% 15%;
-        --ring: 212 72% 59%;
+        --border: 217 28% 20%;
+        --input: 217 28% 17%;
+        --ring: 188 94% 55%;
         --chart-1: 220 70% 50%;
         --chart-2: 160 60% 45%;
         --chart-3: 30 80% 55%;

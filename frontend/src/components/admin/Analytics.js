@@ -4,7 +4,8 @@ import { API } from "../../App";
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { Users, Package, Activity, DollarSign, TrendingUp, Wifi, Edit2, Save } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
+import { Users, Package, Activity, DollarSign, TrendingUp, Wifi, Edit2, Save, Coins } from "lucide-react";
 import { toast } from "sonner";
 
 const Analytics = () => {
@@ -12,8 +13,11 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [editableData, setEditableData] = useState({
+    total_users: 0,
     online_users: 0,
-    total_volume: 0
+    total_volume: 0,
+    total_sxton_distributed: 0,
+    total_sxton_spent: 0
   });
 
   useEffect(() => {
@@ -35,8 +39,11 @@ const Analytics = () => {
       });
       setAnalytics(response.data);
       setEditableData({
+        total_users: response.data.total_users || 0,
         online_users: response.data.online_users || Math.floor(Math.random() * (1000 - 150) + 150),
-        total_volume: response.data.total_volume_ton || 0
+        total_volume: response.data.total_volume_ton || 0,
+        total_sxton_distributed: response.data.total_sxton_distributed || 50000,
+        total_sxton_spent: response.data.total_sxton_spent || 12000
       });
       setLoading(false);
     } catch (error) {
@@ -73,12 +80,12 @@ const Analytics = () => {
   const stats = [
     {
       label: "Total Users",
-      value: analytics?.total_users || 0,
+      value: editableData.total_users,
       icon: Users,
       color: "text-cyan-400",
       bgColor: "bg-gradient-to-br from-cyan-500/20 to-cyan-600/10",
       borderColor: "border-cyan-500/30",
-      editable: false
+      editable: true
     },
     {
       label: "Online Users",
@@ -121,7 +128,10 @@ const Analytics = () => {
 
   return (
     <div className="space-y-6" data-testid="admin-analytics">
-      <div className="flex items-center justify-between">
+      {/* Cosmic background */}
+      <div className="cosmic-bg"></div>
+      
+      <div className="flex items-center justify-between relative z-10">
         <div>
           <h2 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Space Grotesk' }}>
             Analytics Dashboard
@@ -158,16 +168,19 @@ const Analytics = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 relative z-10">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <div
               key={stat.label}
-              className={`glass-card p-6 border ${stat.borderColor} ${stat.bgColor} transform hover:scale-105 active:scale-100 transition-all duration-300 cursor-pointer shadow-xl hover:shadow-2xl`}
+              className={`glass-card p-6 border ${stat.borderColor} ${stat.bgColor} transform hover:scale-105 active:scale-100 transition-all duration-300 cursor-pointer shadow-xl hover:shadow-2xl relative overflow-hidden`}
               data-testid={`stat-${stat.label.toLowerCase().replace(/\s+/g, '-')}`}
             >
-              <div className="flex items-center justify-between mb-3">
+              {/* Cosmic particles */}
+              <div className="cosmic-particles"></div>
+              
+              <div className="flex items-center justify-between mb-3 relative z-10">
                 <div className={`p-3 rounded-lg ${stat.bgColor} border ${stat.borderColor}`}>
                   <Icon className={stat.color} size={24} />
                 </div>
@@ -185,31 +198,92 @@ const Analytics = () => {
               {editMode && stat.editable ? (
                 <Input
                   type="number"
-                  value={stat.label.includes("Volume") ? editableData.total_volume : editableData.online_users}
+                  step={stat.label.includes("Volume") ? "0.01" : "1"}
+                  value={stat.label.includes("Volume") ? editableData.total_volume : 
+                         stat.label.includes("Total Users") ? editableData.total_users :
+                         editableData.online_users}
                   onChange={(e) => {
-                    const field = stat.label.includes("Volume") ? "total_volume" : "online_users";
+                    const field = stat.label.includes("Volume") ? "total_volume" : 
+                                  stat.label.includes("Total Users") ? "total_users" :
+                                  "online_users";
                     setEditableData({...editableData, [field]: parseFloat(e.target.value) || 0});
                   }}
-                  className="text-3xl font-bold text-white bg-white/5 border-white/20 mb-1"
+                  className="text-3xl font-bold text-white bg-white/5 border-white/20 mb-1 relative z-10"
                 />
               ) : (
-                <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
+                <div className="text-3xl font-bold text-white mb-1 relative z-10">{stat.value}</div>
               )}
               
-              <div className="text-sm text-gray-400">{stat.label}</div>
+              <div className="text-sm text-gray-400 relative z-10">{stat.label}</div>
             </div>
           );
         })}
       </div>
 
-      <div className="glass-card p-6 border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-purple-500/10">
-        <h3 className="text-xl font-semibold text-white mb-4" style={{ fontFamily: 'Space Grotesk' }}>
+      {/* SXTon Token Stats */}
+      <div className="glass-card p-6 border border-purple-500/30 bg-gradient-to-br from-purple-500/10 to-pink-500/10 relative overflow-hidden">
+        <div className="cosmic-particles"></div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-4">
+            <Coins className="text-purple-400" size={28} />
+            <h3 className="text-xl font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
+              SXTON Token Overview
+            </h3>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center p-4 rounded-lg bg-white/5 border border-purple-500/30 relative overflow-hidden">
+              <div className="cosmic-particles"></div>
+              {editMode ? (
+                <Input
+                  type="number"
+                  value={editableData.total_sxton_distributed}
+                  onChange={(e) => setEditableData({...editableData, total_sxton_distributed: parseFloat(e.target.value) || 0})}
+                  className="text-2xl font-bold text-purple-400 bg-white/5 border-white/20 mb-1 text-center relative z-10"
+                />
+              ) : (
+                <div className="text-2xl font-bold text-purple-400 mb-1 relative z-10">
+                  {editableData.total_sxton_distributed.toLocaleString()}
+                </div>
+              )}
+              <div className="text-sm text-gray-400 relative z-10">Total Distributed</div>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-white/5 border border-pink-500/30 relative overflow-hidden">
+              <div className="cosmic-particles"></div>
+              {editMode ? (
+                <Input
+                  type="number"
+                  value={editableData.total_sxton_spent}
+                  onChange={(e) => setEditableData({...editableData, total_sxton_spent: parseFloat(e.target.value) || 0})}
+                  className="text-2xl font-bold text-pink-400 bg-white/5 border-white/20 mb-1 text-center relative z-10"
+                />
+              ) : (
+                <div className="text-2xl font-bold text-pink-400 mb-1 relative z-10">
+                  {editableData.total_sxton_spent.toLocaleString()}
+                </div>
+              )}
+              <div className="text-sm text-gray-400 relative z-10">Total Spent</div>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-white/5 border border-cyan-500/30 relative overflow-hidden">
+              <div className="cosmic-particles"></div>
+              <div className="text-2xl font-bold text-cyan-400 mb-1 relative z-10">
+                {(editableData.total_sxton_distributed - editableData.total_sxton_spent).toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-400 relative z-10">Circulating</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Platform Activity */}
+      <div className="glass-card p-6 border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 relative overflow-hidden">
+        <div className="cosmic-particles"></div>
+        <h3 className="text-xl font-semibold text-white mb-4 relative z-10" style={{ fontFamily: 'Space Grotesk' }}>
           Platform Activity
         </h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4 relative z-10">
           <div className="text-center p-4 rounded-lg bg-white/5 border border-green-500/30">
             <div className="text-2xl font-bold text-green-400 mb-1">
-              {Math.floor((editableData.online_users / (analytics?.total_users || 1)) * 100)}%
+              {Math.floor((editableData.online_users / editableData.total_users) * 100)}%
             </div>
             <div className="text-sm text-gray-400">Users Online</div>
           </div>

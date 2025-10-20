@@ -3,8 +3,9 @@ import axios from "axios";
 import { API } from "../App";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
-import { ShoppingCart, Star, Sparkles, Clock, TrendingUp, Flame, Activity as ActivityIcon } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { ShoppingCart, Star, Sparkles, Clock, TrendingUp, Flame, Activity as ActivityIcon, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 
@@ -12,9 +13,11 @@ const Marketplace = ({ user, language }) => {
   const [packs, setPacks] = useState([]);
   const [featured, setFeatured] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("default");
   const [loading, setLoading] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [tradingVolume, setTradingVolume] = useState(0);
+  const [activeTraders, setActiveTraders] = useState(0);
   const t = translations[language] || translations.en;
 
   useEffect(() => {
@@ -27,9 +30,14 @@ const Marketplace = ({ user, language }) => {
     return () => clearInterval(interval);
   }, [filter]);
 
+  useEffect(() => {
+    sortPacks();
+  }, [sortBy]);
+
   const fetchActivityStats = async () => {
     setOnlineUsers(Math.floor(Math.random() * (1000 - 150) + 150));
     setTradingVolume(Math.floor(Math.random() * (5000 - 1000) + 1000));
+    setActiveTraders(Math.floor(Math.random() * (200 - 50) + 50));
   };
 
   const fetchPacks = async () => {
@@ -50,6 +58,28 @@ const Marketplace = ({ user, language }) => {
     } catch (error) {
       console.error("Error fetching featured:", error);
     }
+  };
+
+  const sortPacks = () => {
+    let sorted = [...packs];
+    switch(sortBy) {
+      case "name":
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case "price-low":
+        sorted.sort((a, b) => a.price - b.price);
+        break;
+      case "price-high":
+        sorted.sort((a, b) => b.price - a.price);
+        break;
+      case "rarity":
+        const rarityOrder = {legendary: 0, epic: 1, rare: 2, common: 3};
+        sorted.sort((a, b) => rarityOrder[a.rarity] - rarityOrder[b.rarity]);
+        break;
+      default:
+        break;
+    }
+    setPacks(sorted);
   };
 
   const handleBuy = async (pack) => {
@@ -90,34 +120,45 @@ const Marketplace = ({ user, language }) => {
   };
 
   return (
-    <div className="p-4 space-y-6" data-testid="marketplace-container">
+    <div className="p-4 space-y-6 relative" data-testid="marketplace-container">
+      {/* Cosmic background */}
+      <div className="cosmic-bg-subtle"></div>
+      
       {/* Header with Live Stats */}
-      <div className="pt-4">
+      <div className="pt-4 relative z-10">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent" style={{ fontFamily: 'Space Grotesk' }}>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent" style={{ fontFamily: 'Space Grotesk' }}>
             {t.marketplace.title}
           </h1>
         </div>
         <p className="text-gray-400 mb-4">{t.marketplace.subtitle}</p>
         
         {/* Activity Indicators */}
-        <div className="flex gap-3 mb-4">
-          <div className="glass-card px-4 py-2 flex items-center gap-2 border border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 transform hover:scale-105 transition-all">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-green-400 font-semibold">{onlineUsers}</span>
-            <span className="text-gray-400 text-sm">online</span>
+        <div className="flex flex-wrap gap-3 mb-4">
+          <div className="glass-card px-4 py-2 flex items-center gap-2 border border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 transform hover:scale-105 transition-all relative overflow-hidden">
+            <div className="cosmic-particles"></div>
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse relative z-10"></div>
+            <span className="text-green-400 font-semibold relative z-10">{onlineUsers}</span>
+            <span className="text-gray-400 text-sm relative z-10">online</span>
           </div>
-          <div className="glass-card px-4 py-2 flex items-center gap-2 border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 transform hover:scale-105 transition-all">
-            <ActivityIcon className="text-cyan-400" size={16} />
-            <span className="text-cyan-400 font-semibold">{tradingVolume}</span>
-            <span className="text-gray-400 text-sm">TON volume</span>
+          <div className="glass-card px-4 py-2 flex items-center gap-2 border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 transform hover:scale-105 transition-all relative overflow-hidden">
+            <div className="cosmic-particles"></div>
+            <ActivityIcon className="text-cyan-400 relative z-10" size={16} />
+            <span className="text-cyan-400 font-semibold relative z-10">{tradingVolume}</span>
+            <span className="text-gray-400 text-sm relative z-10">TON volume</span>
+          </div>
+          <div className="glass-card px-4 py-2 flex items-center gap-2 border border-yellow-500/30 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 transform hover:scale-105 transition-all relative overflow-hidden">
+            <div className="cosmic-particles"></div>
+            <Flame className="text-yellow-400 relative z-10" size={16} />
+            <span className="text-yellow-400 font-semibold relative z-10">{activeTraders}</span>
+            <span className="text-gray-400 text-sm relative z-10">trading now</span>
           </div>
         </div>
       </div>
 
       {/* Featured Carousel */}
       {featured.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-3 relative z-10">
           <div className="flex items-center gap-2">
             <Sparkles className="text-yellow-400" size={20} />
             <h2 className="text-xl font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
@@ -130,9 +171,10 @@ const Marketplace = ({ user, language }) => {
               <div
                 key={pack.id}
                 data-testid={`featured-pack-${pack.id}`}
-                className="glass-card p-4 min-w-[280px] flex-shrink-0 border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 transform hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/20 active:scale-100 transition-all duration-300 cursor-pointer"
+                className="glass-card p-4 min-w-[280px] flex-shrink-0 border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 transform hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/20 active:scale-100 transition-all duration-300 cursor-pointer relative overflow-hidden"
               >
-                <div className="relative mb-3 overflow-hidden rounded-lg">
+                <div className="cosmic-particles"></div>
+                <div className="relative mb-3 overflow-hidden rounded-lg z-10">
                   <img
                     src={pack.image_url}
                     alt={pack.name}
@@ -147,9 +189,9 @@ const Marketplace = ({ user, language }) => {
                     </Badge>
                   )}
                 </div>
-                <h3 className="font-semibold text-white mb-1">{pack.name}</h3>
-                <p className="text-sm text-gray-400 mb-2">{pack.sticker_count} stickers</p>
-                <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-white mb-1 relative z-10">{pack.name}</h3>
+                <p className="text-sm text-gray-400 mb-2 relative z-10">{pack.sticker_count} stickers</p>
+                <div className="flex items-center justify-between relative z-10">
                   <span className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
                     {pack.price} {pack.price_type}
                   </span>
@@ -169,49 +211,69 @@ const Marketplace = ({ user, language }) => {
         </div>
       )}
 
-      {/* Filters */}
-      <Tabs value={filter} onValueChange={setFilter} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/10">
-          <TabsTrigger 
-            value="all" 
-            data-testid="filter-all"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500"
-          >
-            {t.marketplace.all}
-          </TabsTrigger>
-          <TabsTrigger 
-            value="my" 
-            data-testid="filter-my"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500"
-          >
-            {t.marketplace.myStickers}
-          </TabsTrigger>
-          <TabsTrigger 
-            value="external" 
-            data-testid="filter-external"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500"
-          >
-            {t.marketplace.external}
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Filters & Sorting */}
+      <div className="space-y-3 relative z-10">
+        <Tabs value={filter} onValueChange={setFilter} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/10">
+            <TabsTrigger 
+              value="all" 
+              data-testid="filter-all"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500"
+            >
+              {t.marketplace.all}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="my" 
+              data-testid="filter-my"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500"
+            >
+              {t.marketplace.myStickers}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="external" 
+              data-testid="filter-external"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500"
+            >
+              {t.marketplace.external}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* Sort Dropdown */}
+        <div className="flex items-center gap-2">
+          <ArrowUpDown className="text-gray-400" size={18} />
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-48 bg-slate-800/50 border-white/10 text-white">
+              <SelectValue placeholder="Sort by..." />
+            </SelectTrigger>
+            <SelectContent className="glass-card border-white/10">
+              <SelectItem value="default">Default</SelectItem>
+              <SelectItem value="name">By Collection</SelectItem>
+              <SelectItem value="price-low">Price: Low to High</SelectItem>
+              <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="rarity">By Rarity</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       {/* Packs Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4 relative z-10">
           {[1, 2, 3].map((i) => (
             <div key={i} className="glass-card p-4 skeleton h-48"></div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4 relative z-10">
           {packs.map((pack) => (
             <div
               key={pack.id}
               data-testid={`pack-card-${pack.id}`}
-              className="glass-card p-4 flex gap-4 border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transform hover:scale-[1.02] active:scale-100 transition-all duration-300 cursor-pointer"
+              className="glass-card p-4 flex gap-4 border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transform hover:scale-[1.02] active:scale-100 transition-all duration-300 cursor-pointer relative overflow-hidden"
             >
-              <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-lg">
+              <div className="cosmic-particles"></div>
+              <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-lg z-10">
                 <img
                   src={pack.image_url}
                   alt={pack.name}
@@ -224,7 +286,7 @@ const Marketplace = ({ user, language }) => {
                 )}
               </div>
               
-              <div className="flex-1 flex flex-col justify-between">
+              <div className="flex-1 flex flex-col justify-between z-10">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-white">{pack.name}</h3>
@@ -263,7 +325,7 @@ const Marketplace = ({ user, language }) => {
       )}
 
       {!loading && packs.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-12 relative z-10">
           <div className="glass-card p-8 border border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-orange-500/10">
             <p className="text-yellow-400">{t.marketplace.noPacks}</p>
           </div>

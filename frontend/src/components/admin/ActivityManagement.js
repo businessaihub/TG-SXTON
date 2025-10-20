@@ -164,7 +164,7 @@ const ActivityManagement = () => {
                 resetForm();
               }}
               data-testid="create-activity-btn"
-              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 transform hover:scale-105 active:scale-95 transition-all"
+              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 transition-colors"
             >
               <Plus size={18} className="mr-2" />
               Create Activity

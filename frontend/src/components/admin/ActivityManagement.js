@@ -349,7 +349,7 @@ const ActivityManagement = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-cyan-400 font-semibold">
-                    {activity.price} {activity.price_type}
+                    {typeof activity.price === 'number' ? activity.price.toFixed(2) : activity.price} {activity.price_type}
                   </span>
                   <span className="text-xs text-gray-500">
                     {new Date(activity.created_at).toLocaleString()}

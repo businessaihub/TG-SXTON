@@ -171,37 +171,37 @@ const Marketplace = ({ user, language }) => {
               <div
                 key={pack.id}
                 data-testid={`featured-pack-${pack.id}`}
-                className="glass-card p-3 min-w-[220px] flex-shrink-0 border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 transform hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/20 active:scale-100 transition-all duration-300 cursor-pointer relative overflow-hidden"
+                className="glass-card p-2.5 min-w-[200px] flex-shrink-0 border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 transition-colors duration-300 cursor-pointer relative overflow-hidden"
               >
                 <div className="cosmic-particles"></div>
                 <div className="relative mb-2 overflow-hidden rounded-lg z-10">
                   <img
                     src={pack.image_url}
                     alt={pack.name}
-                    className="w-full h-28 object-cover transition-transform duration-300 hover:scale-110"
+                    className="w-full h-24 object-cover"
                   />
-                  <Badge className={`absolute top-1.5 right-1.5 text-xs ${getRarityColor(pack.rarity)} shadow-lg`}>
+                  <Badge className={`absolute top-1 right-1 text-xs ${getRarityColor(pack.rarity)} shadow-lg`}>
                     {pack.rarity.toUpperCase()}
                   </Badge>
                   {pack.show_number && (
-                    <Badge className="absolute top-1.5 left-1.5 text-xs bg-black/60 text-white border-white/30">
+                    <Badge className="absolute top-1 left-1 text-xs bg-black/60 text-white border-white/30">
                       #{pack.sticker_count}
                     </Badge>
                   )}
                 </div>
-                <h3 className="font-semibold text-white text-sm mb-1 relative z-10 truncate">{pack.name}</h3>
-                <p className="text-xs text-gray-400 mb-2 relative z-10">{pack.sticker_count} stickers</p>
+                <h3 className="font-semibold text-white text-xs mb-1 relative z-10 truncate">{pack.name}</h3>
+                <p className="text-xs text-gray-400 mb-1.5 relative z-10">{pack.sticker_count} stickers</p>
                 <div className="flex items-center justify-between relative z-10">
-                  <span className="text-base font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                  <span className="text-sm font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
                     {pack.price} {pack.price_type}
                   </span>
                   <Button
                     size="sm"
                     onClick={() => handleBuy(pack)}
                     data-testid={`buy-featured-${pack.id}`}
-                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 transform hover:scale-110 active:scale-95 transition-all shadow-lg hover:shadow-cyan-500/50 h-8 px-3 text-xs"
+                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 transition-colors shadow-lg h-7 px-2 text-xs"
                   >
-                    <ShoppingCart size={14} className="mr-1" />
+                    <ShoppingCart size={12} className="mr-1" />
                     {t.marketplace.buy}
                   </Button>
                 </div>

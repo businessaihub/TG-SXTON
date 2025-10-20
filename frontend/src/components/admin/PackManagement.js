@@ -15,6 +15,7 @@ const PackManagement = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPack, setEditingPack] = useState(null);
+  const [imageUploadMode, setImageUploadMode] = useState("url"); // "url" or "file"
   const [formData, setFormData] = useState({
     name: "",
     description: "",

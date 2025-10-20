@@ -171,7 +171,7 @@ const Analytics = () => {
                 editMode 
                   ? "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600" 
                   : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
-              } transform hover:scale-105 active:scale-95 transition-all shadow-lg`}
+              } transition-colors shadow-lg`}
             >
               {editMode ? (
                 <>

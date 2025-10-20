@@ -119,7 +119,7 @@ const Analytics = () => {
     },
     {
       label: "Volume (TON)",
-      value: editableData.total_volume?.toFixed(2) || "0.00",
+      value: useRealData ? (analytics?.total_volume_ton?.toFixed(2) || "0.00") : (editableData.total_volume?.toFixed(2) || "0.00"),
       icon: DollarSign,
       color: "text-emerald-400",
       bgColor: "bg-gradient-to-br from-emerald-500/20 to-emerald-600/10",

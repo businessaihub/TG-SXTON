@@ -120,38 +120,38 @@ const Marketplace = ({ user, language }) => {
   };
 
   return (
-    <div className="p-4 space-y-6 relative" data-testid="marketplace-container">
+    <div className="p-3 space-y-3 relative" data-testid="marketplace-container">
       {/* Cosmic background */}
       <div className="cosmic-bg-subtle"></div>
       
       {/* Header with Live Stats */}
-      <div className="pt-4 relative z-10">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent" style={{ fontFamily: 'Space Grotesk' }}>
+      <div className="pt-2 relative z-10">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent" style={{ fontFamily: 'Space Grotesk' }}>
             {t.marketplace.title}
           </h1>
         </div>
-        <p className="text-gray-400 mb-4">{t.marketplace.subtitle}</p>
+        <p className="text-gray-400 text-sm mb-2">{t.marketplace.subtitle}</p>
         
         {/* Activity Indicators */}
-        <div className="flex flex-wrap gap-3 mb-4">
-          <div className="glass-card px-4 py-2 flex items-center gap-2 border border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 transform hover:scale-105 transition-all relative overflow-hidden">
+        <div className="flex flex-wrap gap-2 mb-2">
+          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 transition-colors relative overflow-hidden">
             <div className="cosmic-particles"></div>
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse relative z-10"></div>
-            <span className="text-green-400 font-semibold relative z-10">{onlineUsers}</span>
-            <span className="text-gray-400 text-sm relative z-10">online</span>
+            <span className="text-green-400 font-semibold text-sm relative z-10">{onlineUsers}</span>
+            <span className="text-gray-400 text-xs relative z-10">online</span>
           </div>
-          <div className="glass-card px-4 py-2 flex items-center gap-2 border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 transform hover:scale-105 transition-all relative overflow-hidden">
+          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 transition-colors relative overflow-hidden">
             <div className="cosmic-particles"></div>
-            <ActivityIcon className="text-cyan-400 relative z-10" size={16} />
-            <span className="text-cyan-400 font-semibold relative z-10">{tradingVolume}</span>
-            <span className="text-gray-400 text-sm relative z-10">TON volume</span>
+            <ActivityIcon className="text-cyan-400 relative z-10" size={14} />
+            <span className="text-cyan-400 font-semibold text-sm relative z-10">{tradingVolume}</span>
+            <span className="text-gray-400 text-xs relative z-10">TON</span>
           </div>
-          <div className="glass-card px-4 py-2 flex items-center gap-2 border border-yellow-500/30 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 transform hover:scale-105 transition-all relative overflow-hidden">
+          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-yellow-500/30 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 transition-colors relative overflow-hidden">
             <div className="cosmic-particles"></div>
-            <Flame className="text-yellow-400 relative z-10" size={16} />
-            <span className="text-yellow-400 font-semibold relative z-10">{activeTraders}</span>
-            <span className="text-gray-400 text-sm relative z-10">trading now</span>
+            <Flame className="text-yellow-400 relative z-10" size={14} />
+            <span className="text-yellow-400 font-semibold text-sm relative z-10">{activeTraders}</span>
+            <span className="text-gray-400 text-xs relative z-10">trading</span>
           </div>
         </div>
       </div>

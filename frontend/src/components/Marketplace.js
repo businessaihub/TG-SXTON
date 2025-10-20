@@ -288,23 +288,23 @@ const Marketplace = ({ user, language }) => {
               
               <div className="flex-1 flex flex-col justify-between z-10">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-white">{pack.name}</h3>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h3 className="font-semibold text-white text-sm">{pack.name}</h3>
                     <Badge className={`${getRarityColor(pack.rarity)} text-xs shadow-lg`}>
                       {pack.rarity}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-400">{pack.description}</p>
+                  <p className="text-xs text-gray-400 line-clamp-1">{pack.description}</p>
                   {pack.is_upcoming && (
-                    <div className="flex items-center gap-1 mt-2 text-sm">
-                      <Clock size={14} className="text-yellow-400" />
+                    <div className="flex items-center gap-1 mt-1 text-xs">
+                      <Clock size={12} className="text-yellow-400" />
                       <span className="text-yellow-400 font-semibold">Coming Soon</span>
                     </div>
                   )}
                 </div>
                 
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-base font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
                     {pack.price} {pack.price_type}
                   </span>
                   <Button

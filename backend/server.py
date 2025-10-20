@@ -392,7 +392,8 @@ async def get_activity(filter_type: str = "all", limit: int = 50):
     """Get activity feed"""
     query = {}
     if filter_type == "paid":
-        query["is_free"] = False
+        # Show only activities paid with TON or SXTON
+        query["price_type"] = {"$in": ["TON", "SXTON"]}
     elif filter_type == "free":
         query["is_free"] = True
     

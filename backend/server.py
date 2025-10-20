@@ -625,12 +625,19 @@ async def get_admin_activities(
     # Filter by payment type
     if payment_type and payment_type != "all":
         if payment_type == "paid":
-            # Show only TON or SXTON payments
-            query["price_type"] = {"$in": ["TON", "SXTON"]}
+            # Show only TON, SXTON, or STARS payments
+            query["price_type"] = {"$in": ["TON", "SXTON", "STARS"]}
         elif payment_type == "free":
             query["is_free"] = True
         elif payment_type == "stars":
             query["price_type"] = "STARS"
+        elif payment_type == "ton":
+            query["price_type"] = "TON"
+        elif payment_type == "sxton":
+            query["price_type"] = "SXTON"
+        elif payment_type == "finished":
+            # Show completed or expired listings
+            query["action"] = {"$in": ["sold", "burned"]}
     
     # Filter by time range
     if time_range and time_range != "all":

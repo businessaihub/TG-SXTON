@@ -259,25 +259,25 @@ const Marketplace = ({ user, language }) => {
 
       {/* Packs Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 relative z-10">
+        <div className="grid grid-cols-1 gap-3 relative z-10">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="glass-card p-4 skeleton h-48"></div>
+            <div key={i} className="glass-card p-3 skeleton h-32"></div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 relative z-10">
+        <div className="grid grid-cols-1 gap-3 relative z-10">
           {packs.map((pack) => (
             <div
               key={pack.id}
               data-testid={`pack-card-${pack.id}`}
-              className="glass-card p-4 flex gap-4 border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transform hover:scale-[1.02] active:scale-100 transition-all duration-300 cursor-pointer relative overflow-hidden"
+              className="glass-card p-3 flex gap-3 border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 transition-colors duration-300 cursor-pointer relative overflow-hidden"
             >
               <div className="cosmic-particles"></div>
-              <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-lg z-10">
+              <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg z-10">
                 <img
                   src={pack.image_url}
                   alt={pack.name}
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  className="w-full h-full object-cover"
                 />
                 {pack.show_number && (
                   <Badge className="absolute -top-1 -right-1 bg-gradient-to-br from-cyan-500 to-blue-500 text-xs shadow-lg">

@@ -312,9 +312,9 @@ const Marketplace = ({ user, language }) => {
                     onClick={() => handleBuy(pack)}
                     data-testid={`buy-pack-${pack.id}`}
                     disabled={pack.is_upcoming}
-                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 transform hover:scale-110 active:scale-95 transition-all shadow-lg hover:shadow-cyan-500/50"
+                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 transition-colors shadow-lg h-7 px-3 text-xs"
                   >
-                    <ShoppingCart size={16} className="mr-1" />
+                    <ShoppingCart size={12} className="mr-1" />
                     {pack.is_upcoming ? "Soon" : t.marketplace.buy}
                   </Button>
                 </div>

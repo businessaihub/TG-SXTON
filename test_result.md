@@ -168,27 +168,33 @@ backend:
 frontend:
   - task: "Activity Management Admin Menu Integration"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/AdminDashboard.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added 'Activity Management' menu item to Admin Dashboard with List icon. Imported ActivityManagement component and added view rendering."
+      - working: true
+        agent: "testing"
+        comment: "✅ ADMIN MENU INTEGRATION PASSED: Successfully tested admin login with credentials (admin/admin123). Activity Management menu item is visible in sidebar with proper List icon. Navigation to Activity Management page works correctly. Page loads with title 'Activity Management' and proper glassmorphism styling. Menu integration fully functional."
 
   - task: "Activity Management UI with Filters"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/components/admin/ActivityManagement.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated ActivityManagement component to support filters (collection, action type, time range). Added filter UI with Select components. Updated fetchActivities to use admin endpoint with filter parameters. Component shows activity list with edit/delete capabilities."
+      - working: true
+        agent: "testing"
+        comment: "✅ ACTIVITY MANAGEMENT UI PASSED: Comprehensive testing completed. Activity list displays 21 activities with all required elements: collection names, action badges (bought/opened/listed/sold), prices with currency types (TON/STARS/SXTON), timestamps, demo badges, edit/delete buttons. All three filters work correctly: Collection filter (8 results when filtered), Action filter (13 results for 'Bought'), Time filter (21 results for 'Last 24 Hours'). Filter combinations and reset functionality working. CRUD operations tested: Create (API returns 200), Edit (API returns 200), Delete (API returns 200). All API calls successful but UI refresh needs improvement. Glassmorphism styling and cosmic theme properly applied. Minor: Dialog accessibility warnings present but non-critical."
 
   - task: "User Activity Feed Display"
     implemented: true

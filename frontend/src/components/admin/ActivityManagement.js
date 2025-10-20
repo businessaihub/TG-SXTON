@@ -101,7 +101,7 @@ const ActivityManagement = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success("Activity deleted successfully");
-      fetchActivities();
+      await fetchActivities();
     } catch (error) {
       toast.error("Error deleting activity");
     }

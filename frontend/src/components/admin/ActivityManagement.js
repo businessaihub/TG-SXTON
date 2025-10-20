@@ -20,6 +20,7 @@ const ActivityManagement = () => {
   const [collectionFilter, setCollectionFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
   const [timeFilter, setTimeFilter] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState("all");
   
   const [formData, setFormData] = useState({
     pack_name: "",

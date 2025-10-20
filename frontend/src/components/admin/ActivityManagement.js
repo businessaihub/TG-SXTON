@@ -34,7 +34,7 @@ const ActivityManagement = () => {
   useEffect(() => {
     fetchActivities();
     fetchPacks();
-  }, [collectionFilter, actionFilter, timeFilter]);
+  }, [collectionFilter, actionFilter, timeFilter, paymentFilter]);
 
   const fetchActivities = async () => {
     try {

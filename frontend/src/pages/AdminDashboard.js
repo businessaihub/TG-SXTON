@@ -74,6 +74,7 @@ const AdminDashboard = ({ setIsAdmin }) => {
         <div className="flex-1 p-6 overflow-y-auto">
           {currentView === "analytics" && <Analytics />}
           {currentView === "packs" && <PackManagement />}
+          {currentView === "banners" && <BannerManagement />}
           {currentView === "settings" && <SettingsPanel />}
           {currentView === "simulation" && <ActivitySimulation />}
         </div>

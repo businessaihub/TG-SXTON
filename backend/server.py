@@ -146,10 +146,15 @@ async def verify_admin(authorization: Optional[str] = Header(None)):
 
 # ============ USER ENDPOINTS ============
 
+class TelegramAuthRequest(BaseModel):
+    telegram_id: str
+    username: Optional[str] = None
+    referrer_id: Optional[str] = None
+
 @api_router.post("/auth/telegram")
-async def telegram_auth(telegram_id: str, username: Optional[str] = None, referrer_id: Optional[str] = None):
+async def telegram_auth(request: TelegramAuthRequest):
     """Authenticate or create user via Telegram"""
-    user_doc = await db.users.find_one({"telegram_id": telegram_id}, {"_id": 0})
+    user_doc = await db.users.find_one({"telegram_id": request.telegram_id}, {"_id": 0})
     
     if user_doc:
         return {"user": user_doc, "is_new": False}

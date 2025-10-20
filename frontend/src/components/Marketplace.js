@@ -158,15 +158,15 @@ const Marketplace = ({ user, language }) => {
 
       {/* Featured Carousel */}
       {featured.length > 0 && (
-        <div className="space-y-3 relative z-10">
+        <div className="space-y-2 relative z-10">
           <div className="flex items-center gap-2">
-            <Sparkles className="text-yellow-400" size={18} />
-            <h2 className="text-lg font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
+            <Sparkles className="text-yellow-400" size={16} />
+            <h2 className="text-base font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
               {t.marketplace.featured}
             </h2>
           </div>
           
-          <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {featured.map((pack) => (
               <div
                 key={pack.id}

@@ -37,7 +37,19 @@ const ActivityManagement = () => {
 
   const fetchActivities = async () => {
     try {
-      const response = await axios.get(`${API}/activity`);
+      const token = localStorage.getItem("admin_token");
+      const params = new URLSearchParams();
+      
+      if (collectionFilter !== "all") params.append("collection", collectionFilter);
+      if (actionFilter !== "all") params.append("action", actionFilter);
+      if (timeFilter !== "all") params.append("time_range", timeFilter);
+      
+      const queryString = params.toString();
+      const url = `${API}/admin/activity${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setActivities(response.data);
       setLoading(false);
     } catch (error) {

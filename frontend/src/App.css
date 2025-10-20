@@ -21,16 +21,16 @@ body {
 
 /* Enhanced Glassmorphism with better shadows */
 .glass-card {
-  background: rgba(20, 20, 35, 0.7);
+  background: rgba(30, 30, 45, 0.75);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 20px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    0 2px 8px rgba(0, 255, 255, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
   position: relative;
   overflow: hidden;
 }
@@ -42,17 +42,17 @@ body {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.4), transparent);
 }
 
 .glass-card:hover {
   transform: translateY(-6px) scale(1.01);
-  border-color: rgba(0, 255, 255, 0.4);
+  border-color: rgba(0, 255, 255, 0.5);
   box-shadow: 
-    0 16px 48px rgba(0, 0, 0, 0.5),
-    0 8px 24px rgba(0, 255, 255, 0.2),
-    0 0 40px rgba(0, 255, 255, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 16px 48px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 255, 255, 0.25),
+    0 0 40px rgba(0, 255, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 /* Enhanced neon glow effects */

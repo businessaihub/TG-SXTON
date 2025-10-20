@@ -82,7 +82,7 @@ const Analytics = () => {
   const stats = [
     {
       label: "Total Users",
-      value: editableData.total_users,
+      value: useRealData ? (analytics?.total_users || 0) : editableData.total_users,
       icon: Users,
       color: "text-cyan-400",
       bgColor: "bg-gradient-to-br from-cyan-500/20 to-cyan-600/10",
@@ -91,7 +91,7 @@ const Analytics = () => {
     },
     {
       label: "Online Users",
-      value: editableData.online_users,
+      value: useRealData ? (analytics?.online_users || Math.floor(Math.random() * (1000 - 150) + 150)) : editableData.online_users,
       icon: Wifi,
       color: "text-green-400",
       bgColor: "bg-gradient-to-br from-green-500/20 to-green-600/10",

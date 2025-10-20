@@ -5,6 +5,7 @@ import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
+import { Switch } from "../ui/switch";
 import { Users, Package, Activity, DollarSign, TrendingUp, Wifi, Edit2, Save, Coins } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,6 +13,7 @@ const Analytics = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
+  const [useRealData, setUseRealData] = useState(false);
   const [editableData, setEditableData] = useState({
     total_users: 0,
     online_users: 0,

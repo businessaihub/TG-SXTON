@@ -207,13 +207,43 @@ const BannerManagement = () => {
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">Cover Image URL (Optional)</label>
-                <Input
-                  value={formData.cover_image_url}
-                  onChange={(e) => setFormData({...formData, cover_image_url: e.target.value})}
-                  className="bg-white/5 border-white/10 text-white"
-                  placeholder="https://example.com/image.jpg"
-                />
+                <label className="text-sm text-gray-400">Cover Image (Optional)</label>
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    type="button"
+                    onClick={() => setImageUploadMode("url")}
+                    className={`flex-1 ${imageUploadMode === "url" ? "bg-cyan-500" : "bg-white/5"}`}
+                  >
+                    URL
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => setImageUploadMode("file")}
+                    className={`flex-1 ${imageUploadMode === "file" ? "bg-cyan-500" : "bg-white/5"}`}
+                  >
+                    Upload
+                  </Button>
+                </div>
+                {imageUploadMode === "url" ? (
+                  <Input
+                    value={formData.cover_image_url}
+                    onChange={(e) => setFormData({...formData, cover_image_url: e.target.value})}
+                    placeholder="https://example.com/image.jpg"
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="bg-white/5 border-white/10 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-white hover:file:bg-cyan-600"
+                    />
+                    {formData.cover_image_url && (
+                      <img src={formData.cover_image_url} alt="Preview" className="w-32 h-32 object-cover rounded-lg border border-white/10" />
+                    )}
+                  </div>
+                )}
               </div>
               
               <div className="grid grid-cols-2 gap-4">

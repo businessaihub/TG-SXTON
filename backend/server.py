@@ -160,14 +160,14 @@ async def telegram_auth(request: TelegramAuthRequest):
         return {"user": user_doc, "is_new": False}
     
     # Create new user
-    user = User(telegram_id=telegram_id, username=username, referrer_id=referrer_id)
+    user = User(telegram_id=request.telegram_id, username=request.username, referrer_id=request.referrer_id)
     doc = user.model_dump()
     await db.users.insert_one(doc)
     
     # Update referrer
-    if referrer_id:
+    if request.referrer_id:
         await db.users.update_one(
-            {"id": referrer_id},
+            {"id": request.referrer_id},
             {"$inc": {"referral_count": 1}}
         )
     

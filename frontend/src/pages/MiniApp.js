@@ -94,7 +94,7 @@ const MiniApp = ({ isAdmin }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#0f0f1a] to-[#0a0a0f] pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#0f0f1a] to-[#0a0a0f] pb-24">
       <div className="fixed top-4 right-4 z-50">
         <LanguageSelector language={language} setLanguage={setLanguage} />
       </div>

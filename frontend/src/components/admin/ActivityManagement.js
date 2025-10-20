@@ -311,6 +311,18 @@ const ActivityManagement = () => {
               <SelectItem value="7d">Last 7 Days</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+            <SelectTrigger className="w-40 bg-slate-800/50 border-white/10 text-white">
+              <SelectValue placeholder="Payment" />
+            </SelectTrigger>
+            <SelectContent className="glass-card border-white/10">
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="paid">Paid (TON/SXTON)</SelectItem>
+              <SelectItem value="free">Free</SelectItem>
+              <SelectItem value="stars">STARS</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

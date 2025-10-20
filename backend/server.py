@@ -475,15 +475,21 @@ async def get_analytics():
     activities = await db.activity.find({"price_type": "TON"}, {"_id": 0}).to_list(10000)
     total_volume = sum(a["price"] for a in activities)
     
+    # Calculate SXTON stats
+    users = await db.users.find({}, {"_id": 0, "sxton_points": 1}).to_list(10000)
+    total_sxton_distributed = sum(u.get("sxton_points", 0) for u in users)
+    
     # Get override stats if they exist
     override_stats = await db.settings.find_one({"id": "analytics_override"}, {"_id": 0})
     
     return {
-        "total_users": total_users,
+        "total_users": override_stats.get("total_users", total_users) if override_stats else total_users,
         "total_packs": total_packs,
         "total_transactions": total_transactions,
-        "total_volume_ton": override_stats.get("total_volume_ton", total_volume) if override_stats else total_volume,
-        "online_users": override_stats.get("online_users") if override_stats else None
+        "total_volume_ton": override_stats.get("total_volume", total_volume) if override_stats else total_volume,
+        "online_users": override_stats.get("online_users") if override_stats else None,
+        "total_sxton_distributed": override_stats.get("total_sxton_distributed", total_sxton_distributed) if override_stats else total_sxton_distributed,
+        "total_sxton_spent": override_stats.get("total_sxton_spent", 0) if override_stats else 0
     }
 
 @api_router.put("/admin/analytics/override", dependencies=[Depends(verify_admin)])

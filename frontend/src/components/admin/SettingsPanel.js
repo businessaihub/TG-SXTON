@@ -260,7 +260,7 @@ const SettingsPanel = () => {
       <Button
         onClick={handleSave}
         data-testid="save-settings-btn"
-        className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 transform hover:scale-105 active:scale-95 transition-all shadow-lg relative z-10"
+        className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 transition-colors shadow-lg relative z-10"
       >
         Save All Settings
       </Button>

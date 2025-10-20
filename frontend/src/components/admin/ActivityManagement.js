@@ -6,7 +6,7 @@ import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Plus, Edit, Trash2, Activity } from "lucide-react";
+import { Plus, Edit, Trash2, Activity, Filter } from "lucide-react";
 import { toast } from "sonner";
 
 const ActivityManagement = () => {

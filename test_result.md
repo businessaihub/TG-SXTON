@@ -216,12 +216,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Activity Management API - Get activities with filters"
-    - "Activity Management API - Create activity"
-    - "Activity Management API - Update activity"
-    - "Activity Management API - Delete activity"
+    - "Activity Management Admin Menu Integration"
+    - "Activity Management UI with Filters"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:

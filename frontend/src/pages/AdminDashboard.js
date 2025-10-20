@@ -77,6 +77,7 @@ const AdminDashboard = ({ setIsAdmin }) => {
           {currentView === "analytics" && <Analytics />}
           {currentView === "packs" && <PackManagement />}
           {currentView === "banners" && <BannerManagement />}
+          {currentView === "activity" && <ActivityManagement />}
           {currentView === "settings" && <SettingsPanel />}
           {currentView === "simulation" && <ActivitySimulation />}
         </div>

@@ -266,6 +266,52 @@ const ActivityManagement = () => {
         </Dialog>
       </div>
 
+      {/* Filters */}
+      <div className="space-y-3 relative z-10">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Filter className="text-gray-400" size={18} />
+            <Select value={collectionFilter} onValueChange={setCollectionFilter}>
+              <SelectTrigger className="w-48 bg-slate-800/50 border-white/10 text-white">
+                <SelectValue placeholder="Collection" />
+              </SelectTrigger>
+              <SelectContent className="glass-card border-white/10">
+                <SelectItem value="all">All Collections</SelectItem>
+                {packs.map((pack) => (
+                  <SelectItem key={pack.id} value={pack.name}>{pack.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Select value={actionFilter} onValueChange={setActionFilter}>
+            <SelectTrigger className="w-40 bg-slate-800/50 border-white/10 text-white">
+              <SelectValue placeholder="Action" />
+            </SelectTrigger>
+            <SelectContent className="glass-card border-white/10">
+              <SelectItem value="all">All Actions</SelectItem>
+              <SelectItem value="bought">Bought</SelectItem>
+              <SelectItem value="opened">Opened</SelectItem>
+              <SelectItem value="listed">Listed</SelectItem>
+              <SelectItem value="sold">Sold</SelectItem>
+              <SelectItem value="burned">Burned</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={timeFilter} onValueChange={setTimeFilter}>
+            <SelectTrigger className="w-40 bg-slate-800/50 border-white/10 text-white">
+              <SelectValue placeholder="Time" />
+            </SelectTrigger>
+            <SelectContent className="glass-card border-white/10">
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="1h">Last Hour</SelectItem>
+              <SelectItem value="24h">Last 24 Hours</SelectItem>
+              <SelectItem value="7d">Last 7 Days</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* Activities List */}
       <div className="space-y-3 relative z-10">
         {activities.slice(0, 20).map((activity) => (

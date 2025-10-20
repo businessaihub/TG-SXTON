@@ -86,7 +86,7 @@ const ActivityManagement = () => {
       setIsDialogOpen(false);
       setEditingActivity(null);
       resetForm();
-      fetchActivities();
+      await fetchActivities();
     } catch (error) {
       toast.error("Error saving activity");
     }

@@ -101,3 +101,111 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Implement the 'Latest Marketplace Activity' feature for the StickersXTon Admin Dashboard. This feature should display recent marketplace activities (purchases/sales) with collection name, action type (purchase/sale), amount (stars/SXTON), user pseudonym (anonymous), and timestamp. Include filters by collection, action type, and time range. Admin should be able to manually edit activities for MVP/demo purposes."
+
+backend:
+  - task: "Activity Management API - Get activities with filters"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented GET /api/admin/activity endpoint with filter parameters: collection, action, time_range. Supports filtering by collection name, action type (bought/opened/listed/sold/burned), and time range (1h/24h/7d). Returns filtered activities sorted by created_at desc."
+
+  - task: "Activity Management API - Create activity"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/admin/activity endpoint already implemented. Accepts activity data and creates new activity with all required fields."
+
+  - task: "Activity Management API - Update activity"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "PUT /api/admin/activity/{activity_id} endpoint already implemented. Allows admin to manually edit activity details."
+
+  - task: "Activity Management API - Delete activity"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "DELETE /api/admin/activity/{activity_id} endpoint already implemented. Allows admin to delete activities."
+
+frontend:
+  - task: "Activity Management Admin Menu Integration"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/AdminDashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added 'Activity Management' menu item to Admin Dashboard with List icon. Imported ActivityManagement component and added view rendering."
+
+  - task: "Activity Management UI with Filters"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/admin/ActivityManagement.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated ActivityManagement component to support filters (collection, action type, time range). Added filter UI with Select components. Updated fetchActivities to use admin endpoint with filter parameters. Component shows activity list with edit/delete capabilities."
+
+  - task: "User Activity Feed Display"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Activity.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Activity.js already displays activities with all required information: collection name, action type, amount, pseudonym (generated), timestamp. Has filters by collection and time. Uses public /api/activity endpoint."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Activity Management API - Get activities with filters"
+    - "Activity Management API - Create activity"
+    - "Activity Management API - Update activity"
+    - "Activity Management API - Delete activity"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Implemented the 'Latest Marketplace Activity' feature. Backend endpoints enhanced with filtering support. Admin Dashboard now has Activity Management menu item. ActivityManagement component supports filters by collection, action type, and time range. All CRUD operations are implemented. Ready for backend testing. Please test all activity management API endpoints with various filter combinations and CRUD operations. Admin credentials: username='admin', password='admin123'."

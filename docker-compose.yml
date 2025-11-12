@@ -1,0 +1,42 @@
+version: "3.8"
+services:
+  mongo:
+    image: mongo:latest
+    container_name: tg-sxton_mongo
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tg-sxton_backend
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8001:8001"
+    depends_on:
+      - mongo
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tg-sxton_frontend
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3000:3000"
+    volumes:
+      # Для гарячого перезавантаження коду
+      - ./frontend/src:/app/src:ro
+      - ./frontend/public:/app/public:ro
+      # Монтуємо .env для моментального підхоплювання змін
+      - ./frontend/.env:/app/.env:ro
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

@@ -154,7 +154,7 @@ const BannerManagement = () => {
               Create Banner
             </Button>
           </DialogTrigger>
-          <DialogContent className="glass-card border-white/10 text-white max-w-2xl">
+          <DialogContent className="glass-card-no-overflow border-white/10 text-white max-w-2xl">
             <DialogHeader>
               <DialogTitle className="text-white">
                 {editingBanner ? "Edit Banner" : "Create New Banner"}

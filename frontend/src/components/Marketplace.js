@@ -18,6 +18,7 @@ const Marketplace = ({ user, language }) => {
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [tradingVolume, setTradingVolume] = useState(0);
   const [activeTraders, setActiveTraders] = useState(0);
+  const [transactions, setTransactions] = useState(0);
   const t = translations[language] || translations.en;
 
   useEffect(() => {
@@ -27,7 +28,19 @@ const Marketplace = ({ user, language }) => {
     
     // Update activity stats every 5 seconds
     const interval = setInterval(fetchActivityStats, 5000);
-    return () => clearInterval(interval);
+    
+    // Listen for analytics updates from admin panel
+    const handleAnalyticsUpdated = () => {
+      console.log("Analytics updated event received, refreshing stats...");
+      fetchActivityStats();
+    };
+    
+    window.addEventListener("analyticsUpdated", handleAnalyticsUpdated);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("analyticsUpdated", handleAnalyticsUpdated);
+    };
   }, [filter]);
 
   useEffect(() => {
@@ -35,9 +48,43 @@ const Marketplace = ({ user, language }) => {
   }, [sortBy]);
 
   const fetchActivityStats = async () => {
+    try {
+      // Check if we should use real data from admin analytics
+      // Default to true (Real Data mode) if not explicitly set
+      const savedMode = localStorage.getItem("analytics_use_real_data");
+      const useRealData = savedMode === null ? true : savedMode === "true";
+      
+      if (useRealData) {
+        // Fetch real data from public analytics endpoint
+        try {
+          const response = await axios.get(`${API}/analytics`);
+          const data = response.data;
+          console.log("Fetched real analytics data:", data);
+          
+          setOnlineUsers(data.online_users || 0);
+          setTradingVolume(data.trading_volume || 0);
+          setActiveTraders(data.active_traders || 0);
+          setTransactions(data.total_transactions || 0);
+        } catch (error) {
+          console.error("Error fetching real analytics, falling back to simulation:", error);
+          // Fallback to simulation if real data fails
+          simulateActivityStats();
+        }
+      } else {
+        // Use simulated data in manual mode
+        simulateActivityStats();
+      }
+    } catch (error) {
+      console.error("Error in fetchActivityStats:", error);
+      simulateActivityStats();
+    }
+  };
+
+  const simulateActivityStats = () => {
     setOnlineUsers(Math.floor(Math.random() * (1000 - 150) + 150));
     setTradingVolume(Math.floor(Math.random() * (5000 - 1000) + 1000));
     setActiveTraders(Math.floor(Math.random() * (200 - 50) + 50));
+    setTransactions(Math.floor(Math.random() * (1000 - 100) + 100));
   };
 
   const fetchPacks = async () => {
@@ -152,6 +199,12 @@ const Marketplace = ({ user, language }) => {
             <Flame className="text-yellow-400 relative z-10" size={14} />
             <span className="text-yellow-400 font-semibold text-sm relative z-10">{activeTraders}</span>
             <span className="text-gray-400 text-xs relative z-10">trading</span>
+          </div>
+          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-purple-500/30 bg-gradient-to-r from-purple-500/10 to-pink-500/10 transition-colors relative overflow-hidden">
+            <div className="cosmic-particles"></div>
+            <TrendingUp className="text-purple-400 relative z-10" size={14} />
+            <span className="text-purple-400 font-semibold text-sm relative z-10">{transactions}</span>
+            <span className="text-gray-400 text-xs relative z-10">transactions</span>
           </div>
         </div>
       </div>

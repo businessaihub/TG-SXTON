@@ -815,18 +815,63 @@ async def get_analytics():
     users = await db.users.find({}, {"_id": 0, "sxton_points": 1}).to_list(10000)
     total_sxton_distributed = sum(u.get("sxton_points", 0) for u in users)
     
-    # Get override stats
+    # Get override stats (if admin manually set them)
     override_stats = await db.settings.find_one({"id": "analytics_override"}, {"_id": 0})
     
-    return {
+    # Default online users calculation (random simulation if no override)
+    import random
+    default_online = random.randint(150, 1000)
+    
+    result = {
         "total_users": override_stats.get("total_users", total_users) if override_stats else total_users,
         "total_packs": total_packs,
-        "total_transactions": total_transactions,
+        "total_transactions": override_stats.get("total_transactions", total_transactions) if override_stats else total_transactions,
         "total_volume_ton": override_stats.get("total_volume", total_volume) if override_stats else total_volume,
-        "online_users": override_stats.get("online_users") if override_stats else None,
+        "online_users": override_stats.get("online_users", default_online) if override_stats else default_online,
         "total_sxton_distributed": override_stats.get("total_sxton_distributed", total_sxton_distributed) if override_stats else total_sxton_distributed,
-        "total_sxton_spent": override_stats.get("total_sxton_spent", 0) if override_stats else 0
+        "total_sxton_spent": override_stats.get("total_sxton_spent", 0) if override_stats else 0,
+        "data": {
+            "online_users": override_stats.get("online_users", default_online) if override_stats else default_online,
+            "trading_volume": override_stats.get("total_volume", total_volume) if override_stats else total_volume,
+            "active_traders": override_stats.get("active_traders", random.randint(50, 200)) if override_stats else random.randint(50, 200)
+        }
     }
+    
+    return result
+
+@api_router.get("/analytics")
+async def get_analytics_public():
+    """Public endpoint for fetching analytics data (used by main page)"""
+    total_users = await db.users.count_documents({})  
+    total_packs = await db.sticker_packs.count_documents({})
+    total_transactions = await db.activity.count_documents({})
+    
+    # Calculate total volume
+    activities = await db.activity.find({"price_type": "TON"}, {"_id": 0}).to_list(10000)
+    total_volume = sum(a["price"] for a in activities)
+    
+    # Calculate SXTON stats
+    users = await db.users.find({}, {"_id": 0, "sxton_points": 1}).to_list(10000)
+    total_sxton_distributed = sum(u.get("sxton_points", 0) for u in users)
+    
+    # Get override stats (if admin manually set them)
+    override_stats = await db.settings.find_one({"id": "analytics_override"}, {"_id": 0})
+    
+    # Default online users calculation (random simulation if no override)
+    import random
+    default_online = random.randint(150, 1000)
+    default_active_traders = random.randint(50, 200)
+    
+    result = {
+        "online_users": override_stats.get("online_users", default_online) if override_stats else default_online,
+        "trading_volume": override_stats.get("total_volume", total_volume) if override_stats else total_volume,
+        "active_traders": override_stats.get("active_traders", default_active_traders) if override_stats else default_active_traders,
+        "total_users": override_stats.get("total_users", total_users) if override_stats else total_users,
+        "total_packs": total_packs,
+        "total_transactions": override_stats.get("total_transactions", total_transactions) if override_stats else total_transactions
+    }
+    
+    return result
 
 @api_router.put("/admin/analytics/override", dependencies=[Depends(verify_admin)])
 async def override_analytics(data: Dict[str, Any]):

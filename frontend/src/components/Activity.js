@@ -20,7 +20,17 @@ const Activity = ({ language }) => {
     fetchActivity();
     fetchPacks();
     const interval = setInterval(fetchActivity, 10000); // Auto-refresh every 10s
-    return () => clearInterval(interval);
+    
+    // Listen for analytics mode changes
+    const handleAnalyticsUpdate = () => {
+      fetchActivity();
+    };
+    window.addEventListener("analyticsUpdated", handleAnalyticsUpdate);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("analyticsUpdated", handleAnalyticsUpdate);
+    };
   }, [filter, collectionFilter, timeFilter]);
 
   const fetchPacks = async () => {

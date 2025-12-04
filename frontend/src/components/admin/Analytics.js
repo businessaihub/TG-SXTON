@@ -13,25 +13,55 @@ const Analytics = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [useRealData, setUseRealData] = useState(false);
+  const [useRealData, setUseRealData] = useState(localStorage.getItem("analytics_use_real_data") !== "false");
   const [editableData, setEditableData] = useState({
     total_users: 0,
     online_users: 0,
     total_volume: 0,
+    total_transactions: 0,
     total_sxton_distributed: 0,
     total_sxton_spent: 0
   });
 
   useEffect(() => {
+    // Load from localStorage on mount - default to Real Data (true)
+    const savedMode = localStorage.getItem("analytics_use_real_data");
+    const initialMode = savedMode === null ? true : savedMode === "true";
+    setUseRealData(initialMode);
+    if (savedMode === null) {
+      localStorage.setItem("analytics_use_real_data", "true");
+    }
+    
     fetchAnalytics();
-    // Simulate live updates every 5 seconds
+    // Simulate live updates every 5 seconds (only when NOT in Real Data mode and NOT editing)
     const interval = setInterval(() => {
-      if (!editMode) {
+      if (!editMode && !initialMode) {
         simulateLiveUpdate();
       }
     }, 5000);
-    return () => clearInterval(interval);
-  }, [editMode]);
+
+    // Listen for updates from other components/tabs
+    const handleUpdate = () => {
+      fetchAnalytics();
+    };
+    window.addEventListener("analyticsUpdated", handleUpdate);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("analyticsUpdated", handleUpdate);
+    };
+  }, [editMode, useRealData]);
+
+  // When useRealData changes, refresh analytics immediately and set up live polling
+  useEffect(() => {
+    if (useRealData) {
+      // In Real Data mode, refresh immediately
+      fetchAnalytics();
+      // Then refresh more frequently to show live data
+      const realDataInterval = setInterval(fetchAnalytics, 3000); // Update every 3 seconds
+      return () => clearInterval(realDataInterval);
+    }
+  }, [useRealData]);
 
   const fetchAnalytics = async () => {
     try {
@@ -40,13 +70,16 @@ const Analytics = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAnalytics(response.data);
-      setEditableData({
+      
+      // In Real Data mode, use actual data from backend. In Manual mode, use editable data
+      setEditableData(prev => ({
         total_users: response.data.total_users || 0,
-        online_users: response.data.online_users || Math.floor(Math.random() * (1000 - 150) + 150),
+        online_users: response.data.online_users || prev.online_users, // Keep previous if not available
         total_volume: response.data.total_volume_ton || 0,
+        total_transactions: response.data.total_transactions || prev.total_transactions || 0,
         total_sxton_distributed: response.data.total_sxton_distributed || 50000,
         total_sxton_spent: response.data.total_sxton_spent || 12000
-      });
+      }));
       setLoading(false);
     } catch (error) {
       console.error("Error fetching analytics:", error);
@@ -67,6 +100,13 @@ const Analytics = () => {
       await axios.put(`${API}/admin/analytics/override`, editableData, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      // Notify other components of the update
+      localStorage.setItem("analytics_last_update", JSON.stringify({
+        timestamp: Date.now(),
+        data: editableData
+      }));
+      window.dispatchEvent(new Event("analyticsUpdated"));
+      
       toast.success("Stats updated successfully");
       setEditMode(false);
       fetchAnalytics();
@@ -110,12 +150,12 @@ const Analytics = () => {
     },
     {
       label: "Transactions",
-      value: analytics?.total_transactions || 0,
+      value: useRealData ? (analytics?.total_transactions || 0) : editableData.total_transactions,
       icon: Activity,
       color: "text-yellow-400",
       bgColor: "bg-gradient-to-br from-yellow-500/20 to-yellow-600/10",
       borderColor: "border-yellow-500/30",
-      editable: false
+      editable: true
     },
     {
       label: "Volume (TON)",
@@ -149,7 +189,13 @@ const Analytics = () => {
             </span>
             <Switch
               checked={useRealData}
-              onCheckedChange={setUseRealData}
+              onCheckedChange={(val) => {
+                console.log("Analytics mode changed to:", val ? "Real Data" : "Manual");
+                setUseRealData(val);
+                // Save preference and notify others
+                localStorage.setItem("analytics_use_real_data", val.toString());
+                window.dispatchEvent(new Event("analyticsUpdated"));
+              }}
               className="data-[state=checked]:bg-green-500"
             />
             <span className={`text-sm ${useRealData ? 'text-green-400 font-semibold' : 'text-gray-400'}`}>
@@ -222,10 +268,12 @@ const Analytics = () => {
                   step={stat.label.includes("Volume") ? "0.01" : "1"}
                   value={stat.label.includes("Volume") ? editableData.total_volume : 
                          stat.label.includes("Total Users") ? editableData.total_users :
+                         stat.label.includes("Transactions") ? editableData.total_transactions :
                          editableData.online_users}
                   onChange={(e) => {
                     const field = stat.label.includes("Volume") ? "total_volume" : 
                                   stat.label.includes("Total Users") ? "total_users" :
+                                  stat.label.includes("Transactions") ? "total_transactions" :
                                   "online_users";
                     setEditableData({...editableData, [field]: parseFloat(e.target.value) || 0});
                   }}

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import axios from "axios";
 import { API } from "../App";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -7,16 +6,45 @@ import { Card } from "./ui/card";
 import { Wallet, LogOut, Clock, List, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
+import { useEffect } from "react";
 
 const Profile = ({ user, setUser, language, setLanguage }) => {
   const [walletConnected, setWalletConnected] = useState(false);
+  const [stickers, setStickers] = useState([]);
+  const [loadingStickers, setLoadingStickers] = useState(false);
   const t = translations[language] || translations.en;
+
+  const rarityBorder = (rarity) => {
+    switch (rarity) {
+      case "Legendary": return "border-yellow-400";
+      case "Epic": return "border-purple-500";
+      case "Rare": return "border-blue-500";
+      case "Uncommon": return "border-teal-400";
+      default: return "border-gray-600";
+    }
+  };
+
+  useEffect(() => {
+    const fetchStickers = async () => {
+      if (!user || !user.id) return;
+      setLoadingStickers(true);
+      try {
+        const res = await API.get(`/user/${user.id}/stickers`);
+        setStickers(res.data || []);
+      } catch (e) {
+        console.error('Failed to fetch stickers', e);
+      } finally {
+        setLoadingStickers(false);
+      }
+    };
+    fetchStickers();
+  }, [user]);
 
   const handleConnectWallet = async () => {
     // Mock TonConnect
     const mockAddress = "EQ..." + Math.random().toString(36).substr(2, 9);
-    try {
-      await axios.post(`${API}/wallet/connect`, {
+      try {
+        await API.post(`/wallet/connect`, {
         user_id: user.id,
         wallet_address: mockAddress
       });
@@ -144,6 +172,30 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
             {t.profile.unlisted}
           </Button>
         </div>
+      </div>
+
+      {/* My Stickers */}
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-semibold mb-3" style={{ fontFamily: 'Space Grotesk' }}>
+          {t.profile.myStickers || 'My Stickers'}
+        </h3>
+        {loadingStickers ? (
+          <div>Loading stickers…</div>
+        ) : stickers.length === 0 ? (
+          <div className="text-sm text-gray-400">You have no stickers yet.</div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {stickers.map((st) => (
+              <div key={st.id} className={`p-3 rounded-lg flex items-center gap-3 border ${rarityBorder(st.rarity)} bg-gradient-to-br from-black/20 to-white/2`}>
+                <img src={st.image_url} alt={`${st.pack_name} #${st.sticker_number}`} className="w-16 h-16 object-cover rounded-md" />
+                <div>
+                  <div className="font-semibold text-white">{st.pack_name} #{st.sticker_number}</div>
+                  <div className="text-sm text-gray-300">{st.rarity}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Actions */}

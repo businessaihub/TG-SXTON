@@ -20,6 +20,7 @@ const PackManagement = () => {
     name: "",
     description: "",
     image_url: "",
+    image_urls: [],
     price: 1,
     price_type: "TON",
     purchase_types: ["TON", "STARS", "SXTON"],
@@ -27,7 +28,7 @@ const PackManagement = () => {
     required_channel_id: "",
     required_channel_link: "",
     rarity: "common",
-    sticker_count: 5,
+    sticker_count: 0,
     is_featured: false,
     is_upcoming: false,
     burn_enabled: false,
@@ -38,6 +39,17 @@ const PackManagement = () => {
   useEffect(() => {
     fetchPacks();
   }, []);
+
+  // Keep sticker_count in sync with image inputs
+  useEffect(() => {
+    setFormData((prev) => {
+      const urlCount = prev.image_url ? 1 : 0;
+      const filesCount = (prev.image_urls || []).length;
+      const desired = imageUploadMode === "url" ? Math.max(urlCount, filesCount) : filesCount;
+      if (prev.sticker_count === desired) return prev;
+      return { ...prev, sticker_count: desired };
+    });
+  }, [imageUploadMode]);
 
   const fetchPacks = async () => {
     try {
@@ -50,18 +62,24 @@ const PackManagement = () => {
     }
   };
 
+  // Main submit handler. Accepts optional event so it can be called directly
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const token = localStorage.getItem("admin_token");
-    
+    console.log('handleSubmit fired', { editingPack: !!editingPack, sticker_count: formData.sticker_count });
     try {
+      // Inform about creation with current sticker count
+      console.log(`Creating pack with ${formData.sticker_count} stickers`);
+      toast(`Створюється пак з ${formData.sticker_count} стікерами…`);
+      const payload = { ...formData, sticker_count: (formData.image_urls && formData.image_urls.length) || formData.sticker_count || 0 };
+      let res = null;
       if (editingPack) {
-        await axios.put(`${API}/admin/packs/${editingPack.id}`, formData, {
+        res = await axios.put(`${API}/admin/packs/${editingPack.id}`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success("Pack updated successfully");
       } else {
-        await axios.post(`${API}/admin/packs`, formData, {
+        res = await axios.post(`${API}/admin/packs`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success("Pack created successfully");
@@ -69,9 +87,45 @@ const PackManagement = () => {
       setIsDialogOpen(false);
       setEditingPack(null);
       resetForm();
-      fetchPacks();
+      await fetchPacks();
+      return res;
     } catch (error) {
       toast.error("Error saving pack");
+      console.error('handleSubmit error', error);
+      throw error;
+    }
+  };
+
+  // Wrapper called by the Create/Update button. Logs invocation and reasons button may be disabled.
+  const handleCreatePack = async (e) => {
+    console.log('handleCreatePack invoked', { sticker_count: formData.sticker_count, imageUploadMode, name: formData.name });
+    if (!(formData.sticker_count > 0)) {
+      console.log('Create blocked: sticker_count must be > 0', { sticker_count: formData.sticker_count });
+      return;
+    }
+    if (!formData.name || formData.name.trim().length === 0) {
+      console.log('Create blocked: name is empty');
+      return;
+    }
+    if (!formData.description || formData.description.trim().length === 0) {
+      console.log('Create blocked: description is empty');
+      return;
+    }
+    if (imageUploadMode === 'url' && !formData.image_url) {
+      console.log('Create blocked: image_url empty in URL mode');
+      return;
+    }
+    if (imageUploadMode === 'file' && (!formData.image_urls || formData.image_urls.length === 0)) {
+      console.log('Create blocked: no uploaded files in Upload mode');
+      return;
+    }
+
+    // Delegate to the main submit handler and return its promise so callers can await it.
+    try {
+      return await handleSubmit();
+    } catch (err) {
+      // error already logged in handleSubmit
+      return;
     }
   };
 
@@ -91,29 +145,71 @@ const PackManagement = () => {
   };
 
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Check file size (limit to 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("Image must be smaller than 2MB");
-        return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Read files preserving order using Promise.all
+    const readers = files.map((file, idx) => {
+      return new Promise((resolve) => {
+        if (file.size > 2 * 1024 * 1024) {
+          resolve({ idx, error: true });
+          return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => resolve({ idx, data: reader.result });
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readers).then((results) => {
+      const ordered = results
+        .filter(r => !r.error)
+        .sort((a, b) => a.idx - b.idx)
+        .map(r => r.data);
+      if (ordered.length === 0) return;
+      setFormData((prev) => {
+        const nextImages = [...(prev.image_urls || []), ...ordered];
+        return { ...prev, image_urls: nextImages, sticker_count: nextImages.length };
+      });
+      if (results.some(r => r.error)) {
+        toast.error('Some images were skipped (max 2MB each)');
       }
-      
-      // Convert to base64
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image_url: reader.result });
-      };
-      reader.readAsDataURL(file);
-    }
+    });
   };
+
+  const removeImageAt = (index) => {
+    setFormData((prev) => {
+      const next = [...(prev.image_urls || [])];
+      next.splice(index, 1);
+      return { ...prev, image_urls: next, sticker_count: next.length };
+    });
+  };
+
+  const onDragStart = (e, index) => {
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const onDrop = (e, index) => {
+    const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (isNaN(from)) return;
+    setFormData((prev) => {
+      const next = [...(prev.image_urls || [])];
+      const [moved] = next.splice(from, 1);
+      next.splice(index, 0, moved);
+      return { ...prev, image_urls: next, sticker_count: next.length };
+    });
+  };
+
+  const onDragOver = (e) => { e.preventDefault(); };
 
   const handleEdit = (pack) => {
     setEditingPack(pack);
+    const images = pack.image_urls || (pack.image_url ? [pack.image_url] : []);
     setFormData({
       name: pack.name,
       description: pack.description,
       image_url: pack.image_url,
+      image_urls: images,
       price: pack.price,
       price_type: pack.price_type,
       purchase_types: pack.purchase_types || ["TON", "STARS", "SXTON"],
@@ -121,7 +217,7 @@ const PackManagement = () => {
       required_channel_id: pack.required_channel_id || "",
       required_channel_link: pack.required_channel_link || "",
       rarity: pack.rarity,
-      sticker_count: pack.sticker_count,
+      sticker_count: images.length,
       is_featured: pack.is_featured,
       is_upcoming: pack.is_upcoming,
       burn_enabled: pack.burn_enabled,
@@ -136,6 +232,7 @@ const PackManagement = () => {
       name: "",
       description: "",
       image_url: "",
+      image_urls: [],
       price: 1,
       price_type: "TON",
       purchase_types: ["TON", "STARS", "SXTON"],
@@ -143,7 +240,7 @@ const PackManagement = () => {
       required_channel_id: "",
       required_channel_link: "",
       rarity: "common",
-      sticker_count: 5,
+      sticker_count: 0,
       is_featured: false,
       is_upcoming: false,
       burn_enabled: false,
@@ -223,12 +320,31 @@ const PackManagement = () => {
                     <div className="space-y-2">
                       <Input
                         type="file"
+                        multiple
                         accept="image/*"
                         onChange={handleImageUpload}
                         className="bg-white/5 border-white/10 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-white hover:file:bg-cyan-600"
                       />
-                      {formData.image_url && (
-                        <img src={formData.image_url} alt="Preview" className="w-32 h-32 object-cover rounded-lg border border-white/10" />
+                      {formData.image_urls && formData.image_urls.length > 0 && (
+                        <div className="flex gap-2 flex-wrap">
+                          {formData.image_urls.map((src, idx) => (
+                            <div key={idx} className="relative">
+                              <img
+                                src={src}
+                                alt={`Preview ${idx + 1}`}
+                                className="w-24 h-24 object-cover rounded-lg border border-white/10"
+                                draggable
+                                onDragStart={(e) => onDragStart(e, idx)}
+                                onDragOver={onDragOver}
+                                onDrop={(e) => onDrop(e, idx)}
+                              />
+                              <div className="absolute bottom-0 left-0 bg-black/60 text-xs text-white px-1 rounded-tr">
+                                #{idx + 1}
+                              </div>
+                              <button type="button" onClick={() => removeImageAt(idx)} className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-6 h-6 text-xs -translate-y-1/3 translate-x-1/3">×</button>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   )}
@@ -398,7 +514,12 @@ const PackManagement = () => {
                 </div>
               )}
               
-              <Button type="submit" className="w-full bg-cyan-500 hover:bg-cyan-600">
+              <Button
+                type="button"
+                aria-disabled={!(formData.sticker_count > 0)}
+                onClick={handleCreatePack}
+                className={`w-full bg-cyan-500 hover:bg-cyan-600 ${formData.sticker_count > 0 ? '' : 'opacity-50 cursor-not-allowed'}`}
+              >
                 {editingPack ? "Update Pack" : "Create Pack"}
               </Button>
             </form>

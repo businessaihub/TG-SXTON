@@ -38,6 +38,21 @@ const MiniApp = ({ isAdmin }) => {
         });
       } catch (error) {
         console.error("Error initializing user:", error);
+        // Fallback: create a temporary offline demo user so UI loads
+        const fallback = {
+          id: "local_demo_user",
+          username: "demo_offline",
+          ton_balance: 100,
+          stars_balance: 500,
+          sxton_points: 1000,
+          referral_count: 0
+        };
+        // eslint-disable-next-line no-undef
+        if (typeof window !== 'undefined' && window.__TAURI__ === undefined) {
+          // Only show toast in browser environments where toast is available
+          try { window.toast && window.toast('Offline demo mode'); } catch (e) {}
+        }
+        setUser(fallback);
       }
     };
     initUser();

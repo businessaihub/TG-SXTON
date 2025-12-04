@@ -2,6 +2,8 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+import json
+import asyncio
 import os
 import logging
 from pathlib import Path
@@ -12,16 +14,259 @@ from datetime import datetime, timezone
 import secrets
 import random
 
+
+def get_rarity(sticker_number: int, total_count: int) -> str:
+    """Determine rarity by sticker number and total count.
+
+    Ranges (by percentage of total_count):
+    - Legendary: first 1% (minimum 1)
+    - Epic: next 4%
+    - Rare: next 10%
+    - Uncommon: next 25%
+    - Common: remainder
+
+    Uses rounding to nearest integer for each bucket; remainder goes to Common.
+    """
+    if total_count <= 0 or sticker_number is None:
+        return "Common"
+
+    # compute counts using rounding; ensure at least 1 legendary
+    legendary_count = max(1, int(round(total_count * 0.01)))
+    epic_count = int(round(total_count * 0.04))
+    rare_count = int(round(total_count * 0.10))
+    uncommon_count = int(round(total_count * 0.25))
+
+    l_end = legendary_count
+    e_end = l_end + epic_count
+    r_end = e_end + rare_count
+    u_end = r_end + uncommon_count
+
+    n = sticker_number
+    if n <= l_end:
+        return "Legendary"
+    if n <= e_end:
+        return "Epic"
+    if n <= r_end:
+        return "Rare"
+    if n <= u_end:
+        return "Uncommon"
+    return "Common"
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# We'll try to use MongoDB when available; otherwise fall back to a simple file-backed local store
+db = None
+
+
+class LocalCursor:
+    def __init__(self, docs):
+        self._docs = docs
+
+    async def to_list(self, limit=None):
+        if limit is None:
+            return list(self._docs)
+        return list(self._docs)[:limit]
+
+    def sort(self, key, direction):
+        # simple sort by key
+        reverse = direction == -1
+        self._docs.sort(key=lambda d: d.get(key), reverse=reverse)
+        return self
+
+    def limit(self, n):
+        self._docs = self._docs[:n]
+        return self
+
+
+class LocalCollection:
+    def __init__(self, name, store, lock):
+        self.name = name
+        self._store = store
+        self._lock = lock
+
+    async def find_one(self, query, projection=None):
+        for doc in self._store.get(self.name, []):
+            match = True
+            for k, v in (query or {}).items():
+                if doc.get(k) != v:
+                    match = False
+                    break
+            if match:
+                return dict(doc)
+        return None
+
+    def find(self, query=None, projection=None):
+        results = []
+        for doc in self._store.get(self.name, []):
+            match = True
+            if query:
+                for k, v in query.items():
+                    if isinstance(v, dict) and "$in" in v:
+                        if doc.get(k) not in v["$in"]:
+                            match = False
+                            break
+                    else:
+                        if doc.get(k) != v:
+                            match = False
+                            break
+            if match:
+                results.append(dict(doc))
+        return LocalCursor(results)
+
+    async def insert_one(self, doc):
+        async with _async_lock:
+            self._store.setdefault(self.name, []).append(dict(doc))
+            await _persist_store(self._store)
+        return True
+
+    async def insert_many(self, docs):
+        async with _async_lock:
+            self._store.setdefault(self.name, []).extend([dict(d) for d in docs])
+            await _persist_store(self._store)
+        return True
+
+    async def update_one(self, filter_q, update_q, upsert=False):
+        updated = 0
+        async with _async_lock:
+            items = self._store.get(self.name, [])
+            for idx, doc in enumerate(items):
+                match = True
+                for k, v in filter_q.items():
+                    if doc.get(k) != v:
+                        match = False
+                        break
+                if match:
+                    # support $set and $inc
+                    if "$set" in update_q:
+                        for k, v in update_q["$set"].items():
+                            doc[k] = v
+                    if "$inc" in update_q:
+                        for k, v in update_q["$inc"].items():
+                            doc[k] = doc.get(k, 0) + v
+                    items[idx] = doc
+                    updated += 1
+                    break
+            if updated == 0 and upsert:
+                newdoc = {**filter_q}
+                if "$set" in update_q:
+                    newdoc.update(update_q["$set"])
+                self._store.setdefault(self.name, []).append(newdoc)
+                updated = 1
+            await _persist_store(self._store)
+        class Res: modified_count = updated
+        return Res()
+
+    async def delete_one(self, filter_q):
+        deleted = 0
+        async with _async_lock:
+            items = self._store.get(self.name, [])
+            for idx, doc in enumerate(items):
+                match = True
+                for k, v in filter_q.items():
+                    if doc.get(k) != v:
+                        match = False
+                        break
+                if match:
+                    items.pop(idx)
+                    deleted = 1
+                    break
+            await _persist_store(self._store)
+        class Res: deleted_count = deleted
+        return Res()
+
+    async def delete_many(self, filter_q):
+        removed = 0
+        async with _async_lock:
+            items = self._store.get(self.name, [])
+            new_items = []
+            for doc in items:
+                match = True
+                for k, v in (filter_q or {}).items():
+                    if doc.get(k) != v:
+                        match = False
+                        break
+                if match:
+                    removed += 1
+                else:
+                    new_items.append(doc)
+            self._store[self.name] = new_items
+            await _persist_store(self._store)
+        class Res: deleted_count = removed
+        return Res()
+
+    async def count_documents(self, query=None):
+        cnt = 0
+        for doc in self._store.get(self.name, []):
+            match = True
+            if query:
+                for k, v in query.items():
+                    if doc.get(k) != v:
+                        match = False
+                        break
+            if match:
+                cnt += 1
+        return cnt
+
+
+from threading import Lock
+
+# Async lock for coordinating async operations on the in-memory store
+_async_lock = asyncio.Lock()
+
+DATA_DIR = ROOT_DIR / 'data'
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+DATA_FILE = DATA_DIR / 'data_store.json'
+_store_lock = Lock()
+
+async def _persist_store(store):
+    # Write store to disk in a thread to avoid blocking event loop
+    def _write():
+        with _store_lock:
+            with open(DATA_FILE, 'w', encoding='utf-8') as f:
+                json.dump(store, f, ensure_ascii=False, indent=2)
+    await asyncio.get_running_loop().run_in_executor(None, _write)
+
+def _load_store():
+    if DATA_FILE.exists():
+        try:
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+
+class LocalDB:
+    def __init__(self):
+        self._store = _load_store()
+
+    def __getattr__(self, name):
+        return LocalCollection(name, self._store, _store_lock)
+
+
+async def _init_db_on_startup():
+    global db
+    try:
+        # Try pinging MongoDB
+        await client.admin.command('ping')
+        db = client[os.environ['DB_NAME']]
+        print('Connected to MongoDB')
+    except Exception as e:
+        print('MongoDB not available, falling back to local file store:', e)
+        db = LocalDB()
+
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
+
+
+@app.on_event("startup")
+async def startup_checks():
+    await _init_db_on_startup()
 
 # ============ MODELS ============
 
@@ -45,7 +290,8 @@ class StickerPack(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     description: str
-    image_url: str
+    image_url: Optional[str] = None
+    image_urls: List[str] = Field(default_factory=list)
     price: float
     price_type: str = "TON"  # TON, STARS, SXTON
     purchase_types: List[str] = ["TON", "STARS", "SXTON"]  # Allowed purchase methods
@@ -83,6 +329,7 @@ class Sticker(BaseModel):
     pack_id: str
     owner_id: Optional[str] = None
     sticker_number: Optional[int] = None
+    position: Optional[int] = None
     image_url: str
     price: Optional[float] = None
     is_listed: bool = False
@@ -268,8 +515,8 @@ async def get_banners():
     return banners
 
 @api_router.post("/buy/pack")
-async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON"):
-    """Buy a sticker pack with subscription verification"""
+async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON", quantity: Optional[int] = None):
+    """Buy stickers from a pack. If `quantity` is provided, buy that many stickers (random unique). If omitted, buy the entire pack."""
     pack = await db.sticker_packs.find_one({"id": pack_id}, {"_id": 0})
     if not pack:
         raise HTTPException(status_code=404, detail="Pack not found")
@@ -290,40 +537,59 @@ async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON"):
                 detail=f"Must subscribe to channel first: {pack.get('required_channel_link', 'Required channel')}"
             )
     
-    # Check balance based on payment type
-    if payment_type == "TON" and user["ton_balance"] < pack["price"]:
+    # Determine quantity to buy (default: entire pack)
+    total_in_pack = pack.get("sticker_count", 0)
+    qty = quantity if quantity is not None else total_in_pack
+    if qty <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be >= 1")
+
+    # Check balance based on payment type (price per sticker * qty)
+    total_price = pack.get("price", 0) * qty
+    if payment_type == "TON" and user["ton_balance"] < total_price:
         raise HTTPException(status_code=400, detail="Insufficient TON balance")
-    elif payment_type == "STARS" and user["stars_balance"] < pack["price"]:
+    elif payment_type == "STARS" and user["stars_balance"] < total_price:
         raise HTTPException(status_code=400, detail="Insufficient Stars balance")
-    elif payment_type == "SXTON" and user["sxton_points"] < pack["price"]:
+    elif payment_type == "SXTON" and user["sxton_points"] < total_price:
         raise HTTPException(status_code=400, detail="Insufficient SXTON points")
-    
+
     # Deduct balance
     if payment_type == "TON":
-        await db.users.update_one({"id": user_id}, {"$inc": {"ton_balance": -pack["price"], "sxton_points": 500}})
+        await db.users.update_one({"id": user_id}, {"$inc": {"ton_balance": -total_price, "sxton_points": 500 * qty}})
     elif payment_type == "STARS":
-        await db.users.update_one({"id": user_id}, {"$inc": {"stars_balance": -pack["price"], "sxton_points": 500}})
+        await db.users.update_one({"id": user_id}, {"$inc": {"stars_balance": -total_price, "sxton_points": 500 * qty}})
     elif payment_type == "SXTON":
-        await db.users.update_one({"id": user_id}, {"$inc": {"sxton_points": -pack["price"]}})
-    
-    # Create stickers for the pack
-    for i in range(pack["sticker_count"]):
-        sticker = Sticker(
-            pack_id=pack_id,
-            owner_id=user_id,
-            sticker_number=i + 1,
-            image_url=pack["image_url"]
-        )
-        await db.stickers.insert_one(sticker.model_dump())
-    
+        await db.users.update_one({"id": user_id}, {"$inc": {"sxton_points": -total_price}})
+
+    # Select available (unsold) stickers for this pack
+    available = await db.stickers.find({"pack_id": pack_id, "owner_id": None}, {"_id": 0}).to_list(None)
+    if len(available) < qty:
+        raise HTTPException(status_code=400, detail=f"Not enough available stickers in this pack (requested {qty}, available {len(available)})")
+
+    # Pick random unique stickers
+    indices = random.sample(range(len(available)), qty)
+    selected = [available[i] for i in indices]
+
+    # Assign to user and collect sticker numbers + rarities
+    stickers_assigned = []
+    for s in selected:
+        await db.stickers.update_one({"id": s["id"]}, {"$set": {"owner_id": user_id}})
+        num = s.get("sticker_number") or s.get("position")
+        rarity = get_rarity(num, total_in_pack) if num is not None else "Common"
+        stickers_assigned.append({"sticker_number": num, "rarity": rarity})
+
+    # Sort by internal number for messaging
+    stickers_assigned_sorted = sorted([st for st in stickers_assigned if st.get("sticker_number") is not None], key=lambda x: x["sticker_number"])
+
     # Log activity
     activity = Activity(
         pack_name=pack["name"],
         action="bought",
-        price=pack["price"],
+        price=total_price,
         price_type=payment_type
     )
     await db.activity.insert_one(activity.model_dump())
+
+    return {"success": True, "stickers": stickers_assigned_sorted}
     
     # Award referral points
     if user.get("referrer_id"):
@@ -468,6 +734,28 @@ async def get_hot_collections():
         packs = await db.sticker_packs.find({}, {"_id": 0}).limit(5).to_list(5)
         return packs
 
+
+@api_router.get("/user/{user_id}/stickers")
+async def get_user_stickers(user_id: str):
+    """Return stickers owned by a user with computed rarity and pack info."""
+    stickers = await db.stickers.find({"owner_id": user_id}, {"_id": 0}).to_list(None)
+    result = []
+    for s in stickers:
+        pack = await db.sticker_packs.find_one({"id": s.get("pack_id")}, {"_id": 0})
+        total = pack.get("sticker_count") if pack else None
+        rarity = get_rarity(s.get("sticker_number") or s.get("position"), total) if total else "Common"
+        result.append({
+            "id": s.get("id"),
+            "pack_id": s.get("pack_id"),
+            "pack_name": pack.get("name") if pack else None,
+            "sticker_number": s.get("sticker_number") or s.get("position"),
+            "rarity": rarity,
+            "image_url": s.get("image_url")
+        })
+    # sort by pack_name then sticker_number
+    result.sort(key=lambda x: (x.get("pack_name") or "", x.get("sticker_number") or 0))
+    return result
+
 # ============ GIVEAWAYS ============
 
 @api_router.post("/giveaway/create")
@@ -552,18 +840,81 @@ async def override_analytics(data: Dict[str, Any]):
 
 @api_router.post("/admin/packs", dependencies=[Depends(verify_admin)])
 async def create_pack(pack_data: Dict[str, Any]):
+    # Backwards compatibility: if legacy `image_url` is provided, convert to `image_urls`
+    if "image_urls" not in pack_data and "image_url" in pack_data and pack_data.get("image_url"):
+        pack_data["image_urls"] = [pack_data["image_url"]]
+
     pack = StickerPack(**pack_data)
+    # ensure primary image_url remains set for older clients
+    if not pack.image_url and pack.image_urls:
+        pack.image_url = pack.image_urls[0]
+
+    # If images provided, use their count as sticker_count
+    images = pack.image_urls or ([pack.image_url] if pack.image_url else [])
+    if images:
+        pack.sticker_count = len(images)
+
     await db.sticker_packs.insert_one(pack.model_dump())
+
+    # Create sticker documents for each image (unsold)
+    if images:
+        stickers = []
+        for idx, img in enumerate(images):
+            s = Sticker(
+                pack_id=pack.id,
+                owner_id=None,
+                sticker_number=idx + 1,
+                position=idx + 1,
+                image_url=img
+            )
+            stickers.append(s.model_dump())
+        if stickers:
+            await db.stickers.insert_many(stickers)
+
     return {"success": True, "pack": pack.model_dump()}
 
 @api_router.put("/admin/packs/{pack_id}", dependencies=[Depends(verify_admin)])
 async def update_pack(pack_id: str, pack_data: Dict[str, Any]):
+    # Backwards compatibility: accept legacy `image_url` and map to `image_urls`
+    if "image_urls" not in pack_data and "image_url" in pack_data and pack_data.get("image_url"):
+        pack_data["image_urls"] = [pack_data["image_url"]]
+    if "image_urls" in pack_data and pack_data.get("image_urls") and not pack_data.get("image_url"):
+        # keep primary image_url for older clients
+        pack_data["image_url"] = pack_data["image_urls"][0]
+
+    # If images provided in update, set sticker_count and recreate stickers
+    images = None
+    if "image_urls" in pack_data and pack_data.get("image_urls"):
+        images = pack_data.get("image_urls")
+        pack_data["sticker_count"] = len(images)
+        # ensure primary image_url remains set
+        if not pack_data.get("image_url"):
+            pack_data["image_url"] = images[0]
+
     result = await db.sticker_packs.update_one(
         {"id": pack_id},
         {"$set": pack_data}
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Pack not found")
+
+    # If images were provided, replace stickers for this pack
+    if images is not None:
+        await db.stickers.delete_many({"pack_id": pack_id})
+        stickers = []
+        # fetch pack to get id
+        pack = await db.sticker_packs.find_one({"id": pack_id}, {"_id": 0})
+        for idx, img in enumerate(images):
+            s = Sticker(
+                pack_id=pack_id,
+                owner_id=None,
+                sticker_number=idx + 1,
+                position=idx + 1,
+                image_url=img
+            )
+            stickers.append(s.model_dump())
+        if stickers:
+            await db.stickers.insert_many(stickers)
     return {"success": True}
 
 @api_router.delete("/admin/packs/{pack_id}", dependencies=[Depends(verify_admin)])
@@ -698,6 +1049,70 @@ async def update_settings(settings_data: Dict[str, Any]):
         upsert=True
     )
     return {"success": True}
+
+
+# ----------------- Admin Export/Import for backups/migrations -----------------
+@api_router.get("/admin/export", dependencies=[Depends(verify_admin)])
+async def admin_export():
+    """Export all collections/documents as JSON for backup or migration.
+
+    Works with both MongoDB and the LocalDB fallback.
+    """
+    try:
+        # LocalDB: expose internal store directly
+        if hasattr(db, '_store'):
+            return {"success": True, "store": db._store}
+
+        # MongoDB: dump all collections
+        store = {}
+        coll_names = await db.list_collection_names()
+        for name in coll_names:
+            docs = await db[name].find({}, {"_id": 0}).to_list(None)
+            store[name] = docs
+        return {"success": True, "store": store}
+    except Exception as e:
+        logging.exception('Export failed')
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/admin/import", dependencies=[Depends(verify_admin)])
+async def admin_import(payload: Dict[str, Any]):
+    """Import/store collections from a JSON payload.
+
+    Payload format: { "store": { "collection_name": [doc, ...], ... } }
+    For MongoDB this will replace each collection's documents. For LocalDB it will overwrite the in-memory store and persist to disk.
+    """
+    store = payload.get("store")
+    if not store or not isinstance(store, dict):
+        raise HTTPException(status_code=400, detail="Invalid payload: expected {store: {...}}")
+
+    try:
+        # LocalDB: overwrite and persist
+        if hasattr(db, '_store'):
+            db._store.clear()
+            # ensure shallow copy
+            db._store.update(store)
+            await _persist_store(db._store)
+            return {"success": True}
+
+        # MongoDB: replace collections
+        for name, docs in store.items():
+            if not isinstance(docs, list):
+                continue
+            # remove existing docs
+            await db[name].delete_many({})
+            # strip any unexpected _id fields
+            cleaned = []
+            for d in docs:
+                if isinstance(d, dict) and "_id" in d:
+                    d = {k: v for k, v in d.items() if k != "_id"}
+                cleaned.append(d)
+            if cleaned:
+                await db[name].insert_many(cleaned)
+        return {"success": True}
+    except Exception as e:
+        logging.exception('Import failed')
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/admin/simulate-activity", dependencies=[Depends(verify_admin)])
 async def simulate_activity(count: int = 10):

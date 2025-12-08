@@ -386,6 +386,13 @@ class Settings(BaseModel):
     referral_level1_percent: float = 50.0
     referral_level2_percent: float = 10.0
     spin_price_ton: float = 1.0
+    spin_timeout: int = 3
+    roulette_selection_mode: str = "random"
+    roulette_stats: Dict[str, Any] = {
+        "total_spins": 0,
+        "total_revenue": 0.0,
+        "avg_win_value": 0.0
+    }
     simulation_enabled: bool = False
     simulation_daily_volume: int = 50
     simulation_min_volume_ton: float = 500.0
@@ -712,6 +719,23 @@ async def spin_roulette(user_id: str):
         price_type="TON"
     )
     await db.activity.insert_one(activity.model_dump())
+    
+    # Update roulette statistics
+    current_stats = settings.get("roulette_stats", {
+        "total_spins": 0,
+        "total_revenue": 0.0,
+        "avg_win_value": 0.0
+    })
+    current_stats["total_spins"] = current_stats.get("total_spins", 0) + 1
+    current_stats["total_revenue"] = current_stats.get("total_revenue", 0.0) + float(spin_price)
+    win_value = float(won_pack.get("price", 0.0))
+    current_stats["avg_win_value"] = current_stats.get("total_revenue", 0.0) / current_stats["total_spins"]
+    
+    await db.settings.update_one(
+        {"id": "global_settings"},
+        {"$set": {"roulette_stats": current_stats}},
+        upsert=True
+    )
     
     return {"success": True, "pack": won_pack}
 

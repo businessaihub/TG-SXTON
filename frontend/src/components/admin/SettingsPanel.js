@@ -6,7 +6,7 @@ import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { Card } from "../ui/card";
-import { Coins, Settings as SettingsIcon, TrendingUp, Gift } from "lucide-react";
+import { Coins, Settings as SettingsIcon, TrendingUp, Gift, Disc3 } from "lucide-react";
 import { toast } from "sonner";
 
 const SettingsPanel = () => {
@@ -60,10 +60,14 @@ const SettingsPanel = () => {
       </div>
 
       <Tabs defaultValue="general" className="w-full relative z-10">
-        <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/10">
+        <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/10">
           <TabsTrigger value="general" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500">
             <SettingsIcon size={16} className="mr-2" />
             General
+          </TabsTrigger>
+          <TabsTrigger value="roulette" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500">
+            <Disc3 size={16} className="mr-2" />
+            Roulette
           </TabsTrigger>
           <TabsTrigger value="rewards" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500">
             <Gift size={16} className="mr-2" />
@@ -112,6 +116,76 @@ const SettingsPanel = () => {
                 checked={settings?.no_commission_mode || false}
                 onCheckedChange={(checked) => setSettings({...settings, no_commission_mode: checked})}
               />
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Roulette Tab */}
+        <TabsContent value="roulette" className="space-y-6">
+          <div className="glass-card p-6 border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 relative overflow-hidden">
+            <div className="cosmic-particles"></div>
+            <h3 className="text-xl font-semibold text-white mb-4 relative z-10">Roulette Configuration</h3>
+            
+            <div className="grid grid-cols-2 gap-4 relative z-10">
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">Spin Price (TON)</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={settings?.spin_price_ton || 1.0}
+                    onChange={(e) => setSettings({...settings, spin_price_ton: parseFloat(e.target.value)})}
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                  <span className="text-gray-400 text-sm">TON</span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">Spin Timeout (seconds)</label>
+                <Input
+                  type="number"
+                  value={settings?.spin_timeout || 3}
+                  onChange={(e) => setSettings({...settings, spin_timeout: parseInt(e.target.value)})}
+                  className="bg-white/5 border-white/10 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 relative z-10">
+              <h4 className="text-sm font-semibold text-gray-300 mb-3">Roulette Selection Method</h4>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+                  <label className="text-sm text-gray-400">Random Pack Selection</label>
+                  <Switch
+                    checked={settings?.roulette_selection_mode !== "weighted"}
+                    onCheckedChange={(checked) => setSettings({...settings, roulette_selection_mode: checked ? "random" : "weighted"})}
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  {settings?.roulette_selection_mode === "weighted" 
+                    ? "✓ Using Weighted Random (by rarity)" 
+                    : "✓ Using Uniform Random"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-white/10 relative z-10">
+              <h4 className="text-sm font-semibold text-gray-300 mb-3">Roulette Statistics</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                  <div className="text-xs text-gray-500">Total Spins</div>
+                  <div className="text-lg font-bold text-purple-400">{settings?.roulette_stats?.total_spins || 0}</div>
+                </div>
+                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                  <div className="text-xs text-gray-500">Total Revenue</div>
+                  <div className="text-lg font-bold text-cyan-400">{(settings?.roulette_stats?.total_revenue || 0).toFixed(2)} TON</div>
+                </div>
+                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                  <div className="text-xs text-gray-500">Avg Win Value</div>
+                  <div className="text-lg font-bold text-emerald-400">{(settings?.roulette_stats?.avg_win_value || 0).toFixed(2)} TON</div>
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>

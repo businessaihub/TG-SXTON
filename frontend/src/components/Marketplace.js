@@ -12,6 +12,7 @@ import { translations } from "../utils/translations";
 const Marketplace = ({ user, language }) => {
   const [packs, setPacks] = useState([]);
   const [featured, setFeatured] = useState([]);
+  const [banners, setBanners] = useState([]);
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState("default");
   const [loading, setLoading] = useState(true);
@@ -24,6 +25,7 @@ const Marketplace = ({ user, language }) => {
   useEffect(() => {
     fetchPacks();
     fetchFeatured();
+    fetchBanners();
     fetchActivityStats();
     
     // Update activity stats every 5 seconds
@@ -104,6 +106,17 @@ const Marketplace = ({ user, language }) => {
       setFeatured(response.data);
     } catch (error) {
       console.error("Error fetching featured:", error);
+    }
+  };
+
+  const fetchBanners = async () => {
+    try {
+      const response = await axios.get(`${API}/banners`);
+      // Filter only active banners and sort by position
+      const activeBanners = response.data.filter(b => b.is_active).sort((a, b) => a.position - b.position);
+      setBanners(activeBanners);
+    } catch (error) {
+      console.error("Error fetching banners:", error);
     }
   };
 
@@ -208,6 +221,49 @@ const Marketplace = ({ user, language }) => {
           </div>
         </div>
       </div>
+
+      {/* Banner Ads Carousel */}
+      {banners.length > 0 && (
+        <div className="space-y-2 relative z-10">
+          <div className="flex items-center gap-2">
+            <Sparkles className="text-orange-400" size={16} />
+            <h2 className="text-base font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
+              Promotional Offers
+            </h2>
+          </div>
+          
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {banners.map((banner) => (
+              <a
+                key={banner.id}
+                href={banner.link_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid={`banner-ad-${banner.id}`}
+                className="glass-card p-2 min-w-[280px] flex-shrink-0 border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-red-500/10 transition-colors duration-300 cursor-pointer hover:border-orange-500/50 relative overflow-hidden"
+              >
+                <div className="cosmic-particles"></div>
+                {banner.cover_image_url && (
+                  <div className="relative mb-2 overflow-hidden rounded-lg z-10">
+                    <img
+                      src={banner.cover_image_url}
+                      alt={banner.title}
+                      className="w-full h-32 object-cover"
+                    />
+                  </div>
+                )}
+                <h3 className="font-semibold text-white text-sm mb-1 relative z-10 line-clamp-2">{banner.title}</h3>
+                <p className="text-xs text-gray-400 mb-2 relative z-10 line-clamp-2">{banner.description}</p>
+                <div className="flex items-center gap-2 relative z-10">
+                  <Badge className="bg-orange-500/20 text-orange-400 text-xs">
+                    {banner.link_type === "channel" ? "📱 Channel" : "🌐 Website"}
+                  </Badge>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Featured Carousel */}
       {featured.length > 0 && (

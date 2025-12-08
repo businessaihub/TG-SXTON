@@ -377,7 +377,7 @@ const PackManagement = () => {
                   <label className="text-sm text-gray-400">Price Type</label>
                   <Select value={formData.price_type} onValueChange={(v) => setFormData({...formData, price_type: v})}>
                     <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                      <SelectValue />
+                      <SelectValue placeholder="Select price type" />
                     </SelectTrigger>
                     <SelectContent className="glass-card border-white/10">
                       <SelectItem value="TON">TON</SelectItem>

@@ -240,23 +240,23 @@ const Marketplace = ({ user, language }) => {
                 target="_blank"
                 rel="noopener noreferrer"
                 data-testid={`banner-ad-${banner.id}`}
-                className="glass-card p-2 min-w-[280px] flex-shrink-0 border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-red-500/10 transition-colors duration-300 cursor-pointer hover:border-orange-500/50 relative overflow-hidden"
+                className="glass-card p-2 min-w-[200px] flex-shrink-0 border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-red-500/10 transition-colors duration-300 cursor-pointer relative overflow-hidden"
               >
                 <div className="cosmic-particles"></div>
                 {banner.cover_image_url && (
-                  <div className="relative mb-2 overflow-hidden rounded-lg z-10">
+                  <div className="relative mb-1.5 overflow-hidden rounded-lg z-10">
                     <img
                       src={banner.cover_image_url}
                       alt={banner.title}
-                      className="w-full h-32 object-cover"
+                      className="w-full h-20 object-cover"
                     />
                   </div>
                 )}
-                <h3 className="font-semibold text-white text-sm mb-1 relative z-10 line-clamp-2">{banner.title}</h3>
-                <p className="text-xs text-gray-400 mb-2 relative z-10 line-clamp-2">{banner.description}</p>
+                <h3 className="font-semibold text-white text-xs mb-0.5 relative z-10 line-clamp-1">{banner.title}</h3>
+                <p className="text-xs text-gray-400 mb-1.5 relative z-10 line-clamp-1">{banner.description}</p>
                 <div className="flex items-center gap-2 relative z-10">
                   <Badge className="bg-orange-500/20 text-orange-400 text-xs">
-                    {banner.link_type === "channel" ? "📱 Channel" : "🌐 Website"}
+                    {banner.link_type === "channel" ? "📱" : "🌐"}
                   </Badge>
                 </div>
               </a>

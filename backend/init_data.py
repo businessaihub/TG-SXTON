@@ -212,10 +212,70 @@ async def init_sample_data():
     await db.activity.insert_many(sample_activities)
     print(f"✓ Generated {len(sample_activities)} sample activities")
     
+    # Sample quests
+    sample_quests = [
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Join Our Telegram",
+            "description": "Follow our main channel for latest updates",
+            "quest_type": "join_chat",
+            "target_url": "https://t.me/StickersXTon",
+            "reward_type": "SXTON",
+            "reward_amount": 50.5,
+            "is_active": True,
+            "is_daily": False,
+            "required_referrals": 0,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Visit Our Website",
+            "description": "Check out our official website",
+            "quest_type": "link",
+            "target_url": "https://stickerxton.com",
+            "reward_type": "SXTON",
+            "reward_amount": 75.0,
+            "is_active": True,
+            "is_daily": False,
+            "required_referrals": 0,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Invite 3 Friends",
+            "description": "Earn rewards by inviting your friends to StickersXTon",
+            "quest_type": "referral",
+            "reward_type": "SXTON",
+            "reward_amount": 150.75,
+            "is_active": True,
+            "is_daily": False,
+            "required_referrals": 3,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Daily Login Bonus",
+            "description": "Login every day to earn bonus SXTON",
+            "quest_type": "link",
+            "target_url": "",
+            "reward_type": "SXTON",
+            "reward_amount": 25.5,
+            "is_active": True,
+            "is_daily": True,
+            "required_referrals": 0,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+    ]
+    
+    await db.quests.delete_many({})
+    await db.quests.insert_many(sample_quests)
+    print(f"✓ Created {len(sample_quests)} sample quests")
+    
     print("\n✨ Sample data initialization complete!")
     print("\n📊 Summary:")
     print(f"  - {len(sample_packs)} sticker packs")
     print(f"  - {len(sample_activities)} activity events")
+    print(f"  - {len(sample_quests)} quests")
     print(f"  - Settings configured")
     print("\n🎯 Next steps:")
     print("  1. Visit http://localhost:3000 to see the Mini App")

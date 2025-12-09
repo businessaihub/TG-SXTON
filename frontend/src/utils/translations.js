@@ -44,6 +44,15 @@ export const translations = {
       deposit: "Deposit",
       withdraw: "Withdraw"
     },
+    quests: {
+      title: "Daily Quests",
+      complete: "Complete Quest",
+      claimReward: "Claim Reward",
+      rewarded: "Rewarded",
+      completed: "Quest completed!",
+      noActive: "No active quests. Check back later!",
+      noCompleted: "No completed quests yet."
+    },
     roulette: {
       title: "Roulette",
       subtitle: "Spin to win exclusive packs",

@@ -267,6 +267,22 @@ api_router = APIRouter(prefix="/api")
 @app.on_event("startup")
 async def startup_checks():
     await _init_db_on_startup()
+    # Ensure all collections have indices for better performance
+    if not isinstance(db, LocalDB):
+        try:
+            await db.users.create_index("id")
+            await db.sticker_packs.create_index("id")
+            await db.stickers.create_index("id")
+            await db.activity.create_index("created_at", direction=-1)
+            await db.banner_ads.create_index("position")
+            await db.quests.create_index("id")
+            await db.quests.create_index("is_active")
+            await db.user_quest_progress.create_index("user_id")
+            await db.user_quest_progress.create_index([("user_id", 1), ("quest_id", 1)])
+            print("✓ Database indices created")
+        except Exception as e:
+            print(f"Warning: Could not create indices: {e}")
+
 
 # ============ MODELS ============
 
@@ -321,6 +337,33 @@ class BannerAd(BaseModel):
     link_type: str = "channel"  # channel or website
     is_active: bool = True
     position: int = 0  # Display order
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class Quest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str
+    quest_type: str = "link"  # link, referral, join_chat, on_chain, follow, purchase
+    target_url: Optional[str] = None
+    target_channel: Optional[str] = None
+    reward_type: str = "SXTON"  # Fixed to SXTON only
+    reward_amount: float
+    is_active: bool = True
+    is_daily: bool = False
+    required_referrals: int = 0  # For referral type quests
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    expires_at: Optional[str] = None
+
+class UserQuestProgress(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    quest_id: str
+    is_completed: bool = False
+    completed_at: Optional[str] = None
+    reward_claimed: bool = False
+    progress: int = 0  # For multi-step quests
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class Sticker(BaseModel):
@@ -676,6 +719,120 @@ async def get_activity(filter_type: str = "all", limit: int = 50):
     activities = await db.activity.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return activities
 
+
+# ============ QUEST ENDPOINTS ============
+
+@api_router.get("/quests")
+async def get_active_quests():
+    """Get all active quests"""
+    quests = await db.quests.find({"is_active": True}, {"_id": 0}).to_list(100)
+    return quests
+
+@api_router.get("/user/{user_id}/quests")
+async def get_user_quests(user_id: str):
+    """Get user quest progress"""
+    quests = await db.quests.find({"is_active": True}, {"_id": 0}).to_list(100)
+    
+    # Get user's progress for each quest
+    user_progress = await db.user_quest_progress.find({"user_id": user_id}, {"_id": 0}).to_list(1000)
+    progress_map = {p["quest_id"]: p for p in user_progress}
+    
+    # Enrich quests with user progress
+    result = []
+    for quest in quests:
+        quest_with_progress = quest.copy()
+        if quest["id"] in progress_map:
+            quest_with_progress["user_progress"] = progress_map[quest["id"]]
+        else:
+            quest_with_progress["user_progress"] = {
+                "is_completed": False,
+                "reward_claimed": False,
+                "progress": 0
+            }
+        result.append(quest_with_progress)
+    
+    return result
+
+@api_router.post("/quest/{quest_id}/complete")
+async def complete_quest(quest_id: str, user_id: str):
+    """Mark quest as completed and award rewards"""
+    quest = await db.quests.find_one({"id": quest_id}, {"_id": 0})
+    if not quest:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if already completed
+    existing_progress = await db.user_quest_progress.find_one(
+        {"user_id": user_id, "quest_id": quest_id},
+        {"_id": 0}
+    )
+    
+    if existing_progress and existing_progress["is_completed"]:
+        raise HTTPException(status_code=400, detail="Quest already completed")
+    
+    # Update or create progress
+    now = datetime.now(timezone.utc).isoformat()
+    progress_data = UserQuestProgress(
+        user_id=user_id,
+        quest_id=quest_id,
+        is_completed=True,
+        completed_at=now,
+        reward_claimed=False
+    )
+    
+    await db.user_quest_progress.update_one(
+        {"user_id": user_id, "quest_id": quest_id},
+        {"$set": progress_data.model_dump()},
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Quest completed. Claim your reward in Profile"}
+
+@api_router.post("/quest/{quest_id}/claim-reward")
+async def claim_quest_reward(quest_id: str, user_id: str):
+    """Claim reward for completed quest"""
+    quest = await db.quests.find_one({"id": quest_id}, {"_id": 0})
+    if not quest:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    
+    progress = await db.user_quest_progress.find_one(
+        {"user_id": user_id, "quest_id": quest_id},
+        {"_id": 0}
+    )
+    
+    if not progress or not progress["is_completed"]:
+        raise HTTPException(status_code=400, detail="Quest not completed")
+    
+    if progress["reward_claimed"]:
+        raise HTTPException(status_code=400, detail="Reward already claimed")
+    
+    # Award SXTON reward
+    reward_field = "sxton_points"
+    
+    if reward_field:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$inc": {reward_field: quest["reward_amount"]}}
+        )
+    
+    # Mark reward as claimed
+    await db.user_quest_progress.update_one(
+        {"user_id": user_id, "quest_id": quest_id},
+        {"$set": {"reward_claimed": True}}
+    )
+    
+    return {
+        "success": True,
+        "message": f"Reward claimed: {quest['reward_amount']} {quest['reward_type']}",
+        "reward": {
+            "type": quest["reward_type"],
+            "amount": quest["reward_amount"]
+        }
+    }
+
 # ============ ROULETTE/SPIN ENDPOINTS ============
 
 @api_router.post("/spin")
@@ -1021,6 +1178,49 @@ async def delete_banner(banner_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Banner not found")
     return {"success": True}
+
+# ============ QUEST MANAGEMENT ============
+
+@api_router.get("/admin/quests", dependencies=[Depends(verify_admin)])
+async def get_admin_quests():
+    """Get all quests for admin panel"""
+    quests = await db.quests.find({}, {"_id": 0}).to_list(100)
+    return quests
+
+@api_router.post("/admin/quests", dependencies=[Depends(verify_admin)])
+async def create_quest(quest_data: Dict[str, Any]):
+    """Create a new quest"""
+    quest = Quest(**quest_data)
+    await db.quests.insert_one(quest.model_dump())
+    return {"success": True, "quest_id": quest.id}
+
+@api_router.put("/admin/quests/{quest_id}", dependencies=[Depends(verify_admin)])
+async def update_quest(quest_id: str, quest_data: Dict[str, Any]):
+    """Update a quest"""
+    result = await db.quests.update_one(
+        {"id": quest_id},
+        {"$set": quest_data}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    return {"success": True}
+
+@api_router.delete("/admin/quests/{quest_id}", dependencies=[Depends(verify_admin)])
+async def delete_quest(quest_id: str):
+    """Delete a quest"""
+    result = await db.quests.delete_one({"id": quest_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    return {"success": True}
+
+@api_router.get("/admin/quests/{quest_id}/progress", dependencies=[Depends(verify_admin)])
+async def get_quest_progress(quest_id: str):
+    """Get all user progress for a specific quest"""
+    progress = await db.user_quest_progress.find(
+        {"quest_id": quest_id},
+        {"_id": 0}
+    ).to_list(1000)
+    return progress
 
 # Activity Management Endpoints
 @api_router.get("/admin/activity", dependencies=[Depends(verify_admin)])

@@ -23,7 +23,18 @@ const SettingsPanel = () => {
       const response = await axios.get(`${API}/admin/settings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSettings(response.data);
+      // Ensure all fields have default values if they don't exist
+      const settingsWithDefaults = {
+        ...response.data,
+        spin_timeout: response.data?.spin_timeout ?? 3,
+        roulette_selection_mode: response.data?.roulette_selection_mode ?? "random",
+        roulette_stats: response.data?.roulette_stats ?? {
+          total_spins: 0,
+          total_revenue: 0.0,
+          avg_win_value: 0.0
+        }
+      };
+      setSettings(settingsWithDefaults);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -33,13 +44,19 @@ const SettingsPanel = () => {
 
   const handleSave = async () => {
     const token = localStorage.getItem("admin_token");
+    console.log("Saving settings:", settings);
+    console.log("Token:", token);
     try {
-      await axios.put(`${API}/admin/settings`, settings, {
+      const response = await axios.put(`${API}/admin/settings`, settings, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log("Settings saved response:", response.data);
       toast.success("Settings saved successfully");
+      // Refresh settings after save
+      await fetchSettings();
     } catch (error) {
-      toast.error("Error saving settings");
+      console.error("Error saving settings:", error);
+      toast.error(error.response?.data?.detail || "Error saving settings");
     }
   };
 

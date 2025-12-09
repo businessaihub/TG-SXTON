@@ -29,7 +29,7 @@ function App() {
           <Route path="/activity" element={<MiniApp isAdmin={isAdmin} />} />
           <Route path="/hot" element={<MiniApp isAdmin={isAdmin} />} />
           <Route path="/profile" element={<MiniApp isAdmin={isAdmin} />} />
-          <Route path="/roulette" element={<MiniApp isAdmin={isAdmin} />} />
+          {/* <Route path="/roulette" element={<MiniApp isAdmin={isAdmin} />} /> TODO: Enable when roulette is ready */}
           
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin setIsAdmin={setIsAdmin} setAdminToken={setAdminToken} />} />

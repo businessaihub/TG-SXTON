@@ -10,6 +10,19 @@ import { Switch } from "../ui/switch";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+const PRICE_TYPES = [
+  { id: "TON", emoji: "💎", label: "TON", description: "Blockchain tokens" },
+  { id: "STARS", emoji: "⭐", label: "STARS", description: "Telegram Stars" },
+  { id: "SXTON", emoji: "🎫", label: "SXTON", description: "StickersXTon points" }
+];
+
+const RARITIES = [
+  { id: "common", emoji: "🟦", label: "Common", description: "Easy to find", color: "bg-blue-500/20 border-blue-500/50" },
+  { id: "rare", emoji: "🟪", label: "Rare", description: "Hard to find", color: "bg-purple-500/20 border-purple-500/50" },
+  { id: "epic", emoji: "🟨", label: "Epic", description: "Very rare", color: "bg-yellow-500/20 border-yellow-500/50" },
+  { id: "legendary", emoji: "🟥", label: "Legendary", description: "Extremely rare", color: "bg-red-500/20 border-red-500/50" }
+];
+
 const PackManagement = () => {
   const [packs, setPacks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -374,17 +387,34 @@ const PackManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-gray-400">Price Type</label>
-                  <Select value={formData.price_type} onValueChange={(v) => setFormData({...formData, price_type: v})}>
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                      <SelectValue placeholder="Select price type" />
-                    </SelectTrigger>
-                    <SelectContent className="glass-card border-white/10">
-                      <SelectItem value="TON">TON</SelectItem>
-                      <SelectItem value="STARS">STARS</SelectItem>
-                      <SelectItem value="SXTON">SXTON</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <label className="text-sm text-gray-400 block mb-2">Price Type</label>
+                  <div className="space-y-2">
+                    {PRICE_TYPES.map((type) => (
+                      <label
+                        key={type.id}
+                        className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all ${
+                          formData.price_type === type.id
+                            ? "bg-cyan-500/20 border-cyan-500/50"
+                            : "bg-white/5 border-white/10 hover:bg-white/10"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          value={type.id}
+                          checked={formData.price_type === type.id}
+                          onChange={(e) => setFormData({...formData, price_type: e.target.value})}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <div className="text-white font-semibold flex items-center gap-2">
+                            <span className="text-lg">{type.emoji}</span>
+                            {type.label}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-0.5">{type.description}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm text-gray-400">Sticker Count</label>
@@ -399,18 +429,34 @@ const PackManagement = () => {
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">Rarity</label>
-                <Select value={formData.rarity} onValueChange={(v) => setFormData({...formData, rarity: v})}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="glass-card border-white/10">
-                    <SelectItem value="common">Common</SelectItem>
-                    <SelectItem value="rare">Rare</SelectItem>
-                    <SelectItem value="epic">Epic</SelectItem>
-                    <SelectItem value="legendary">Legendary</SelectItem>
-                  </SelectContent>
-                </Select>
+                <label className="text-sm text-gray-400 block mb-2">Rarity</label>
+                <div className="space-y-2">
+                  {RARITIES.map((rarity) => (
+                    <label
+                      key={rarity.id}
+                      className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all ${
+                        formData.rarity === rarity.id
+                          ? rarity.color
+                          : "bg-white/5 border-white/10 hover:bg-white/10"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value={rarity.id}
+                        checked={formData.rarity === rarity.id}
+                        onChange={(e) => setFormData({...formData, rarity: e.target.value})}
+                        className="w-4 h-4"
+                      />
+                      <div className="flex-1">
+                        <div className="text-white font-semibold flex items-center gap-2">
+                          <span className="text-lg">{rarity.emoji}</span>
+                          {rarity.label}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-0.5">{rarity.description}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
               
               {/* Purchase Configuration */}

@@ -192,20 +192,37 @@ const ActivityManagement = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">Collection Name</label>
-                <Select 
-                  value={formData.pack_name} 
-                  onValueChange={(v) => setFormData({...formData, pack_name: v})}
-                >
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                    <SelectValue placeholder="Select collection" />
-                  </SelectTrigger>
-                  <SelectContent className="glass-card border-white/10">
-                    {packs.map((pack) => (
-                      <SelectItem key={pack.id} value={pack.name}>{pack.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm text-gray-400 block mb-2">Collection Name</label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {packs.length > 0 ? (
+                    packs.map((pack) => (
+                      <label
+                        key={pack.id}
+                        className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all ${
+                          formData.pack_name === pack.name
+                            ? "bg-cyan-500/20 border-cyan-500/50"
+                            : "bg-white/5 border-white/10 hover:bg-white/10"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          value={pack.name}
+                          checked={formData.pack_name === pack.name}
+                          onChange={(e) => setFormData({...formData, pack_name: e.target.value})}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <div className="text-white font-semibold">{pack.name}</div>
+                          {pack.description && (
+                            <div className="text-xs text-gray-400 mt-0.5">{pack.description}</div>
+                          )}
+                        </div>
+                      </label>
+                    ))
+                  ) : (
+                    <div className="text-gray-400 text-sm p-3">No collections available</div>
+                  )}
+                </div>
               </div>
               
               <div className="space-y-4">

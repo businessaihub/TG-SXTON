@@ -19,6 +19,8 @@ const Quests = ({ user, setUser, language }) => {
   useEffect(() => {
     if (user) {
       fetchUserQuests();
+    } else {
+      setLoading(false);
     }
   }, [user, language]);
 
@@ -181,6 +183,14 @@ const Quests = ({ user, setUser, language }) => {
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400 mx-auto"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="text-center py-8 text-gray-400">
+        <p>Loading user data...</p>
       </div>
     );
   }

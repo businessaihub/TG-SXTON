@@ -6,9 +6,10 @@ import Marketplace from "../components/Marketplace";
 import Activity from "../components/Activity";
 import Hot from "../components/Hot";
 import Profile from "../components/Profile";
+import Quests from "../components/Quests";
 import BottomNav from "../components/BottomNav";
 import LanguageSelector from "../components/LanguageSelector";
-import { Home, Activity as ActivityIcon, Flame, User, Shield } from "lucide-react";
+import { Home, Activity as ActivityIcon, Flame, User, Shield, Sparkles } from "lucide-react";
 
 const MiniApp = ({ isAdmin }) => {
   const location = useLocation();
@@ -67,6 +68,7 @@ const MiniApp = ({ isAdmin }) => {
     { id: "activity", label: "Activity", icon: ActivityIcon },
     { id: "hot", label: "Hot", icon: Flame },
     { id: "profile", label: "Profile", icon: User },
+    { id: "quests", label: "Quests", icon: Sparkles },
     // { id: "roulette", label: "Roulette", icon: Disc3 }, // TODO: Enable when roulette is ready
   ];
 
@@ -92,6 +94,8 @@ const MiniApp = ({ isAdmin }) => {
         return <Hot language={language} />;
       case "profile":
         return <Profile user={user} setUser={setUser} language={language} setLanguage={setLanguage} />;
+      case "quests":
+        return <Quests user={user} setUser={setUser} language={language} />;
       // case "roulette":
       //   return <Roulette user={user} setUser={setUser} language={language} />; // TODO: Enable when roulette is ready
       default:
@@ -113,7 +117,7 @@ const MiniApp = ({ isAdmin }) => {
         <LanguageSelector language={language} setLanguage={setLanguage} />
       </div>
       
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto p-4">
         {renderContent()}
       </div>
       

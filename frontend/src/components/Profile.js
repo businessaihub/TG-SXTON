@@ -7,7 +7,6 @@ import { Wallet, LogOut, Clock, List, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useEffect } from "react";
-import Quests from "./Quests";
 
 const Profile = ({ user, setUser, language, setLanguage }) => {
   const [walletConnected, setWalletConnected] = useState(false);
@@ -214,11 +213,6 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
             {t.profile.shareLink}
           </Button>
         </div>
-      </div>
-
-      {/* Quests Section */}
-      <div className="glass-card p-6">
-        <Quests user={user} setUser={setUser} language={language} />
       </div>
     </div>
   );

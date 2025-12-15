@@ -10,6 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Plus, Edit, Trash2, ExternalLink, Image } from "lucide-react";
 import { toast } from "sonner";
 
+const LINK_TYPES = [
+  { id: "channel", emoji: "📱", label: "Telegram Channel", description: "Link to Telegram channel" },
+  { id: "website", emoji: "🌐", label: "Website", description: "External website link" }
+];
+
 const BannerManagement = () => {
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -172,16 +177,34 @@ const BannerManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-gray-400">Link Type</label>
-                  <Select value={formData.link_type} onValueChange={(v) => setFormData({...formData, link_type: v})}>
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="glass-card border-white/10">
-                      <SelectItem value="channel">Telegram Channel</SelectItem>
-                      <SelectItem value="website">Website</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <label className="text-sm text-gray-400 block mb-2">Link Type</label>
+                  <div className="space-y-2">
+                    {LINK_TYPES.map((type) => (
+                      <label
+                        key={type.id}
+                        className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all ${
+                          formData.link_type === type.id
+                            ? "bg-cyan-500/20 border-cyan-500/50"
+                            : "bg-white/5 border-white/10 hover:bg-white/10"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          value={type.id}
+                          checked={formData.link_type === type.id}
+                          onChange={(e) => setFormData({...formData, link_type: e.target.value})}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <div className="text-white font-semibold flex items-center gap-2">
+                            <span className="text-lg">{type.emoji}</span>
+                            {type.label}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-0.5">{type.description}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
               

@@ -9,6 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Plus, Edit, Trash2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
+const QUEST_TYPES = [
+  { id: "link", emoji: "🔗", label: "Follow Link", description: "Click a link" },
+  { id: "referral", emoji: "👥", label: "Referral", description: "Refer friends" },
+  { id: "join_chat", emoji: "💬", label: "Join Chat", description: "Join Telegram group" },
+  { id: "on_chain", emoji: "⛓️", label: "On-chain Action", description: "Blockchain action" },
+  { id: "follow", emoji: "⭐", label: "Follow Channel", description: "Follow Telegram channel" },
+  { id: "purchase", emoji: "🛍️", label: "Purchase Pack", description: "Buy a sticker pack" }
+];
+
 const QuestManagement = () => {
   const [quests, setQuests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -200,20 +209,34 @@ const QuestManagement = () => {
               </div>
 
               <div>
-                <label className="text-sm text-gray-400 block mb-1">Quest Type</label>
-                <Select value={formData.quest_type} onValueChange={(value) => setFormData({ ...formData, quest_type: value })}>
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="link">Follow Link</SelectItem>
-                    <SelectItem value="referral">Referral</SelectItem>
-                    <SelectItem value="join_chat">Join Chat</SelectItem>
-                    <SelectItem value="on_chain">On-chain Action</SelectItem>
-                    <SelectItem value="follow">Follow Channel</SelectItem>
-                    <SelectItem value="purchase">Purchase Pack</SelectItem>
-                  </SelectContent>
-                </Select>
+                <label className="text-sm text-gray-400 block mb-2">Quest Type</label>
+                <div className="space-y-2">
+                  {QUEST_TYPES.map((type) => (
+                    <label
+                      key={type.id}
+                      className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all ${
+                        formData.quest_type === type.id
+                          ? "bg-cyan-500/20 border-cyan-500/50"
+                          : "bg-white/5 border-white/10 hover:bg-white/10"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value={type.id}
+                        checked={formData.quest_type === type.id}
+                        onChange={(e) => setFormData({...formData, quest_type: e.target.value})}
+                        className="w-4 h-4"
+                      />
+                      <div className="flex-1">
+                        <div className="text-white font-semibold flex items-center gap-2">
+                          <span className="text-lg">{type.emoji}</span>
+                          {type.label}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-0.5">{type.description}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {formData.quest_type === "link" && (

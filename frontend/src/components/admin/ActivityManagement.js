@@ -9,6 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Plus, Edit, Trash2, Activity, Filter } from "lucide-react";
 import { toast } from "sonner";
 
+const ACTION_TYPES = [
+  { id: "bought", emoji: "💳", label: "Bought", description: "User purchased pack" },
+  { id: "opened", emoji: "👁️", label: "Opened", description: "User opened pack" },
+  { id: "listed", emoji: "📋", label: "Listed", description: "Pack listed for sale" },
+  { id: "sold", emoji: "✅", label: "Sold", description: "Pack sold to user" },
+  { id: "burned", emoji: "🔥", label: "Burned", description: "Pack burned" }
+];
+
+const PRICE_TYPES_ACTIVITY = [
+  { id: "TON", emoji: "💎", label: "TON", description: "Blockchain tokens" },
+  { id: "STARS", emoji: "⭐", label: "STARS", description: "Telegram Stars" },
+  { id: "SXTON", emoji: "🎫", label: "SXTON", description: "StickersXTon points" }
+];
+
 const ActivityManagement = () => {
   const [activities, setActivities] = useState([]);
   const [packs, setPacks] = useState([]);
@@ -194,35 +208,67 @@ const ActivityManagement = () => {
                 </Select>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm text-gray-400">Action Type</label>
-                  <Select value={formData.action} onValueChange={(v) => setFormData({...formData, action: v})}>
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="glass-card border-white/10">
-                      <SelectItem value="bought">Bought</SelectItem>
-                      <SelectItem value="opened">Opened</SelectItem>
-                      <SelectItem value="listed">Listed</SelectItem>
-                      <SelectItem value="sold">Sold</SelectItem>
-                      <SelectItem value="burned">Burned</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <label className="text-sm text-gray-400 block mb-2">Action Type</label>
+                  <div className="space-y-2">
+                    {ACTION_TYPES.map((type) => (
+                      <label
+                        key={type.id}
+                        className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all ${
+                          formData.action === type.id
+                            ? "bg-cyan-500/20 border-cyan-500/50"
+                            : "bg-white/5 border-white/10 hover:bg-white/10"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          value={type.id}
+                          checked={formData.action === type.id}
+                          onChange={(e) => setFormData({...formData, action: e.target.value})}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <div className="text-white font-semibold flex items-center gap-2">
+                            <span className="text-lg">{type.emoji}</span>
+                            {type.label}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-0.5">{type.description}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-sm text-gray-400">Price Type</label>
-                  <Select value={formData.price_type} onValueChange={(v) => setFormData({...formData, price_type: v})}>
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="glass-card border-white/10">
-                      <SelectItem value="TON">TON</SelectItem>
-                      <SelectItem value="STARS">STARS</SelectItem>
-                      <SelectItem value="SXTON">SXTON</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <label className="text-sm text-gray-400 block mb-2">Price Type</label>
+                  <div className="space-y-2">
+                    {PRICE_TYPES_ACTIVITY.map((type) => (
+                      <label
+                        key={type.id}
+                        className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all ${
+                          formData.price_type === type.id
+                            ? "bg-cyan-500/20 border-cyan-500/50"
+                            : "bg-white/5 border-white/10 hover:bg-white/10"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          value={type.id}
+                          checked={formData.price_type === type.id}
+                          onChange={(e) => setFormData({...formData, price_type: e.target.value})}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <div className="text-white font-semibold flex items-center gap-2">
+                            <span className="text-lg">{type.emoji}</span>
+                            {type.label}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-0.5">{type.description}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
               

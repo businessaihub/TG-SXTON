@@ -134,25 +134,21 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
         </div>
       </div>
 
-      {/* Referrals */}
-      <div className="glass-card p-6">
-        <h3 className="text-lg font-semibold mb-3" style={{ fontFamily: 'Space Grotesk' }}>
-          {t.profile.referrals}
-        </h3>
-        <div className="flex items-center justify-between">
-          <span className="text-gray-400">{t.profile.totalReferrals}</span>
-          <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-lg px-3 py-1">
-            {user?.referral_count || 0}
-          </Badge>
-        </div>
-        <div className="mt-4">
-          <Button
-            className="w-full bg-purple-500 hover:bg-purple-600 btn-animated"
-            data-testid="share-referral-btn"
-          >
-            {t.profile.shareLink}
-          </Button>
-        </div>
+      {/* Deposit/Withdraw */}
+      <div className="space-y-3">
+        <Button
+          className="w-full bg-green-500 hover:bg-green-600 btn-animated"
+          data-testid="deposit-btn"
+        >
+          {t.profile.deposit}
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full btn-animated"
+          data-testid="withdraw-btn"
+        >
+          {t.profile.withdraw}
+        </Button>
       </div>
 
       {/* History */}
@@ -173,11 +169,6 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
             {t.profile.unlisted}
           </Button>
         </div>
-      </div>
-
-      {/* Quests Section */}
-      <div className="glass-card p-6">
-        <Quests user={user} setUser={setUser} language={language} />
       </div>
 
       {/* My Stickers */}
@@ -204,21 +195,30 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
         )}
       </div>
 
-      {/* Actions */}
-      <div className="space-y-3">
-        <Button
-          className="w-full bg-green-500 hover:bg-green-600 btn-animated"
-          data-testid="deposit-btn"
-        >
-          {t.profile.deposit}
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full btn-animated"
-          data-testid="withdraw-btn"
-        >
-          {t.profile.withdraw}
-        </Button>
+      {/* Referrals */}
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-semibold mb-3" style={{ fontFamily: 'Space Grotesk' }}>
+          {t.profile.referrals}
+        </h3>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-400">{t.profile.totalReferrals}</span>
+          <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-lg px-3 py-1">
+            {user?.referral_count || 0}
+          </Badge>
+        </div>
+        <div className="mt-4">
+          <Button
+            className="w-full bg-purple-500 hover:bg-purple-600 btn-animated"
+            data-testid="share-referral-btn"
+          >
+            {t.profile.shareLink}
+          </Button>
+        </div>
+      </div>
+
+      {/* Quests Section */}
+      <div className="glass-card p-6">
+        <Quests user={user} setUser={setUser} language={language} />
       </div>
     </div>
   );

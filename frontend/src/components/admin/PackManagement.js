@@ -113,27 +113,28 @@ const PackManagement = () => {
     }
   };
 
-  // Wrapper called by the Create/Update button. Logs invocation and reasons button may be disabled.
+  // Wrapper called by the Create/Update button. Validates form and shows errors to user.
   const handleCreatePack = async (e) => {
     console.log('handleCreatePack invoked', { sticker_count: formData.sticker_count, imageUploadMode, name: formData.name });
+    
     if (!(formData.sticker_count > 0)) {
-      console.log('Create blocked: sticker_count must be > 0', { sticker_count: formData.sticker_count });
+      toast.error("Будь ласка, укажіть кількість стікерів");
       return;
     }
     if (!formData.name || formData.name.trim().length === 0) {
-      console.log('Create blocked: name is empty');
+      toast.error("Будь ласка, введіть назву паку");
       return;
     }
     if (!formData.description || formData.description.trim().length === 0) {
-      console.log('Create blocked: description is empty');
+      toast.error("Будь ласка, введіть опис паку");
       return;
     }
     if (imageUploadMode === 'url' && !formData.image_url) {
-      console.log('Create blocked: image_url empty in URL mode');
+      toast.error("Будь ласка, введіть URL зображення");
       return;
     }
     if (imageUploadMode === 'file' && (!formData.image_urls || formData.image_urls.length === 0)) {
-      console.log('Create blocked: no uploaded files in Upload mode');
+      toast.error("Будь ласка, завантажте хоча б одне зображення");
       return;
     }
 
@@ -566,9 +567,9 @@ const PackManagement = () => {
               
               <Button
                 type="button"
-                aria-disabled={!(formData.sticker_count > 0)}
+                disabled={!(formData.sticker_count > 0)}
                 onClick={handleCreatePack}
-                className={`w-full bg-cyan-500 hover:bg-cyan-600 ${formData.sticker_count > 0 ? '' : 'opacity-50 cursor-not-allowed'}`}
+                className={`w-full bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {editingPack ? "Update Pack" : "Create Pack"}
               </Button>

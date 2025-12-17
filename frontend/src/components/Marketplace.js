@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useTonConnect } from "../context/TonConnectContext";
 
+const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23667eea'/%3E%3Ctext x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' fill='white' font-weight='bold'%3ESticker Pack%3C/text%3E%3Ctext x='50%' y='65%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%23ddd'%3ENo Image%3C/text%3E%3C/svg%3E";
+
 const Marketplace = ({ user, language }) => {
   const { wallet, connectWallet, sendTransaction, isConnecting } = useTonConnect();
   const [packs, setPacks] = useState([]);
@@ -18,6 +20,7 @@ const Marketplace = ({ user, language }) => {
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState("default");
   const [loading, setLoading] = useState(true);
+  const [imageErrors, setImageErrors] = useState({});
   const [buyingPackId, setBuyingPackId] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [tradingVolume, setTradingVolume] = useState(0);
@@ -335,9 +338,10 @@ const Marketplace = ({ user, language }) => {
                 <div className="cosmic-particles"></div>
                 <div className="relative mb-2 overflow-hidden rounded-lg z-10">
                   <img
-                    src={pack.image_url}
+                    src={imageErrors[pack.id] ? FALLBACK_IMAGE : (pack.image_url || FALLBACK_IMAGE)}
                     alt={pack.name}
-                    className="w-full h-24 object-cover"
+                    className="w-full h-24 object-cover bg-gradient-to-br from-slate-700 to-slate-800"
+                    onError={() => setImageErrors({...imageErrors, [pack.id]: true})}
                   />
                   <Badge className={`absolute top-1 right-1 text-xs ${getRarityColor(pack.rarity)} shadow-lg`}>
                     {pack.rarity.toUpperCase()}
@@ -445,9 +449,10 @@ const Marketplace = ({ user, language }) => {
               <div className="cosmic-particles"></div>
               <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg z-10">
                 <img
-                  src={pack.image_url}
+                  src={imageErrors[pack.id] ? FALLBACK_IMAGE : (pack.image_url || FALLBACK_IMAGE)}
                   alt={pack.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover bg-gradient-to-br from-slate-700 to-slate-800"
+                  onError={() => setImageErrors({...imageErrors, [pack.id]: true})}
                 />
                 {pack.show_number && (
                   <Badge className="absolute -top-1 -right-1 bg-gradient-to-br from-cyan-500 to-blue-500 text-xs shadow-lg">

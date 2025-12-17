@@ -5,9 +5,12 @@ import { Badge } from "./ui/badge";
 import { Flame, TrendingUp, Star } from "lucide-react";
 import { translations } from "../utils/translations";
 
+const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23667eea'/%3E%3Ctext x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' fill='white' font-weight='bold'%3ESticker Pack%3C/text%3E%3Ctext x='50%' y='65%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%23ddd'%3ENo Image%3C/text%3E%3C/svg%3E";
+
 const Hot = ({ language }) => {
   const [hotCollections, setHotCollections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [imageErrors, setImageErrors] = useState({});
   const t = translations[language] || translations.en;
 
   useEffect(() => {
@@ -60,9 +63,10 @@ const Hot = ({ language }) => {
               
               <div className="flex gap-4 ml-16">
                 <img
-                  src={pack.image_url}
+                  src={imageErrors[pack.id] ? FALLBACK_IMAGE : (pack.image_url || FALLBACK_IMAGE)}
                   alt={pack.name}
-                  className="w-24 h-24 object-cover rounded-lg"
+                  className="w-24 h-24 object-cover rounded-lg bg-gradient-to-br from-slate-700 to-slate-800"
+                  onError={() => setImageErrors({...imageErrors, [pack.id]: true})}
                 />
                 
                 <div className="flex-1">

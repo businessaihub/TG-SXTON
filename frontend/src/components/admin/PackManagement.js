@@ -7,8 +7,11 @@ import { Badge } from "../ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Package } from "lucide-react";
 import { toast } from "sonner";
+
+// Fallback placeholder image (SVG data URL)
+const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23667eea'/%3E%3Ctext x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' fill='white' font-weight='bold'%3ESticker Pack%3C/text%3E%3Ctext x='50%' y='65%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%23ddd'%3ENo Image%3C/text%3E%3C/svg%3E";
 
 const PRICE_TYPES = [
   { id: "TON", emoji: "💎", label: "TON", description: "Blockchain tokens" },
@@ -28,6 +31,7 @@ const PackManagement = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPack, setEditingPack] = useState(null);
+  const [imageErrors, setImageErrors] = useState({});
   const [imageUploadMode, setImageUploadMode] = useState("url"); // "url" or "file"
   const [formData, setFormData] = useState({
     name: "",
@@ -577,11 +581,14 @@ const PackManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {packs.map((pack) => (
           <div key={pack.id} className="glass-card p-4" data-testid={`admin-pack-${pack.id}`}>
-            <img
-              src={pack.image_url}
-              alt={pack.name}
-              className="w-full h-32 object-cover rounded-lg mb-3"
-            />
+            <div className="w-full h-32 rounded-lg mb-3 bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center overflow-hidden">
+              <img
+                src={imageErrors[pack.id] ? FALLBACK_IMAGE : (pack.image_url || FALLBACK_IMAGE)}
+                alt={pack.name}
+                className="w-full h-full object-cover"
+                onError={() => setImageErrors({...imageErrors, [pack.id]: true})}
+              />
+            </div>
             <h3 className="font-semibold text-white mb-1">{pack.name}</h3>
             <p className="text-sm text-gray-400 mb-2">{pack.description}</p>
             <div className="flex gap-2 mb-3 flex-wrap">

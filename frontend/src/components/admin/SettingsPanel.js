@@ -6,16 +6,27 @@ import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { Card } from "../ui/card";
-import { Coins, Settings as SettingsIcon, TrendingUp, Gift, Disc3 } from "lucide-react";
+import { Coins, Settings as SettingsIcon, TrendingUp, Gift, Disc3, Flame } from "lucide-react";
 import { toast } from "sonner";
 
 const SettingsPanel = () => {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [packs, setPacks] = useState([]);
 
   useEffect(() => {
     fetchSettings();
+    fetchPacks();
   }, []);
+
+  const fetchPacks = async () => {
+    try {
+      const response = await axios.get(`${API}/packs`);
+      setPacks(response.data);
+    } catch (error) {
+      console.error("Error fetching packs:", error);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -77,7 +88,7 @@ const SettingsPanel = () => {
       </div>
 
       <Tabs defaultValue="general" className="w-full relative z-10">
-        <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/10">
+        <TabsList className="grid w-full grid-cols-6 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/10">
           <TabsTrigger value="general" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500">
             <SettingsIcon size={16} className="mr-2" />
             General
@@ -97,6 +108,10 @@ const SettingsPanel = () => {
           <TabsTrigger value="referral" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-500">
             <TrendingUp size={16} className="mr-2" />
             Referral
+          </TabsTrigger>
+          <TabsTrigger value="hot" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-orange-500">
+            <Flame size={16} className="mr-2" />
+            Hot Collections
           </TabsTrigger>
         </TabsList>
 
@@ -342,6 +357,85 @@ const SettingsPanel = () => {
                   onChange={(e) => setSettings({...settings, referral_level2_percent: parseFloat(e.target.value)})}
                   className="bg-white/5 border-white/10 text-white"
                 />
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Hot Collections Tab */}
+        <TabsContent value="hot" className="space-y-6">
+          <div className="glass-card p-6 border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-red-500/10 relative overflow-hidden">
+            <div className="cosmic-particles"></div>
+            <div className="flex items-center gap-3 mb-6 relative z-10">
+              <Flame className="text-orange-400" size={28} />
+              <h3 className="text-xl font-semibold text-white">Hot Collections Management</h3>
+            </div>
+
+            <div className="space-y-4 relative z-10">
+              <div className="p-4 rounded-lg bg-white/5 border border-orange-500/30">
+                <h4 className="text-sm font-semibold text-gray-300 mb-3">Selection Mode</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+                    <label className="text-sm text-gray-400">Manual Selection</label>
+                    <Switch
+                      checked={settings?.hot_mode !== "auto"}
+                      onCheckedChange={(checked) => setSettings({...settings, hot_mode: checked ? "manual" : "auto"})}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {settings?.hot_mode === "manual" 
+                      ? "✓ Manually select hot collections" 
+                      : "✓ Auto-select top trending packs"}
+                  </p>
+                </div>
+              </div>
+
+              {settings?.hot_mode === "manual" && (
+                <div className="p-4 rounded-lg bg-white/5 border border-orange-500/30">
+                  <h4 className="text-sm font-semibold text-gray-300 mb-3">Select Top 5 Hot Packs</h4>
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {packs.map((pack) => (
+                      <div key={pack.id} className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/10">
+                        <div className="flex-1">
+                          <p className="text-sm text-white font-medium">{pack.name}</p>
+                          <p className="text-xs text-gray-500">{pack.price} {pack.price_type}</p>
+                        </div>
+                        <Switch
+                          checked={(settings?.hot_collections || []).includes(pack.id)}
+                          onCheckedChange={(checked) => {
+                            const current = settings?.hot_collections || [];
+                            if (checked) {
+                              if (current.length < 5) {
+                                setSettings({...settings, hot_collections: [...current, pack.id]});
+                              }
+                            } else {
+                              setSettings({...settings, hot_collections: current.filter(id => id !== pack.id)});
+                            }
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-3">Selected: {(settings?.hot_collections || []).length}/5</p>
+                </div>
+              )}
+
+              <div className="p-4 rounded-lg bg-white/5 border border-cyan-500/30">
+                <h4 className="text-sm font-semibold text-gray-300 mb-2">Preview</h4>
+                <p className="text-xs text-gray-500 mb-3">Currently showing {(settings?.hot_collections || []).length} hot packs:</p>
+                <div className="space-y-1">
+                  {(settings?.hot_collections || []).slice(0, 5).map((packId, idx) => {
+                    const pack = packs.find(p => p.id === packId);
+                    return pack ? (
+                      <div key={packId} className="text-xs text-orange-400 ml-2">
+                        {idx + 1}. {pack.name} ({pack.price} {pack.price_type})
+                      </div>
+                    ) : null;
+                  })}
+                  {(settings?.hot_collections || []).length === 0 && (
+                    <p className="text-xs text-gray-500">No hot packs selected yet</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>

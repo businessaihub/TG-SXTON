@@ -5,17 +5,20 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { ShoppingCart, Star, Sparkles, Clock, TrendingUp, Flame, Activity as ActivityIcon, ArrowUpDown } from "lucide-react";
+import { ShoppingCart, Star, Sparkles, Clock, TrendingUp, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
+import { useTonConnect } from "../context/TonConnectContext";
 
 const Marketplace = ({ user, language }) => {
+  const { wallet, connectWallet, sendTransaction, isConnecting } = useTonConnect();
   const [packs, setPacks] = useState([]);
   const [featured, setFeatured] = useState([]);
   const [banners, setBanners] = useState([]);
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState("default");
   const [loading, setLoading] = useState(true);
+  const [buyingPackId, setBuyingPackId] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [tradingVolume, setTradingVolume] = useState(0);
   const [activeTraders, setActiveTraders] = useState(0);
@@ -148,25 +151,63 @@ const Marketplace = ({ user, language }) => {
       return;
     }
 
+    // Check if wallet is connected
+    if (!wallet) {
+      toast.info("🔗 Connecting TON wallet...");
+      await connectWallet();
+      return;
+    }
+
+    setBuyingPackId(pack.id);
+
     try {
+      // Create transaction payload
+      const commentText = `pack:${pack.id}:${user.id}`;
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
+        messages: [
+          {
+            address: process.env.REACT_APP_ADMIN_WALLET || "EQDrzVBj0qF2cBkuGyy0D-ChwQJpIcqLkf5_DvyXqgOTMwt8", // Admin wallet address
+            amount: String(Math.floor(pack.price * 1e9)), // Convert TON to nanoTON
+            payload: btoa(commentText), // Encode as base64
+          },
+        ],
+      };
+
+      // Send transaction through TonConnect
+      const result = await sendTransaction(transaction);
+      
+      // Notify backend about completed transaction
       await axios.post(`${API}/buy/pack`, {
         user_id: user.id,
-        pack_id: pack.id
+        pack_id: pack.id,
+        payment_type: "TON",
+        transaction_hash: result.boc || result, // Transaction hash from blockchain
       });
-      toast.success(`${t.marketplace.purchased} ${pack.name}!`, {
+
+      toast.success(`✨ ${t.marketplace.purchased} ${pack.name}!`, {
         style: {
-          background: 'linear-gradient(to right, #10b981, #059669)',
-          color: '#fff'
-        }
+          background: "linear-gradient(to right, #10b981, #059669)",
+          color: "#fff",
+        },
       });
-      window.location.reload();
+
+      // Reload to update inventory
+      setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
-      toast.error(error.response?.data?.detail || t.marketplace.purchaseError, {
+      console.error("Purchase error:", error);
+      const errorMessage =
+        error.response?.data?.detail ||
+        error.message ||
+        t.marketplace.purchaseError;
+      toast.error(errorMessage, {
         style: {
-          background: 'linear-gradient(to right, #ef4444, #dc2626)',
-          color: '#fff'
-        }
+          background: "linear-gradient(to right, #ef4444, #dc2626)",
+          color: "#fff",
+        },
       });
+    } finally {
+      setBuyingPackId(null);
     }
   };
 
@@ -316,11 +357,22 @@ const Marketplace = ({ user, language }) => {
                   <Button
                     size="sm"
                     onClick={() => handleBuy(pack)}
+                    disabled={buyingPackId === pack.id || isConnecting}
                     data-testid={`buy-featured-${pack.id}`}
-                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 transition-colors shadow-lg h-7 px-2 text-xs"
+                    className={`transition-colors shadow-lg h-7 px-2 text-xs ${
+                      wallet
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                        : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+                    }`}
                   >
-                    <ShoppingCart size={12} className="mr-1" />
-                    {t.marketplace.buy}
+                    {buyingPackId === pack.id ? (
+                      <Sparkles size={12} className="mr-1 animate-spin" />
+                    ) : wallet ? (
+                      <ShoppingCart size={12} className="mr-1" />
+                    ) : (
+                      <Wallet size={12} className="mr-1" />
+                    )}
+                    {buyingPackId === pack.id ? "Processing..." : wallet ? t.marketplace.buy : "Connect Wallet"}
                   </Button>
                 </div>
               </div>
@@ -429,11 +481,25 @@ const Marketplace = ({ user, language }) => {
                     size="sm"
                     onClick={() => handleBuy(pack)}
                     data-testid={`buy-pack-${pack.id}`}
-                    disabled={pack.is_upcoming}
-                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 transition-colors shadow-lg h-7 px-3 text-xs"
+                    disabled={pack.is_upcoming || buyingPackId === pack.id || isConnecting}
+                    className={`transition-colors shadow-lg h-7 px-3 text-xs ${
+                      pack.is_upcoming
+                        ? "bg-gray-500/50 hover:bg-gray-500/50 text-gray-300"
+                        : wallet
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                        : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+                    }`}
                   >
-                    <ShoppingCart size={12} className="mr-1" />
-                    {pack.is_upcoming ? "Soon" : t.marketplace.buy}
+                    {buyingPackId === pack.id ? (
+                      <Sparkles size={12} className="mr-1 animate-spin" />
+                    ) : pack.is_upcoming ? (
+                      <Clock size={12} className="mr-1" />
+                    ) : wallet ? (
+                      <ShoppingCart size={12} className="mr-1" />
+                    ) : (
+                      <Wallet size={12} className="mr-1" />
+                    )}
+                    {buyingPackId === pack.id ? "Processing..." : pack.is_upcoming ? "Soon" : wallet ? t.marketplace.buy : "Connect Wallet"}
                   </Button>
                 </div>
               </div>

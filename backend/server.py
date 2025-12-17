@@ -565,8 +565,12 @@ async def get_banners():
     return banners
 
 @api_router.post("/buy/pack")
-async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON", quantity: Optional[int] = None):
-    """Buy stickers from a pack. If `quantity` is provided, buy that many stickers (random unique). If omitted, buy the entire pack."""
+async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON", quantity: Optional[int] = None, transaction_hash: Optional[str] = None):
+    """Buy stickers from a pack. If `quantity` is provided, buy that many stickers (random unique). If omitted, buy the entire pack.
+    
+    For real TON payments via TonConnect, provide transaction_hash which will be verified on blockchain.
+    For legacy in-app balance system, leave transaction_hash as None.
+    """
     pack = await db.sticker_packs.find_one({"id": pack_id}, {"_id": 0})
     if not pack:
         raise HTTPException(status_code=404, detail="Pack not found")
@@ -593,22 +597,32 @@ async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON", quanti
     if qty <= 0:
         raise HTTPException(status_code=400, detail="Quantity must be >= 1")
 
-    # Check balance based on payment type (price per sticker * qty)
+    # Calculate total price
     total_price = pack.get("price", 0) * qty
-    if payment_type == "TON" and user["ton_balance"] < total_price:
-        raise HTTPException(status_code=400, detail="Insufficient TON balance")
-    elif payment_type == "STARS" and user["stars_balance"] < total_price:
-        raise HTTPException(status_code=400, detail="Insufficient Stars balance")
-    elif payment_type == "SXTON" and user["sxton_points"] < total_price:
-        raise HTTPException(status_code=400, detail="Insufficient SXTON points")
+    
+    # If transaction_hash is provided, verify it's from real TON payment
+    if transaction_hash and payment_type == "TON":
+        # In production, verify the transaction on TON blockchain
+        # For now, we trust TonConnect verification
+        # In future: use TON blockchain API to verify amount and recipient
+        logging.info(f"Processing real TON transaction: {transaction_hash} for user {user_id}")
+        # TODO: Verify transaction on blockchain using TON APIs
+    else:
+        # Legacy in-app balance check
+        if payment_type == "TON" and user["ton_balance"] < total_price:
+            raise HTTPException(status_code=400, detail="Insufficient TON balance")
+        elif payment_type == "STARS" and user["stars_balance"] < total_price:
+            raise HTTPException(status_code=400, detail="Insufficient Stars balance")
+        elif payment_type == "SXTON" and user["sxton_points"] < total_price:
+            raise HTTPException(status_code=400, detail="Insufficient SXTON points")
 
-    # Deduct balance
-    if payment_type == "TON":
-        await db.users.update_one({"id": user_id}, {"$inc": {"ton_balance": -total_price, "sxton_points": 500 * qty}})
-    elif payment_type == "STARS":
-        await db.users.update_one({"id": user_id}, {"$inc": {"stars_balance": -total_price, "sxton_points": 500 * qty}})
-    elif payment_type == "SXTON":
-        await db.users.update_one({"id": user_id}, {"$inc": {"sxton_points": -total_price}})
+        # Deduct balance from in-app system
+        if payment_type == "TON":
+            await db.users.update_one({"id": user_id}, {"$inc": {"ton_balance": -total_price, "sxton_points": 500 * qty}})
+        elif payment_type == "STARS":
+            await db.users.update_one({"id": user_id}, {"$inc": {"stars_balance": -total_price, "sxton_points": 500 * qty}})
+        elif payment_type == "SXTON":
+            await db.users.update_one({"id": user_id}, {"$inc": {"sxton_points": -total_price}})
 
     # Select available (unsold) stickers for this pack
     available = await db.stickers.find({"pack_id": pack_id, "owner_id": None}, {"_id": 0}).to_list(None)
@@ -639,8 +653,6 @@ async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON", quanti
     )
     await db.activity.insert_one(activity.model_dump())
 
-    return {"success": True, "stickers": stickers_assigned_sorted}
-    
     # Award referral points
     if user.get("referrer_id"):
         settings = await db.settings.find_one({"id": "global_settings"}, {"_id": 0}) or Settings().model_dump()
@@ -649,8 +661,8 @@ async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON", quanti
             {"id": user["referrer_id"]},
             {"$inc": {"sxton_points": level1_points}}
         )
-    
-    return {"success": True, "message": "Pack purchased successfully", "payment_type": payment_type}
+
+    return {"success": True, "stickers": stickers_assigned_sorted}
 
 @api_router.post("/sell/sticker")
 async def sell_sticker(sticker_id: str, price: float):

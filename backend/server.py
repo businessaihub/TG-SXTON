@@ -15,6 +15,46 @@ import secrets
 import random
 
 
+def parse_rarity_from_filename(filename: str) -> Optional[str]:
+    """Extract rarity from filename like '#1_legendary.png' or '#42_epic.jpg'
+    
+    Supported formats:
+    - #1_legendary.png -> "Legendary"
+    - #2_epic.png -> "Epic"
+    - #3_rare.png -> "Rare"
+    - #4_uncommon.png -> "Uncommon"
+    - #5_common.png -> "Common"
+    
+    Returns None if rarity is not specified in filename.
+    """
+    if not filename:
+        return None
+    
+    filename_lower = filename.lower()
+    rarity_keywords = {
+        "legendary": "Legendary",
+        "epic": "Epic",
+        "rare": "Rare",
+        "uncommon": "Uncommon",
+        "common": "Common"
+    }
+    
+    # Extract part between '_' and '.' 
+    # e.g., from "#1_legendary.png" -> "legendary"
+    try:
+        # Remove extension
+        name_without_ext = filename_lower.rsplit('.', 1)[0]
+        # Get part after underscore
+        if '_' in name_without_ext:
+            rarity_part = name_without_ext.split('_')[-1].strip()
+            if rarity_part in rarity_keywords:
+                return rarity_keywords[rarity_part]
+    except:
+        pass
+    
+    return None
+
+
 def get_rarity(sticker_number: int, total_count: int) -> str:
     """Determine rarity by sticker number and total count.
 
@@ -374,6 +414,7 @@ class Sticker(BaseModel):
     sticker_number: Optional[int] = None
     position: Optional[int] = None
     image_url: str
+    rarity: str = "Common"  # NEW: Store explicit rarity
     price: Optional[float] = None
     is_listed: bool = False
     is_external: bool = False
@@ -638,7 +679,8 @@ async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON", quanti
     for s in selected:
         await db.stickers.update_one({"id": s["id"]}, {"$set": {"owner_id": user_id}})
         num = s.get("sticker_number") or s.get("position")
-        rarity = get_rarity(num, total_in_pack) if num is not None else "Common"
+        # Use stored rarity from sticker document (was parsed from filename or auto-calculated)
+        rarity = s.get("rarity", "Common")
         stickers_assigned.append({"sticker_number": num, "rarity": rarity})
 
     # Sort by internal number for messaging
@@ -930,13 +972,13 @@ async def get_hot_collections():
 
 @api_router.get("/user/{user_id}/stickers")
 async def get_user_stickers(user_id: str):
-    """Return stickers owned by a user with computed rarity and pack info."""
+    """Return stickers owned by a user with rarity and pack info."""
     stickers = await db.stickers.find({"owner_id": user_id}, {"_id": 0}).to_list(None)
     result = []
     for s in stickers:
         pack = await db.sticker_packs.find_one({"id": s.get("pack_id")}, {"_id": 0})
-        total = pack.get("sticker_count") if pack else None
-        rarity = get_rarity(s.get("sticker_number") or s.get("position"), total) if total else "Common"
+        # Use stored rarity from sticker document
+        rarity = s.get("rarity", "Common")
         result.append({
             "id": s.get("id"),
             "pack_id": s.get("pack_id"),
@@ -1095,19 +1137,31 @@ async def create_pack(pack_data: Dict[str, Any]):
     await db.sticker_packs.insert_one(pack.model_dump())
 
     # Create sticker documents for each image (unsold)
+    # IMPORTANT: Extract rarity from filename if specified
     if images:
         stickers = []
         for idx, img in enumerate(images):
+            # Try to parse rarity from filename (e.g., "#1_legendary.png")
+            parsed_rarity = parse_rarity_from_filename(img)
+            
+            # If rarity in filename, use it; otherwise auto-calculate
+            if parsed_rarity:
+                sticker_rarity = parsed_rarity
+            else:
+                sticker_rarity = get_rarity(idx + 1, len(images))
+            
             s = Sticker(
                 pack_id=pack.id,
                 owner_id=None,
                 sticker_number=idx + 1,
                 position=idx + 1,
-                image_url=img
+                image_url=img,
+                rarity=sticker_rarity  # NEW: Store parsed or calculated rarity
             )
             stickers.append(s.model_dump())
         if stickers:
             await db.stickers.insert_many(stickers)
+
 
     return {"success": True, "pack": pack.model_dump()}
 
@@ -1143,12 +1197,22 @@ async def update_pack(pack_id: str, pack_data: Dict[str, Any]):
         # fetch pack to get id
         pack = await db.sticker_packs.find_one({"id": pack_id}, {"_id": 0})
         for idx, img in enumerate(images):
+            # Parse rarity from filename if specified
+            parsed_rarity = parse_rarity_from_filename(img)
+            
+            # If rarity in filename, use it; otherwise auto-calculate
+            if parsed_rarity:
+                sticker_rarity = parsed_rarity
+            else:
+                sticker_rarity = get_rarity(idx + 1, len(images))
+            
             s = Sticker(
                 pack_id=pack_id,
                 owner_id=None,
                 sticker_number=idx + 1,
                 position=idx + 1,
-                image_url=img
+                image_url=img,
+                rarity=sticker_rarity  # Store parsed or calculated rarity
             )
             stickers.append(s.model_dump())
         if stickers:

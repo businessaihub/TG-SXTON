@@ -354,7 +354,7 @@ class StickerPack(BaseModel):
     requires_subscription: bool = False
     required_channel_id: Optional[str] = None
     required_channel_link: Optional[str] = None
-    rarity: str = "common"
+    edition: str = "common"  # RENAMED: Pack category/edition for marketing (limited_edition, legendary_edition, seasonal, exclusive, common)
     sticker_count: int
     is_featured: bool = False
     is_upcoming: bool = False

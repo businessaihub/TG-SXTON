@@ -19,11 +19,12 @@ const PRICE_TYPES = [
   { id: "SXTON", emoji: "🎫", label: "SXTON", description: "StickersXTon points" }
 ];
 
-const RARITIES = [
-  { id: "common", emoji: "🟦", label: "Common", description: "Easy to find", color: "bg-blue-500/20 border-blue-500/50" },
-  { id: "rare", emoji: "🟪", label: "Rare", description: "Hard to find", color: "bg-purple-500/20 border-purple-500/50" },
-  { id: "epic", emoji: "🟨", label: "Epic", description: "Very rare", color: "bg-yellow-500/20 border-yellow-500/50" },
-  { id: "legendary", emoji: "🟥", label: "Legendary", description: "Extremely rare", color: "bg-red-500/20 border-red-500/50" }
+const EDITIONS = [
+  { id: "common", emoji: "📦", label: "Common", description: "Regular pack", color: "bg-blue-500/20 border-blue-500/50" },
+  { id: "limited_edition", emoji: "🔒", label: "Limited Edition", description: "Limited quantity", color: "bg-purple-500/20 border-purple-500/50" },
+  { id: "legendary_edition", emoji: "👑", label: "Legendary Edition", description: "Rare collection", color: "bg-yellow-500/20 border-yellow-500/50" },
+  { id: "seasonal", emoji: "🎄", label: "Seasonal", description: "Seasonal release", color: "bg-green-500/20 border-green-500/50" },
+  { id: "exclusive", emoji: "⭐", label: "Exclusive", description: "Exclusive release", color: "bg-red-500/20 border-red-500/50" }
 ];
 
 const PackManagement = () => {
@@ -44,7 +45,7 @@ const PackManagement = () => {
     requires_subscription: false,
     required_channel_id: "",
     required_channel_link: "",
-    rarity: "common",
+    edition: "common",
     sticker_count: 0,
     is_featured: false,
     is_upcoming: false,
@@ -234,7 +235,7 @@ const PackManagement = () => {
       requires_subscription: pack.requires_subscription || false,
       required_channel_id: pack.required_channel_id || "",
       required_channel_link: pack.required_channel_link || "",
-      rarity: pack.rarity,
+      edition: pack.edition || "common",
       sticker_count: images.length,
       is_featured: pack.is_featured,
       is_upcoming: pack.is_upcoming,
@@ -257,7 +258,7 @@ const PackManagement = () => {
       requires_subscription: false,
       required_channel_id: "",
       required_channel_link: "",
-      rarity: "common",
+      edition: "common",
       sticker_count: 0,
       is_featured: false,
       is_upcoming: false,
@@ -434,34 +435,35 @@ const PackManagement = () => {
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm text-gray-400 block mb-2">Rarity</label>
+                <label className="text-sm text-gray-400 block mb-2">Pack Edition / Category (For Marketing & Filtering)</label>
                 <div className="space-y-2">
-                  {RARITIES.map((rarity) => (
+                  {EDITIONS.map((edition) => (
                     <label
-                      key={rarity.id}
+                      key={edition.id}
                       className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all ${
-                        formData.rarity === rarity.id
-                          ? rarity.color
+                        formData.edition === edition.id
+                          ? edition.color
                           : "bg-white/5 border-white/10 hover:bg-white/10"
                       }`}
                     >
                       <input
                         type="radio"
-                        value={rarity.id}
-                        checked={formData.rarity === rarity.id}
-                        onChange={(e) => setFormData({...formData, rarity: e.target.value})}
+                        value={edition.id}
+                        checked={formData.edition === edition.id}
+                        onChange={(e) => setFormData({...formData, edition: e.target.value})}
                         className="w-4 h-4"
                       />
                       <div className="flex-1">
                         <div className="text-white font-semibold flex items-center gap-2">
-                          <span className="text-lg">{rarity.emoji}</span>
-                          {rarity.label}
+                          <span className="text-lg">{edition.emoji}</span>
+                          {edition.label}
                         </div>
-                        <div className="text-xs text-gray-400 mt-0.5">{rarity.description}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">{edition.description}</div>
                       </div>
                     </label>
                   ))}
                 </div>
+                <p className="text-xs text-gray-500 mt-2 p-2 bg-white/5 rounded">💡 Individual sticker rarity is determined by filename (e.g., #1_legendary.png). This field is just for categorizing your pack.</p>
               </div>
               
               {/* Purchase Configuration */}
@@ -594,7 +596,7 @@ const PackManagement = () => {
             <p className="text-sm text-gray-400 mb-2">{pack.description}</p>
             <div className="flex gap-2 mb-3 flex-wrap">
               <Badge className="bg-cyan-500/20 text-cyan-400">{pack.price} {pack.price_type}</Badge>
-              <Badge className="bg-purple-500/20 text-purple-400">{pack.rarity}</Badge>
+              <Badge className="bg-purple-500/20 text-purple-400">{pack.edition || pack.rarity || 'common'}</Badge>
               {pack.is_featured && <Badge className="bg-yellow-500/20 text-yellow-400">Featured</Badge>}
               {pack.burn_enabled && <Badge className="bg-orange-500/20 text-orange-400">Burnable</Badge>}
             </div>

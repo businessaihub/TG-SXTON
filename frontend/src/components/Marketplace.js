@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { ShoppingCart, Star, Sparkles, Clock, TrendingUp, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet } from "lucide-react";
+import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useTonConnect } from "../context/TonConnectContext";
@@ -22,10 +22,6 @@ const Marketplace = ({ user, language }) => {
   const [loading, setLoading] = useState(true);
   const [imageErrors, setImageErrors] = useState({});
   const [buyingPackId, setBuyingPackId] = useState(null);
-  const [onlineUsers, setOnlineUsers] = useState(0);
-  const [tradingVolume, setTradingVolume] = useState(0);
-  const [activeTraders, setActiveTraders] = useState(0);
-  const [transactions, setTransactions] = useState(0);
   const t = translations[language] || translations.en;
 
   useEffect(() => {
@@ -72,7 +68,6 @@ const Marketplace = ({ user, language }) => {
           setOnlineUsers(data.online_users || 0);
           setTradingVolume(data.trading_volume || 0);
           setActiveTraders(data.active_traders || 0);
-          setTransactions(data.total_transactions || 0);
         } catch (error) {
           console.error("Error fetching real analytics, falling back to simulation:", error);
           // Fallback to simulation if real data fails
@@ -245,34 +240,6 @@ const Marketplace = ({ user, language }) => {
           </h1>
         </div>
         <p className="text-gray-400 text-sm mb-2">{t.marketplace.subtitle}</p>
-        
-        {/* Activity Indicators */}
-        <div className="flex flex-wrap gap-2 mb-2">
-          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 transition-colors relative overflow-hidden">
-            <div className="cosmic-particles"></div>
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse relative z-10"></div>
-            <span className="text-green-400 font-semibold text-sm relative z-10">{onlineUsers}</span>
-            <span className="text-gray-400 text-xs relative z-10">online</span>
-          </div>
-          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 transition-colors relative overflow-hidden">
-            <div className="cosmic-particles"></div>
-            <ActivityIcon className="text-cyan-400 relative z-10" size={14} />
-            <span className="text-cyan-400 font-semibold text-sm relative z-10">{tradingVolume}</span>
-            <span className="text-gray-400 text-xs relative z-10">TON</span>
-          </div>
-          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-yellow-500/30 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 transition-colors relative overflow-hidden">
-            <div className="cosmic-particles"></div>
-            <Flame className="text-yellow-400 relative z-10" size={14} />
-            <span className="text-yellow-400 font-semibold text-sm relative z-10">{activeTraders}</span>
-            <span className="text-gray-400 text-xs relative z-10">trading</span>
-          </div>
-          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-purple-500/30 bg-gradient-to-r from-purple-500/10 to-pink-500/10 transition-colors relative overflow-hidden">
-            <div className="cosmic-particles"></div>
-            <TrendingUp className="text-purple-400 relative z-10" size={14} />
-            <span className="text-purple-400 font-semibold text-sm relative z-10">{transactions}</span>
-            <span className="text-gray-400 text-xs relative z-10">transactions</span>
-          </div>
-        </div>
       </div>
 
       {/* Banner Ads Carousel */}

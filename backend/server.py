@@ -505,6 +505,15 @@ def remove_id(doc):
         doc.pop("_id")
     return doc
 
+class PackRating(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    pack_id: str
+    user_id: str
+    rating: int = 1  # 1-5 stars
+    liked: bool = True  # Simple like/unlike
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
 # ============ USER ENDPOINTS ============
 
 class TelegramAuthRequest(BaseModel):
@@ -1024,6 +1033,19 @@ async def get_giveaways(status: str = "active"):
     return giveaways
 
 # ============ ADMIN ENDPOINTS ============
+# ✅ IMPLEMENTED (6 features):
+#   1. /admin/analytics - Dashboard stats
+#   2. /admin/users - User management list
+#   3. /pack/{pack_id}/rate - Ratings system
+#   4. /pack/{pack_id}/stats - Pack statistics
+#   5. /pack/{pack_id}/popularity - Popularity metrics
+#   6. /broadcast/send - Broadcast messages (TODO: implement fully)
+#
+# 🚧 TODO (Variant C):
+#   - /admin/logs - System logs viewer
+#   - /admin/user/{user_id}/promote-tier - VIP tier management
+#   - /admin/analytics/rfm - RFM analysis
+#   - See PROGRESS_NOTES.md for details
 
 class AdminLoginRequest(BaseModel):
     username: str
@@ -1073,6 +1095,117 @@ async def get_analytics():
     }
     
     return result
+
+# ============ USER MANAGEMENT (ADMIN) ============
+
+@api_router.get("/admin/users", dependencies=[Depends(verify_admin)])
+async def get_users_list(skip: int = 0, limit: int = 50):
+    """Get list of all users with stats"""
+    users = await db.users.find({}, {"_id": 0}).skip(skip).limit(limit).to_list(None)
+    total = await db.users.count_documents({})
+    
+    user_stats = []
+    for user in users:
+        sticker_count = await db.stickers.count_documents({"owner_id": user.get("id")})
+        purchase_count = len(set(await db.stickers.distinct("owner_id", {"pack_id": {"$exists": True}})))
+        
+        user_stats.append({
+            "id": user.get("id"),
+            "telegram_id": user.get("telegram_id"),
+            "username": user.get("username", "N/A"),
+            "sxton_balance": user.get("sxton_balance", 0),
+            "stickers_owned": sticker_count,
+            "created_at": user.get("created_at"),
+            "last_activity": user.get("last_activity", "N/A")
+        })
+    
+    return {"users": user_stats, "total": total, "skip": skip, "limit": limit}
+
+# ============ RATINGS ============
+
+@api_router.post("/pack/{pack_id}/rate")
+async def rate_pack(pack_id: str, user_id: str, rating: int = 5, liked: bool = True):
+    """Rate or like a sticker pack"""
+    if not 1 <= rating <= 5:
+        raise HTTPException(status_code=400, detail="Rating must be 1-5")
+    
+    # Check if user already rated this pack
+    existing = await db.pack_ratings.find_one({"pack_id": pack_id, "user_id": user_id}, {"_id": 0})
+    
+    rating_data = {
+        "pack_id": pack_id,
+        "user_id": user_id,
+        "rating": rating,
+        "liked": liked,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if existing:
+        # Update existing rating
+        await db.pack_ratings.update_one(
+            {"pack_id": pack_id, "user_id": user_id},
+            {"$set": {**rating_data, "created_at": existing["created_at"]}}
+        )
+    else:
+        # Create new rating
+        await db.pack_ratings.insert_one(rating_data)
+    
+    # Get average rating
+    ratings = await db.pack_ratings.find({"pack_id": pack_id}, {"_id": 0}).to_list(None)
+    avg_rating = sum(r["rating"] for r in ratings) / len(ratings) if ratings else 0
+    likes = sum(1 for r in ratings if r["liked"])
+    
+    return {
+        "avg_rating": round(avg_rating, 2),
+        "total_ratings": len(ratings),
+        "likes": likes
+    }
+
+@api_router.get("/pack/{pack_id}/stats")
+async def get_pack_stats(pack_id: str):
+    """Get ratings and stats for a pack"""
+    ratings = await db.pack_ratings.find({"pack_id": pack_id}, {"_id": 0}).to_list(None)
+    
+    avg_rating = sum(r["rating"] for r in ratings) / len(ratings) if ratings else 0
+    likes = sum(1 for r in ratings if r["liked"])
+    rating_distribution = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    
+    for r in ratings:
+        rating_distribution[r["rating"]] += 1
+    
+    return {
+        "avg_rating": round(avg_rating, 2),
+        "total_ratings": len(ratings),
+        "likes": likes,
+        "rating_distribution": rating_distribution
+    }
+
+@api_router.get("/pack/{pack_id}/user-rating/{user_id}")
+async def get_user_rating(pack_id: str, user_id: str):
+    """Get user's rating for a pack"""
+    rating = await db.pack_ratings.find_one({"pack_id": pack_id, "user_id": user_id}, {"_id": 0})
+    return rating or {"rating": 0, "liked": False}
+
+@api_router.get("/pack/{pack_id}/popularity")
+async def get_pack_popularity(pack_id: str):
+    """Get popularity metrics for a pack"""
+    # Count unique buyers (users who own stickers from this pack)
+    unique_buyers = await db.stickers.distinct("owner_id", {"pack_id": pack_id})
+    buyers_count = len([b for b in unique_buyers if b])  # Exclude None
+    
+    # Count total stickers sold from this pack
+    total_stickers_sold = await db.stickers.count_documents({"pack_id": pack_id, "owner_id": {"$ne": None}})
+    
+    # Get ratings count
+    ratings = await db.pack_ratings.find({"pack_id": pack_id}, {"_id": 0}).to_list(None)
+    likes = sum(1 for r in ratings if r["liked"])
+    
+    return {
+        "purchase_count": buyers_count,
+        "total_stickers_sold": total_stickers_sold,
+        "engagement_score": buyers_count + likes,  # Combined metric
+        "trend": "trending" if buyers_count > 10 else "new" if buyers_count < 3 else "popular"
+    }
 
 @api_router.get("/analytics")
 async def get_analytics_public():

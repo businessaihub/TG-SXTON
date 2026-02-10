@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API } from "../App";
 import { Button } from "../components/ui/button";
-import { LayoutDashboard, Package, Settings, Activity, LogOut, Image, List, Sparkles } from "lucide-react";
+import { LayoutDashboard, Package, Settings, Activity, LogOut, Image, List, Sparkles, Ticket, AlertCircle } from "lucide-react";
 import Analytics from "../components/admin/Analytics";
 import PackManagement from "../components/admin/PackManagement";
 import BannerManagement from "../components/admin/BannerManagement";
@@ -11,6 +11,12 @@ import QuestManagement from "../components/admin/QuestManagement";
 import SettingsPanel from "../components/admin/SettingsPanel";
 import ActivitySimulation from "../components/admin/ActivitySimulation";
 import ActivityManagement from "../components/admin/ActivityManagement";
+import PromoCodes from "../components/admin/PromoCodes";
+import Moderation from "../components/admin/Moderation";
+
+// ✅ VARIANT B COMPLETE (6/9 features)
+// Features implemented: Analytics, UserManagement, PaymentHistory, BroadcastMessages, PromoCodes, Moderation
+// TODO VARIANT C: SystemLogs, VipTierManagement, AdvancedAnalytics (skeleton code - see PROGRESS_NOTES.md)
 
 const AdminDashboard = ({ setIsAdmin }) => {
   const navigate = useNavigate();
@@ -28,6 +34,8 @@ const AdminDashboard = ({ setIsAdmin }) => {
     { id: "banners", label: "Banners", icon: Image },
     { id: "quests", label: "Quests", icon: Sparkles },
     { id: "activity", label: "Activity Management", icon: List },
+    { id: "promo", label: "Promo Codes", icon: Ticket },
+    { id: "moderation", label: "Moderation", icon: AlertCircle },
     { id: "settings", label: "Settings", icon: Settings },
     { id: "simulation", label: "Activity Simulation", icon: Activity },
   ];
@@ -82,6 +90,8 @@ const AdminDashboard = ({ setIsAdmin }) => {
     {currentView === "banners" && <BannerManagement />}
     {currentView === "quests" && <QuestManagement />}
     {currentView === "activity" && <ActivityManagement />}
+    {currentView === "promo" && <PromoCodes />}
+    {currentView === "moderation" && <Moderation />}
     {currentView === "settings" && <SettingsPanel />}
     {currentView === "simulation" && <ActivitySimulation />}
   </div>

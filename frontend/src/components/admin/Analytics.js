@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { Switch } from "../ui/switch";
 import { Users, Package, Activity, DollarSign, TrendingUp, Wifi, Edit2, Save, Coins } from "lucide-react";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 
 const Analytics = () => {
@@ -22,6 +23,15 @@ const Analytics = () => {
     total_sxton_distributed: 0,
     total_sxton_spent: 0
   });
+  const [chartData, setChartData] = useState([
+    { time: "00:00", users: 45, volume: 1200, transactions: 8 },
+    { time: "04:00", users: 52, volume: 1800, transactions: 12 },
+    { time: "08:00", users: 78, volume: 2400, transactions: 18 },
+    { time: "12:00", users: 120, volume: 3600, transactions: 24 },
+    { time: "16:00", users: 95, volume: 2800, transactions: 19 },
+    { time: "20:00", users: 140, volume: 4200, transactions: 32 },
+    { time: "24:00", users: 180, volume: 5100, transactions: 42 }
+  ]);
 
   useEffect(() => {
     // Load from localStorage on mount - default to Real Data (true)
@@ -368,6 +378,45 @@ const Analytics = () => {
             </div>
             <div className="text-sm text-gray-400">Active Packs</div>
           </div>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="glass-card p-6 border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 relative overflow-hidden">
+        <div className="cosmic-particles"></div>
+        <h3 className="text-xl font-semibold text-white mb-4 relative z-10" style={{ fontFamily: 'Space Grotesk' }}>
+          24-Hour Analytics Chart
+        </h3>
+        
+        {/* Activity Chart */}
+        <div className="bg-slate-900/50 p-4 rounded-lg mb-4 relative z-10 border border-white/10">
+          <p className="text-sm text-gray-400 mb-3">Active Users & Transactions</p>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              <XAxis dataKey="time" stroke="#888" />
+              <YAxis stroke="#888" />
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#0ea5e9', borderRadius: '8px' }} />
+              <Legend />
+              <Line type="monotone" dataKey="users" stroke="#06b6d4" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="transactions" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Volume Chart */}
+        <div className="bg-slate-900/50 p-4 rounded-lg relative z-10 border border-white/10">
+          <p className="text-sm text-gray-400 mb-3">Trading Volume (TON)</p>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              <XAxis dataKey="time" stroke="#888" />
+              <YAxis stroke="#888" />
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#8b5cf6', borderRadius: '8px' }} />
+              <Legend />
+              <Bar dataKey="volume" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>

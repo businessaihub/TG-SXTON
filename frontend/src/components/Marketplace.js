@@ -3,9 +3,11 @@ import axios from "axios";
 import { API } from "../App";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { Input } from "./ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet } from "lucide-react";
+import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useTonConnect } from "../context/TonConnectContext";
@@ -22,6 +24,17 @@ const Marketplace = ({ user, language }) => {
   const [loading, setLoading] = useState(true);
   const [imageErrors, setImageErrors] = useState({});
   const [buyingPackId, setBuyingPackId] = useState(null);
+  const [onlineUsers, setOnlineUsers] = useState(0);
+  const [tradingVolume, setTradingVolume] = useState(0);
+  const [activeTraders, setActiveTraders] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPack, setSelectedPack] = useState(null);
+  const [showPackDetails, setShowPackDetails] = useState(false);
+  const [userStickers, setUserStickers] = useState([]);
+  const [showMyStickers, setShowMyStickers] = useState(false);
+  const [packStats, setPackStats] = useState({});
+  const [userRatings, setUserRatings] = useState({});
+  const [packPopularity, setPackPopularity] = useState({});
   const t = translations[language] || translations.en;
 
   useEffect(() => {
@@ -87,7 +100,6 @@ const Marketplace = ({ user, language }) => {
     setOnlineUsers(Math.floor(Math.random() * (1000 - 150) + 150));
     setTradingVolume(Math.floor(Math.random() * (5000 - 1000) + 1000));
     setActiveTraders(Math.floor(Math.random() * (200 - 50) + 50));
-    setTransactions(Math.floor(Math.random() * (1000 - 100) + 100));
   };
 
   const fetchPacks = async () => {
@@ -121,6 +133,66 @@ const Marketplace = ({ user, language }) => {
     }
   };
 
+  const fetchUserStickers = async () => {
+    if (!user?.id) return;
+    try {
+      const response = await axios.get(`${API}/user/${user.id}/stickers`);
+      setUserStickers(response.data);
+    } catch (error) {
+      console.error("Error fetching user stickers:", error);
+    }
+  };
+
+  const fetchPackStats = async (packId) => {
+    try {
+      const response = await axios.get(`${API}/pack/${packId}/stats`);
+      setPackStats(prev => ({...prev, [packId]: response.data}));
+    } catch (error) {
+      console.error("Error fetching pack stats:", error);
+    }
+  };
+
+  const fetchUserRating = async (packId) => {
+    if (!user?.id) return;
+    try {
+      const response = await axios.get(`${API}/pack/${packId}/user-rating/${user.id}`);
+      setUserRatings(prev => ({...prev, [packId]: response.data}));
+    } catch (error) {
+      console.error("Error fetching user rating:", error);
+    }
+  };
+
+  const fetchPackPopularity = async (packId) => {
+    try {
+      const response = await axios.get(`${API}/pack/${packId}/popularity`);
+      setPackPopularity(prev => ({...prev, [packId]: response.data}));
+    } catch (error) {
+      console.error("Error fetching pack popularity:", error);
+    }
+  };
+
+  const handleRatePack = async (packId, rating, liked) => {
+    if (!user?.id) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+    
+    try {
+      await axios.post(
+        `${API}/pack/${packId}/rate?user_id=${user.id}&rating=${rating}&liked=${liked}`
+      );
+      
+      // Refresh stats
+      await fetchPackStats(packId);
+      await fetchUserRating(packId);
+      
+      toast.success("Rating saved!");
+    } catch (error) {
+      console.error("Error rating pack:", error);
+      toast.error("Failed to save rating");
+    }
+  };
+
   const sortPacks = () => {
     let sorted = [...packs];
     switch(sortBy) {
@@ -141,6 +213,28 @@ const Marketplace = ({ user, language }) => {
         break;
     }
     setPacks(sorted);
+  };
+
+  const getFilteredAndSortedPacks = () => {
+    let filtered = packs;
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(pack => 
+        pack.name.toLowerCase().includes(query) || 
+        (pack.description && pack.description.toLowerCase().includes(query))
+      );
+    }
+
+    // Filter by type
+    if (filter === "my") {
+      filtered = filtered.filter(pack => userPacks.includes(pack.id));
+    } else if (filter === "external") {
+      filtered = filtered.filter(pack => !userPacks.includes(pack.id));
+    }
+
+    return filtered;
   };
 
   const handleBuy = async (pack) => {
@@ -227,6 +321,47 @@ const Marketplace = ({ user, language }) => {
     }
   };
 
+  // Live pricing rates (you can update these dynamically from API)
+  const PRICE_RATES = {
+    TON: 5.2,      // 1 TON = $5.2 USD
+    STARS: 0.02,   // 1 STAR = $0.02 USD
+    SXTON: 0.15    // 1 SXTON = $0.15 USD
+  };
+
+  const convertPrice = (price, priceType, toCurrency = "USD") => {
+    const rate = PRICE_RATES[priceType] || 1;
+    return (price * rate).toFixed(2);
+  };
+
+  const getRarityDistribution = (pack) => {
+    // Calculate rarity distribution based on total count
+    const total = pack.sticker_count || 0;
+    if (total <= 0) return {};
+    
+    const legendaryCount = Math.max(1, Math.round(total * 0.01));
+    const epicCount = Math.round(total * 0.04);
+    const rareCount = Math.round(total * 0.10);
+    const uncommonCount = Math.round(total * 0.25);
+    const commonCount = total - legendaryCount - epicCount - rareCount - uncommonCount;
+    
+    return {
+      legendary: legendaryCount,
+      epic: epicCount,
+      rare: rareCount,
+      uncommon: uncommonCount,
+      common: Math.max(0, commonCount)
+    };
+  };
+
+  const handleOpenPackDetails = (pack) => {
+    setSelectedPack(pack);
+    setShowPackDetails(true);
+    // Load ratings data
+    fetchPackStats(pack.id);
+    fetchUserRating(pack.id);
+    fetchPackPopularity(pack.id);
+  };
+
   return (
     <div className="p-3 space-y-3 relative" data-testid="marketplace-container">
       {/* Cosmic background */}
@@ -240,6 +375,28 @@ const Marketplace = ({ user, language }) => {
           </h1>
         </div>
         <p className="text-gray-400 text-sm mb-2">{t.marketplace.subtitle}</p>
+        
+        {/* Activity Indicators */}
+        <div className="flex flex-wrap gap-2 mb-2">
+          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 transition-colors relative overflow-hidden">
+            <div className="cosmic-particles"></div>
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse relative z-10"></div>
+            <span className="text-green-400 font-semibold text-sm relative z-10">{onlineUsers}</span>
+            <span className="text-gray-400 text-xs relative z-10">online</span>
+          </div>
+          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 transition-colors relative overflow-hidden">
+            <div className="cosmic-particles"></div>
+            <ActivityIcon className="text-cyan-400 relative z-10" size={14} />
+            <span className="text-cyan-400 font-semibold text-sm relative z-10">{tradingVolume}</span>
+            <span className="text-gray-400 text-xs relative z-10">TON</span>
+          </div>
+          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-yellow-500/30 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 transition-colors relative overflow-hidden">
+            <div className="cosmic-particles"></div>
+            <Flame className="text-yellow-400 relative z-10" size={14} />
+            <span className="text-yellow-400 font-semibold text-sm relative z-10">{activeTraders}</span>
+            <span className="text-gray-400 text-xs relative z-10">trading</span>
+          </div>
+        </div>
       </div>
 
       {/* Banner Ads Carousel */}
@@ -352,6 +509,22 @@ const Marketplace = ({ user, language }) => {
         </div>
       )}
 
+      {/* My Stickers Button */}
+      {user && (
+        <div className="relative z-10 mb-2">
+          <Button
+            onClick={() => {
+              fetchUserStickers();
+              setShowMyStickers(true);
+            }}
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white h-9 text-sm"
+          >
+            <Package size={16} className="mr-2" />
+            My Stickers Gallery ({userStickers.length})
+          </Button>
+        </div>
+      )}
+
       {/* Filters & Sorting */}
       <div className="space-y-2 relative z-10">
         <Tabs value={filter} onValueChange={setFilter} className="w-full">
@@ -380,7 +553,7 @@ const Marketplace = ({ user, language }) => {
           </TabsList>
         </Tabs>
 
-        {/* Sort Dropdown */}
+        {/* Sort Dropdown & Search */}
         <div className="flex items-center gap-2">
           <ArrowUpDown className="text-gray-400" size={16} />
           <Select value={sortBy} onValueChange={setSortBy}>
@@ -395,6 +568,14 @@ const Marketplace = ({ user, language }) => {
               <SelectItem value="rarity">By Rarity</SelectItem>
             </SelectContent>
           </Select>
+          
+          {/* Search Input */}
+          <Input
+            placeholder="Search stickers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 max-w-xs bg-slate-800/50 border-white/10 text-white placeholder-gray-500 h-8 text-sm"
+          />
         </div>
       </div>
 
@@ -407,11 +588,12 @@ const Marketplace = ({ user, language }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 relative z-10">
-          {packs.map((pack) => (
+          {getFilteredAndSortedPacks().map((pack) => (
             <div
               key={pack.id}
               data-testid={`pack-card-${pack.id}`}
-              className="glass-card p-3 flex gap-3 border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 transition-colors duration-300 cursor-pointer relative overflow-hidden"
+              onClick={() => handleOpenPackDetails(pack)}
+              className="glass-card p-3 flex gap-3 border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 transition-colors duration-300 cursor-pointer relative overflow-hidden group"
             >
               <div className="cosmic-particles"></div>
               <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg z-10">
@@ -437,6 +619,23 @@ const Marketplace = ({ user, language }) => {
                     </Badge>
                   </div>
                   <p className="text-xs text-gray-400 line-clamp-1">{pack.description}</p>
+                  
+                  {/* Sticker Preview */}
+                  {pack.image_urls && pack.image_urls.length > 0 && (
+                    <div className="flex gap-1 mt-1.5">
+                      {pack.image_urls.slice(0, 3).map((stickerUrl, idx) => (
+                        <div key={idx} className="w-8 h-8 rounded overflow-hidden border border-white/10 bg-slate-700">
+                          <img
+                            src={stickerUrl}
+                            alt={`Preview ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => e.target.style.display = 'none'}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
                   {pack.is_upcoming && (
                     <div className="flex items-center gap-1 mt-1 text-xs">
                       <Clock size={12} className="text-yellow-400" />
@@ -446,33 +645,50 @@ const Marketplace = ({ user, language }) => {
                 </div>
                 
                 <div className="flex items-center justify-between mt-1.5">
-                  <span className={`text-base font-bold ${getPriceColor(pack.price_type)}`}>
-                    {pack.price} {pack.price_type}
-                  </span>
-                  <Button
-                    size="sm"
-                    onClick={() => handleBuy(pack)}
-                    data-testid={`buy-pack-${pack.id}`}
-                    disabled={pack.is_upcoming || buyingPackId === pack.id || isConnecting}
-                    className={`transition-colors shadow-lg h-7 px-3 text-xs ${
-                      pack.is_upcoming
-                        ? "bg-gray-500/50 hover:bg-gray-500/50 text-gray-300"
-                        : wallet
-                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
-                        : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
-                    }`}
-                  >
-                    {buyingPackId === pack.id ? (
-                      <Sparkles size={12} className="mr-1 animate-spin" />
-                    ) : pack.is_upcoming ? (
-                      <Clock size={12} className="mr-1" />
-                    ) : wallet ? (
-                      <ShoppingCart size={12} className="mr-1" />
-                    ) : (
-                      <Wallet size={12} className="mr-1" />
-                    )}
-                    {buyingPackId === pack.id ? "Processing..." : pack.is_upcoming ? "Soon" : wallet ? t.marketplace.buy : "Connect Wallet"}
-                  </Button>
+                  <div className="flex flex-col gap-0.5">
+                    <span className={`text-base font-bold ${getPriceColor(pack.price_type)}`}>
+                      {pack.price} {pack.price_type}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      ≈ ${convertPrice(pack.price, pack.price_type)} USD
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenPackDetails(pack);
+                      }}
+                      className="p-1.5 rounded-md bg-blue-500/20 hover:bg-blue-500/40 transition-colors opacity-0 group-hover:opacity-100"
+                      title="View Details"
+                    >
+                      <Info size={14} className="text-blue-400" />
+                    </button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleBuy(pack)}
+                      data-testid={`buy-pack-${pack.id}`}
+                      disabled={pack.is_upcoming || buyingPackId === pack.id || isConnecting}
+                      className={`transition-colors shadow-lg h-7 px-3 text-xs ${
+                        pack.is_upcoming
+                          ? "bg-gray-500/50 hover:bg-gray-500/50 text-gray-300"
+                          : wallet
+                          ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                          : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+                      }`}
+                    >
+                      {buyingPackId === pack.id ? (
+                        <Sparkles size={12} className="mr-1 animate-spin" />
+                      ) : pack.is_upcoming ? (
+                        <Clock size={12} className="mr-1" />
+                      ) : wallet ? (
+                        <ShoppingCart size={12} className="mr-1" />
+                      ) : (
+                        <Wallet size={12} className="mr-1" />
+                      )}
+                      {buyingPackId === pack.id ? "Processing..." : pack.is_upcoming ? "Soon" : wallet ? t.marketplace.buy : "Connect Wallet"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -487,6 +703,233 @@ const Marketplace = ({ user, language }) => {
           </div>
         </div>
       )}
+
+      {/* Pack Details Modal */}
+      <Dialog open={showPackDetails} onOpenChange={setShowPackDetails}>
+        <DialogContent className="max-w-md bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 z-50">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Info size={18} className="text-blue-400" />
+              {selectedPack?.name}
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Complete information about this sticker pack
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedPack && (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {/* Pack Image */}
+              <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/10">
+                <img
+                  src={selectedPack.image_url || FALLBACK_IMAGE}
+                  alt={selectedPack.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Basic Info */}
+              <div className="space-y-1.5">
+                <p className="text-xs text-gray-400">Description</p>
+                <p className="text-sm text-white">{selectedPack.description}</p>
+              </div>
+
+              {/* Sticker Count & Rarity Distribution */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="glass-card p-2 border border-white/10 rounded">
+                  <p className="text-xs text-gray-400">Total Stickers</p>
+                  <p className="text-lg font-bold text-cyan-400">{selectedPack.sticker_count}</p>
+                </div>
+                <div className="glass-card p-2 border border-white/10 rounded">
+                  <p className="text-xs text-gray-400">Edition</p>
+                  <p className="text-xs font-semibold text-blue-300 capitalize">{selectedPack.edition}</p>
+                </div>
+              </div>
+
+              {/* Rarity Distribution */}
+              <div className="space-y-1.5">
+                <p className="text-xs text-gray-400 font-semibold">Rarity Distribution</p>
+                <div className="space-y-1">
+                  {Object.entries(getRarityDistribution(selectedPack)).map(([rarity, count]) => (
+                    <div key={rarity} className="flex items-center justify-between text-xs">
+                      <span className="capitalize text-gray-300">{rarity}</span>
+                      <div className="flex items-center gap-2 flex-1 ml-2">
+                        <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${rarity === 'legendary' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : rarity === 'epic' ? 'bg-gradient-to-r from-purple-500 to-pink-500' : rarity === 'rare' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 'bg-gray-500'}`}
+                            style={{ width: `${(count / selectedPack.sticker_count) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-gray-400 w-6 text-right">{count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Price & Type */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="glass-card p-2 border border-white/10 rounded">
+                  <p className="text-xs text-gray-400">Price</p>
+                  <p className={`text-sm font-bold ${getPriceColor(selectedPack.price_type)}`}>
+                    {selectedPack.price} {selectedPack.price_type}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    ≈ ${convertPrice(selectedPack.price, selectedPack.price_type)} USD
+                  </p>
+                </div>
+                <div className="glass-card p-2 border border-white/10 rounded">
+                  <p className="text-xs text-gray-400">Featured</p>
+                  <p className="text-xs font-semibold text-green-400">
+                    {selectedPack.is_featured ? '✓ Yes' : '✗ No'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Preview Stickers */}
+              {selectedPack.image_urls && selectedPack.image_urls.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-gray-400 font-semibold">Sample Stickers</p>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedPack.image_urls.slice(0, 6).map((url, idx) => (
+                      <div key={idx} className="w-10 h-10 rounded border border-white/10 bg-slate-700 overflow-hidden">
+                        <img src={url} alt={`Sticker ${idx + 1}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                    {selectedPack.image_urls.length > 6 && (
+                      <div className="w-10 h-10 rounded border border-white/10 bg-slate-700 flex items-center justify-center text-xs text-gray-400">
+                        +{selectedPack.image_urls.length - 6}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Popularity Metrics */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="glass-card p-2 border border-green-500/30 bg-green-500/10 rounded text-center">
+                  <p className="text-xs text-gray-400">Buyers</p>
+                  <p className="text-base font-bold text-green-400">{packPopularity[selectedPack?.id]?.purchase_count || 0}</p>
+                </div>
+                <div className="glass-card p-2 border border-blue-500/30 bg-blue-500/10 rounded text-center">
+                  <p className="text-xs text-gray-400">Sold</p>
+                  <p className="text-base font-bold text-blue-400">{packPopularity[selectedPack?.id]?.total_stickers_sold || 0}</p>
+                </div>
+                <div className="glass-card p-2 border border-purple-500/30 bg-purple-500/10 rounded text-center">
+                  <p className="text-xs text-gray-400">Trend</p>
+                  <p className="text-xs font-bold text-purple-400 capitalize">
+                    {packPopularity[selectedPack?.id]?.trend === 'trending' ? '🔥 Trending' : packPopularity[selectedPack?.id]?.trend === 'new' ? '✨ New' : '⭐ Popular'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Ratings Section */}
+              <div className="space-y-1.5 p-2 rounded border border-blue-500/30 bg-blue-500/10">
+                <p className="text-xs text-gray-400 font-semibold">Community Rating</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex">
+                    {[1,2,3,4,5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => handleRatePack(selectedPack.id, star, true)}
+                        className="text-lg hover:scale-110 transition-transform"
+                      >
+                        <Star
+                          size={16}
+                          className={`${
+                            star <= (userRatings[selectedPack.id]?.rating || 0)
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'text-gray-500'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-xs text-yellow-400 font-semibold ml-1">
+                    {packStats[selectedPack.id]?.avg_rating || 0} ({packStats[selectedPack.id]?.total_ratings || 0})
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleRatePack(selectedPack.id, userRatings[selectedPack.id]?.rating || 5, !userRatings[selectedPack.id]?.liked)}
+                  className="text-xs px-2 py-1 rounded bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 transition-colors w-full"
+                >
+                  {userRatings[selectedPack.id]?.liked ? '❤️ Liked' : '🤍 Like'}
+                </button>
+              </div>
+
+              {/* Status */}
+              {selectedPack.is_upcoming && (
+                <div className="p-2 rounded border border-yellow-500/30 bg-yellow-500/10">
+                  <p className="text-xs text-yellow-400 font-semibold">🕒 Coming Soon</p>
+                  {selectedPack.countdown_date && (
+                    <p className="text-xs text-yellow-300">{new Date(selectedPack.countdown_date).toLocaleDateString()}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Action Button */}
+              <Button
+                onClick={() => {
+                  setShowPackDetails(false);
+                  handleBuy(selectedPack);
+                }}
+                disabled={selectedPack.is_upcoming || buyingPackId === selectedPack.id || isConnecting}
+                className="w-full mt-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white h-8 text-sm"
+              >
+                {buyingPackId === selectedPack.id ? 'Processing...' : selectedPack.is_upcoming ? 'Coming Soon' : wallet ? t.marketplace.buy : 'Connect Wallet'}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* My Stickers Gallery Modal */}
+      <Dialog open={showMyStickers} onOpenChange={setShowMyStickers}>
+        <DialogContent className="max-w-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 max-h-96 overflow-y-auto z-50">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Package size={18} className="text-purple-400" />
+              My Stickers Gallery
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Total stickers owned: {userStickers.length}
+            </DialogDescription>
+          </DialogHeader>
+
+          {userStickers.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400">No stickers yet. Start collecting! 🎁</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {userStickers.map((sticker) => (
+                <div
+                  key={sticker.id}
+                  className="glass-card p-2 border border-white/10 rounded-lg hover:border-purple-500/50 transition-colors"
+                >
+                  <div className="relative w-full h-20 rounded mb-1.5 overflow-hidden border border-white/10 bg-slate-700">
+                    <img
+                      src={sticker.image_url}
+                      alt={`${sticker.pack_name} #${sticker.sticker_number}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => e.target.style.display = 'none'}
+                    />
+                  </div>
+                  <div className="text-xs space-y-0.5">
+                    <p className="font-semibold text-white line-clamp-1">{sticker.pack_name}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">#{sticker.sticker_number}</span>
+                      <Badge className={`text-xs ${getRarityColor(sticker.rarity?.toLowerCase())} shadow-lg`}>
+                        {sticker.rarity}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -10,7 +10,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import secrets
 import random
 
@@ -513,6 +513,15 @@ class PackRating(BaseModel):
     rating: int = 1  # 1-5 stars
     liked: bool = True  # Simple like/unlike
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class SystemLog(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    level: str = "info"  # error, warning, info, debug
+    message: str
+    source: str = "backend"  # backend, frontend, analytics, blockchain, database
+    metadata: Dict[str, Any] = Field(default_factory=dict)  # Additional context
 
 # ============ USER ENDPOINTS ============
 
@@ -1120,6 +1129,102 @@ async def get_users_list(skip: int = 0, limit: int = 50):
         })
     
     return {"users": user_stats, "total": total, "skip": skip, "limit": limit}
+
+@api_router.get("/admin/logs", dependencies=[Depends(verify_admin)])
+async def get_system_logs(level: str = "all", source: str = "all", skip: int = 0, limit: int = 50):
+    """Get system logs with filters"""
+    query = {}
+    
+    if level != "all":
+        query["level"] = level
+    if source != "all":
+        query["source"] = source
+    
+    logs = await db.system_logs.find(query, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(limit).to_list(None)
+    total = await db.system_logs.count_documents(query)
+    
+    return {"logs": logs, "total": total, "skip": skip, "limit": limit}
+
+@api_router.post("/admin/logs/clear", dependencies=[Depends(verify_admin)])
+async def clear_old_logs(days: int = 7):
+    """Clear logs older than N days"""
+    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    result = await db.system_logs.delete_many({"timestamp": {"$lt": cutoff_date}})
+    return {"deleted_count": result.deleted_count, "message": f"Logs older than {days} days cleared"}
+
+# ============ VIP TIER MANAGEMENT ============
+
+@api_router.get("/admin/tiers/stats", dependencies=[Depends(verify_admin)])
+async def get_tiers_stats():
+    """Get VIP tier statistics"""
+    users = await db.users.find({}, {"_id": 0}).to_list(None)
+    
+    tier_counts = {"platinum": 0, "gold": 0, "silver": 0, "basic": 0}
+    total_tier_benefits = {"platinum": 0, "gold": 0, "silver": 0}
+    
+    for user in users:
+        tier = user.get("tier", "basic")
+        tier_counts[tier] = tier_counts.get(tier, 0) + 1
+    
+    return {
+        "tier_distribution": tier_counts,
+        "total_users": len(users),
+        "vip_users": tier_counts["platinum"] + tier_counts["gold"] + tier_counts["silver"],
+        "promotion_eligible": sum(1 for u in users if u.get("sxton_balance", 0) > 500)
+    }
+
+@api_router.post("/admin/user/{user_id}/promote-tier", dependencies=[Depends(verify_admin)])
+async def promote_user_tier(user_id: str, target_tier: str = None):
+    """Promote user to next tier"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    current_tier = user.get("tier", "basic")
+    tier_hierarchy = ["basic", "silver", "gold", "platinum"]
+    
+    if target_tier:
+        if target_tier not in tier_hierarchy:
+            raise HTTPException(status_code=400, detail="Invalid tier")
+        new_tier = target_tier
+    else:
+        # Auto-promote to next tier
+        current_index = tier_hierarchy.index(current_tier)
+        if current_index >= len(tier_hierarchy) - 1:
+            raise HTTPException(status_code=400, detail="User already at platinum tier")
+        new_tier = tier_hierarchy[current_index + 1]
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"tier": new_tier, "tier_promoted_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"success": True, "message": f"User promoted to {new_tier}", "new_tier": new_tier}
+
+@api_router.get("/admin/user/{user_id}/tier", dependencies=[Depends(verify_admin)])
+async def get_user_tier_info(user_id: str):
+    """Get user's tier information"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    tier = user.get("tier", "basic")
+    tier_benefits = {
+        "platinum": ["30% discount", "Advanced trading", "VIP support", "5x rewards", "Bonus stickers"],
+        "gold": ["20% discount", "Trading feature", "Priority support", "3x rewards"],
+        "silver": ["10% discount", "Early access", "2x rewards"],
+        "basic": ["Standard access"]
+    }
+    
+    return {
+        "user_id": user_id,
+        "username": user.get("username"),
+        "tier": tier,
+        "benefits": tier_benefits.get(tier, []),
+        "promoted_at": user.get("tier_promoted_at"),
+        "sxton_balance": user.get("sxton_balance", 0),
+        "purchases": user.get("purchase_count", 0)
+    }
 
 # ============ RATINGS ============
 

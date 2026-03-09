@@ -22,6 +22,9 @@ services:
     volumes:
       # Persist backend local data (fallback store) across container restarts using a named volume
       - backend_data:/app/data
+      # Mount backend code for hot reload
+      - ./backend/server.py:/app/server.py:ro
+      - ./backend/init_data.py:/app/init_data.py:ro
 
   frontend:
     build:

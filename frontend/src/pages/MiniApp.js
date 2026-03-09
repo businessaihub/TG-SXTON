@@ -7,16 +7,19 @@ import Activity from "../components/Activity";
 import Hot from "../components/Hot";
 import Profile from "../components/Profile";
 import Quests from "../components/Quests";
+import Game from "../components/Game";
 import BottomNav from "../components/BottomNav";
-import LanguageSelector from "../components/LanguageSelector";
-import { Home, Activity as ActivityIcon, Flame, User, Shield, Sparkles } from "lucide-react";
+import { Home, Activity as ActivityIcon, Flame, User, Shield, Sparkles, Gamepad2 } from "lucide-react";
 
 const MiniApp = ({ isAdmin }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState("marketplace");
   const [user, setUser] = useState(null);
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState(() => {
+    const savedLanguage = localStorage.getItem('language');
+    return savedLanguage || 'en';
+  });
 
   useEffect(() => {
     // Initialize user (mock Telegram auth)
@@ -59,6 +62,17 @@ const MiniApp = ({ isAdmin }) => {
   }, []);
 
   useEffect(() => {
+    localStorage.setItem('language', language);
+    
+    // Send language preference to backend
+    if (user && user.id) {
+      axios.put(`${API}/user/${user.id}/language?language=${language}`).catch(err => {
+        console.error("Error updating language on backend:", err);
+      });
+    }
+  }, [language, user]);
+
+  useEffect(() => {
     const path = location.pathname.substring(1) || "marketplace";
     setCurrentTab(path);
   }, [location]);
@@ -67,6 +81,7 @@ const MiniApp = ({ isAdmin }) => {
     { id: "marketplace", label: "Marketplace", icon: Home },
     { id: "activity", label: "Activity", icon: ActivityIcon },
     { id: "hot", label: "Hot", icon: Flame },
+    { id: "game", label: "Game", icon: Gamepad2 },
     { id: "profile", label: "Profile", icon: User },
     { id: "quests", label: "Quests", icon: Sparkles },
     // { id: "roulette", label: "Roulette", icon: Disc3 }, // TODO: Enable when roulette is ready
@@ -84,6 +99,17 @@ const MiniApp = ({ isAdmin }) => {
     }
   };
 
+  const handleLogout = () => {
+    // Clear localStorage
+    localStorage.clear();
+    
+    // Clear user state
+    setUser(null);
+    
+    // Redirect to marketplace
+    navigate("/marketplace");
+  };
+
   const renderContent = () => {
     switch (currentTab) {
       case "marketplace":
@@ -92,8 +118,10 @@ const MiniApp = ({ isAdmin }) => {
         return <Activity language={language} />;
       case "hot":
         return <Hot language={language} />;
+      case "game":
+        return <Game user={user} language={language} />;
       case "profile":
-        return <Profile user={user} setUser={setUser} language={language} setLanguage={setLanguage} />;
+        return <Profile user={user} setUser={setUser} language={language} setLanguage={setLanguage} onLogout={handleLogout} />;
       case "quests":
         return <Quests user={user} setUser={setUser} language={language} />;
       // case "roulette":
@@ -113,10 +141,6 @@ const MiniApp = ({ isAdmin }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#0f0f1a] to-[#0a0a0f] pb-24">
-      <div className="fixed top-4 right-4 z-50">
-        <LanguageSelector language={language} setLanguage={setLanguage} />
-      </div>
-      
       <div className="max-w-md mx-auto p-4">
         {renderContent()}
       </div>

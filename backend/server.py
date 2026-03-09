@@ -96,7 +96,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/tg_sxton')
 client = AsyncIOMotorClient(mongo_url)
 # We'll try to use MongoDB when available; otherwise fall back to a simple file-backed local store
 db = None
@@ -290,14 +290,18 @@ class LocalDB:
 
 async def _init_db_on_startup():
     global db
-    try:
-        # Try pinging MongoDB
-        await client.admin.command('ping')
-        db = client[os.environ['DB_NAME']]
-        print('Connected to MongoDB')
-    except Exception as e:
-        print('MongoDB not available, falling back to local file store:', e)
-        db = LocalDB()
+    # For development, use local file store to avoid MongoDB connection delays
+    print('Using local file store for database')
+    db = LocalDB()
+    # Commented out MongoDB for faster startup
+    # try:
+    #     # Try pinging MongoDB with 3 second timeout
+    #     await asyncio.wait_for(client.admin.command('ping'), timeout=3.0)
+    #     db = client[os.environ['DB_NAME']]
+    #     print('Connected to MongoDB')
+    # except Exception as e:
+    #     print('MongoDB not available, falling back to local file store:', e)
+    #     db = LocalDB()
 
 
 app = FastAPI()
@@ -478,6 +482,20 @@ class Settings(BaseModel):
         "avg_win_value": 0.0
     }
     simulation_enabled: bool = False
+
+class GameSettings(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = "game_settings"
+    theft_cost_ton: float = 0.2
+    theft_cooldown_hours: int = 6
+    bomb_expiration_hours: int = 24
+    raid_entry_cost_ton: float = 0.1
+    raid_max_players: int = 10
+    puzzle_fragment_cost_ton: float = 0.0
+    puzzle_fragment_drop_chance: float = 0.3
+    puzzle_fragments_needed: int = 4
+    puzzle_reward_sticker_pack_id: Optional[str] = None
+    puzzle_reward_points: float = 200.0
     simulation_daily_volume: int = 50
     simulation_min_volume_ton: float = 500.0
     hot_mode: str = "manual"
@@ -602,6 +620,12 @@ async def get_packs(filter_type: str = "all"):
         query["is_upcoming"] = True
     
     packs = await db.sticker_packs.find(query, {"_id": 0}).to_list(1000)
+    return packs
+
+@api_router.get("/sticker-packs")
+async def get_sticker_packs():
+    """Get all sticker packs (alias for /packs)"""
+    packs = await db.sticker_packs.find({}, {"_id": 0}).to_list(1000)
     return packs
 
 @api_router.get("/packs/featured")
@@ -1066,6 +1090,294 @@ async def admin_login(request: AdminLoginRequest):
         token = f"{request.username}:{request.password}"
         return {"success": True, "token": token, "is_admin": True}
     raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@api_router.post("/admin/verify-token")
+async def verify_token(authorization: Optional[str] = Header(None)):
+    """Verify if the provided token is valid"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="No token provided")
+    
+    # Extract token from "Bearer <token>"
+    try:
+        parts = authorization.split()
+        token = parts[1] if len(parts) > 1 else authorization
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token format")
+    
+    # Check if token matches admin credentials
+    expected_token = f"{ADMIN_USERNAME}:{ADMIN_PASSWORD}"
+    if token == expected_token:
+        return {"success": True, "is_admin": True}
+    
+    raise HTTPException(status_code=401, detail="Invalid token")
+
+# ============ GAME SETTINGS MANAGEMENT (ADMIN) ============
+@api_router.get("/admin/game-settings")
+async def get_game_settings(authorization: Optional[str] = Header(None)):
+    """Get current game settings"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="No token provided")
+    
+    try:
+        parts = authorization.split()
+        token = parts[1] if len(parts) > 1 else authorization
+        expected_token = f"{ADMIN_USERNAME}:{ADMIN_PASSWORD}"
+        if token != expected_token:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token format")
+    
+    settings = await db.game_settings.find_one({"id": "game_settings"})
+    if not settings:
+        # Return defaults
+        settings = {
+            "id": "game_settings",
+            "theft_cost_ton": 0.2,
+            "theft_cooldown_hours": 6,
+            "bomb_expiration_hours": 24,
+            "raid_entry_cost_ton": 0.1,
+            "raid_max_players": 10,
+            "puzzle_fragment_cost_ton": 0.0,
+            "puzzle_fragment_drop_chance": 0.3,
+            "puzzle_fragments_needed": 4,
+            "puzzle_reward_sticker_pack_id": None,
+            "puzzle_reward_points": 200.0
+        }
+    return settings
+
+@api_router.post("/admin/game-settings")
+async def update_game_settings(settings: dict, authorization: Optional[str] = Header(None)):
+    """Update game settings"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="No token provided")
+    
+    try:
+        parts = authorization.split()
+        token = parts[1] if len(parts) > 1 else authorization
+        expected_token = f"{ADMIN_USERNAME}:{ADMIN_PASSWORD}"
+        if token != expected_token:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token format")
+    
+    settings["id"] = "game_settings"
+    settings["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.game_settings.update_one(
+        {"id": "game_settings"},
+        {"$set": settings},
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Game settings updated"}
+
+# ============ STICKER THEFT GAME ============
+@api_router.post("/game/theft/cooldown-check")
+async def check_theft_cooldown(user_id: str):
+    user = await db.users.find_one({"telegram_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    last_theft = user.get("last_theft_time")
+    if not last_theft:
+        return {"has_cooldown": False, "remaining_hours": 0}
+    
+    elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(last_theft)).total_seconds() / 3600
+    remaining = max(0, 6 - elapsed)
+    return {"has_cooldown": remaining > 0, "remaining_hours": remaining}
+
+@api_router.post("/game/theft/attempt")
+async def attempt_theft(user_id: str, target_id: str):
+    user = await db.users.find_one({"telegram_id": user_id})
+    target = await db.users.find_one({"telegram_id": target_id})
+    if not user or not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    last_theft = user.get("last_theft_time")
+    if last_theft:
+        elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(last_theft)).total_seconds() / 3600
+        if elapsed < 6:
+            return {"success": False, "message": f"Cooldown active for {6-elapsed:.1f} hours"}
+    
+    balance = user.get("ton_balance", 0)
+    if balance < 0.2:
+        return {"success": False, "message": "Insufficient balance (0.2 TON required)"}
+    
+    rand = random.random()
+    if rand < 0.7:
+        result = "fail"
+        stolen = None
+    elif rand < 0.95:
+        result = "common"
+        stolen = "Common Sticker"
+    else:
+        result = "rare"
+        stolen = "Rare Sticker"
+    
+    await db.users.update_one({"telegram_id": user_id}, {
+        "$set": {"last_theft_time": datetime.now(timezone.utc).isoformat()},
+        "$inc": {"ton_balance": -0.2}
+    })
+    
+    return {"success": result != "fail", "result": result, "stolen_sticker": stolen}
+
+@api_router.get("/game/theft/history")
+async def get_theft_history(user_id: str):
+    user = await db.users.find_one({"telegram_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"last_theft": user.get("last_theft_time"), "total_thefts": user.get("theft_count", 0)}
+
+# ============ BOMB STICKER GAME ============
+@api_router.post("/game/bomb/receive")
+async def receive_bomb(user_id: str):
+    bomb = {
+        "id": str(uuid.uuid4()),
+        "holder_id": user_id,
+        "expires_at": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(),
+        "status": "active"
+    }
+    await db.bomb_stickers.insert_one(bomb)
+    return {"success": True, "message": "💣 You got a BOMB!"}
+
+@api_router.get("/game/bomb/status/{user_id}")
+async def get_bomb_status(user_id: str):
+    bomb = await db.bomb_stickers.find_one({"holder_id": user_id, "status": "active"})
+    if not bomb:
+        return {"has_bomb": False, "times_remaining": 0}
+    
+    expires = datetime.fromisoformat(bomb["expires_at"])
+    remaining = (expires - datetime.now(timezone.utc)).total_seconds() / 3600
+    
+    if remaining <= 0:
+        await db.bomb_stickers.update_one({"_id": bomb["_id"]}, {"$set": {"status": "expired"}})
+        user = await db.users.find_one({"telegram_id": user_id})
+        if user and user.get("stickers", []):
+            await db.users.update_one({"telegram_id": user_id}, {"$pop": {"stickers": 1}})
+        return {"has_bomb": False, "exploded": True}
+    
+    return {"has_bomb": True, "time_remaining_hours": remaining}
+
+@api_router.post("/game/bomb/pass")
+async def pass_bomb(from_user: str, to_user: str):
+    bomb = await db.bomb_stickers.find_one({"holder_id": from_user, "status": "active"})
+    if not bomb:
+        return {"success": False, "message": "No active bomb"}
+    
+    await db.bomb_stickers.update_one({"_id": bomb["_id"]}, {"$set": {"holder_id": to_user}})
+    return {"success": True, "message": f"💣 Passed to {to_user}!"}
+
+# ============ RAID GAME ============
+@api_router.post("/game/raid/create")
+async def create_raid(creator_id: str, entry_cost: float = 0.1):
+    raid = {
+        "id": str(uuid.uuid4()),
+        "creator_id": creator_id,
+        "participants": [creator_id],
+        "total_pool": entry_cost,
+        "status": "active",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.raids.insert_one(raid)
+    return {"success": True, "raid_id": raid["id"]}
+
+@api_router.get("/game/raid/list")
+async def list_raids():
+    raids = await db.raids.find({"status": "active"}).to_list(100)
+    return {"raids": raids or []}
+
+@api_router.post("/game/raid/join")
+async def join_raid(user_id: str, raid_id: str):
+    raid = await db.raids.find_one({"id": raid_id})
+    if not raid:
+        return {"success": False, "message": "Raid not found"}
+    if len(raid.get("participants", [])) >= 10:
+        return {"success": False, "message": "Raid is full"}
+    
+    await db.raids.update_one({"id": raid_id}, {
+        "$push": {"participants": user_id},
+        "$inc": {"total_pool": 0.1}
+    })
+    return {"success": True, "message": "Joined raid!"}
+
+@api_router.post("/game/raid/finalize")
+async def finalize_raid(raid_id: str):
+    raid = await db.raids.find_one({"id": raid_id})
+    if not raid:
+        return {"success": False}
+    
+    winner_id = random.choice(raid.get("participants", [None]))[0] if raid.get("participants") else None
+    await db.raids.update_one({"id": raid_id}, {
+        "$set": {"status": "finished", "winner_id": winner_id}
+    })
+    
+    if winner_id:
+        await db.stickers.insert_one({"user_id": winner_id, "rarity": "Epic"})
+    
+    return {"success": True, "winner_id": winner_id}
+
+# ============ PUZZLE DROP GAME ============
+class PuzzleState(BaseModel):
+    fragments_collected: int
+    total_fragments_needed: int = 4
+    completed: bool
+
+@api_router.post("/game/puzzle/drop")
+async def puzzle_fragment_drop(user_id: str):
+    if random.random() > 0.3:
+        return {"success": False}
+    
+    fragment_id = str(uuid.uuid4())
+    await db.puzzle_fragments.insert_one({
+        "id": fragment_id,
+        "user_id": user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    progress = await db.puzzle_progress.find_one({"user_id": user_id})
+    if progress:
+        fragments = progress.get("fragment_ids", [])
+        fragments.append(fragment_id)
+        await db.puzzle_progress.update_one({"user_id": user_id}, {
+            "$set": {"fragments_collected": len(fragments), "fragment_ids": fragments}
+        })
+    else:
+        await db.puzzle_progress.insert_one({
+            "user_id": user_id,
+            "fragment_ids": [fragment_id],
+            "fragments_collected": 1,
+            "completed": False
+        })
+    
+    return {"success": True, "fragments": 1}
+
+@api_router.get("/game/puzzle/status/{user_id}")
+async def get_puzzle_status(user_id: str):
+    progress = await db.puzzle_progress.find_one({"user_id": user_id})
+    if not progress:
+        return {"fragments_collected": 0, "total_fragments_needed": 4, "completed": False}
+    
+    return {
+        "fragments_collected": progress.get("fragments_collected", 0),
+        "total_fragments_needed": 4,
+        "completed": progress.get("completed", False)
+    }
+
+@api_router.post("/game/puzzle/assemble")
+async def assemble_puzzle(user_id: str):
+    progress = await db.puzzle_progress.find_one({"user_id": user_id})
+    if not progress or progress.get("fragments_collected", 0) < 4:
+        return {"success": False, "message": "Need 4 fragments"}
+    
+    await db.puzzle_progress.update_one({"user_id": user_id}, {
+        "$set": {"completed": True, "fragments_collected": 0, "fragment_ids": []}
+    })
+    
+    await db.stickers.insert_one({"user_id": user_id, "rarity": "Rare"})
+    await db.users.update_one({"telegram_id": user_id}, {"$inc": {"sxton_points": 200}})
+    
+    return {"success": True, "message": "Sticker assembled! +200 SXTON"}
 
 @api_router.get("/admin/analytics", dependencies=[Depends(verify_admin)])
 async def get_analytics():

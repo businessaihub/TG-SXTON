@@ -56,12 +56,7 @@ const Hot = ({ language }) => {
               data-testid={`hot-pack-${pack.id}`}
               className="glass-card p-4 relative overflow-hidden"
             >
-              {/* Rank Badge */}
-              <div className="absolute top-4 left-4 w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-xl font-bold z-10">
-                {index + 1}
-              </div>
-              
-              <div className="flex gap-4 ml-16">
+              <div className="flex gap-4">
                 <img
                   src={imageErrors[pack.id] ? FALLBACK_IMAGE : (pack.image_url || FALLBACK_IMAGE)}
                   alt={pack.name}

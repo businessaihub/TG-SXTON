@@ -30,9 +30,13 @@ const AdminLogin = ({ setIsAdmin, setAdminToken }) => {
         setIsAdmin(true);
         toast.success("Login successful!");
         navigate("/admin/dashboard");
+      } else {
+        toast.error("Invalid credentials");
       }
     } catch (error) {
-      toast.error("Invalid credentials");
+      console.error("Login error:", error);
+      const errorMsg = error.response?.data?.detail || error.message || "Connection error";
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

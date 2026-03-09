@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 from dotenv import load_dotenv
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
 
 # Load environment
@@ -169,6 +169,59 @@ async def init_sample_data():
         await db.sticker_packs.insert_many(sample_packs)
         print(f"✓ Inserted {len(sample_packs)} sample packs")
     
+    # Create test stickers with purchase history for Hold Boost demo
+    from datetime import timedelta
+    test_user_id = "demo_user_001"  # Match with the demo user created in frontend
+    test_stickers = []
+    
+    # Create stickers for first pack (10 days old)
+    for i, pack in enumerate(sample_packs[:2]):
+        for sticker_num in range(1, 5):  # 4 stickers per pack
+            test_stickers.append({
+                "id": str(uuid.uuid4()),
+                "pack_id": pack["id"],
+                "sticker_number": sticker_num,
+                "position": sticker_num,
+                "rarity": ["Common", "Rare", "Epic", "Legendary"][sticker_num % 4],
+                "image_url": f"https://via.placeholder.com/200x200/667eea/ffffff?text=Sticker+{sticker_num}",
+                "owner_id": test_user_id,
+                "is_listed": False,
+                "price": 0,
+                # 10 days old - not yet eligible for boost
+                "purchase_timestamp": (datetime.now(timezone.utc) - timedelta(days=10)).isoformat(),
+                "verified_holder": False,
+                "hold_multiplier_applied": 1.0,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
+    # Create stickers for second pack (35 days old)
+    for i, pack in enumerate(sample_packs[1:2]):
+        for sticker_num in range(1, 5):  # 4 stickers per pack
+            test_stickers.append({
+                "id": str(uuid.uuid4()),
+                "pack_id": pack["id"],
+                "sticker_number": sticker_num,
+                "position": sticker_num,
+                "rarity": ["Common", "Rare", "Epic", "Legendary"][sticker_num % 4],
+                "image_url": f"https://via.placeholder.com/200x200/667eea/ffffff?text=Sticker+{sticker_num}",
+                "owner_id": test_user_id,
+                "is_listed": False,
+                "price": 0,
+                # 35 days old - ELIGIBLE for 5% boost!
+                "purchase_timestamp": (datetime.now(timezone.utc) - timedelta(days=35)).isoformat(),
+                "verified_holder": True,
+                "hold_multiplier_applied": 1.05,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
+    if test_stickers:
+        await db.stickers.delete_many({})
+        await db.stickers.insert_many(test_stickers)
+        print(f"✓ Created {len(test_stickers)} test stickers for hold boost demo")
+        print(f"  - Test user ID: {test_user_id}")
+        print(f"  - 4 stickers: 10 days (not boosted)")
+        print(f"  - 4 stickers: 35 days (BOOSTED +5%)")
+    
     # Initialize settings
     settings = {
         "id": "global_settings",
@@ -271,11 +324,61 @@ async def init_sample_data():
     await db.quests.insert_many(sample_quests)
     print(f"✓ Created {len(sample_quests)} sample quests")
     
+    # Sample system logs
+    from datetime import timedelta
+    sample_logs = [
+        {
+            "id": str(uuid.uuid4()),
+            "timestamp": (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat(),
+            "level": "info",
+            "message": "User logged in",
+            "source": "backend",
+            "metadata": {"user_id": "user_123", "ip": "192.168.1.1"}
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "timestamp": (datetime.now(timezone.utc) - timedelta(minutes=4)).isoformat(),
+            "level": "info",
+            "message": "Pack purchased",
+            "source": "backend",
+            "metadata": {"user_id": "user_456", "pack_id": "pack_001", "amount": 5.0}
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "timestamp": (datetime.now(timezone.utc) - timedelta(minutes=3)).isoformat(),
+            "level": "warning",
+            "message": "Failed wallet connection",
+            "source": "frontend",
+            "metadata": {"user_id": "user_789", "error": "Invalid address"}
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "timestamp": (datetime.now(timezone.utc) - timedelta(minutes=2)).isoformat(),
+            "level": "info",
+            "message": "Sticker listed for sale",
+            "source": "backend",
+            "metadata": {"user_id": "user_123", "sticker_id": "sticker_042", "price": 2.5}
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "timestamp": (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),
+            "level": "error",
+            "message": "Database connection timeout",
+            "source": "backend",
+            "metadata": {"error": "Connection timeout after 30s", "retries": 3}
+        }
+    ]
+    
+    await db.system_logs.delete_many({})
+    await db.system_logs.insert_many(sample_logs)
+    print(f"✓ Created {len(sample_logs)} sample system logs")
+    
     print("\n✨ Sample data initialization complete!")
     print("\n📊 Summary:")
     print(f"  - {len(sample_packs)} sticker packs")
     print(f"  - {len(sample_activities)} activity events")
     print(f"  - {len(sample_quests)} quests")
+    print(f"  - {len(sample_logs)} system logs")
     print(f"  - Settings configured")
     print("\n🎯 Next steps:")
     print("  1. Visit http://localhost:3000 to see the Mini App")

@@ -4,7 +4,6 @@ import { API } from "../App";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package } from "lucide-react";
@@ -35,6 +34,8 @@ const Marketplace = ({ user, language }) => {
   const [packStats, setPackStats] = useState({});
   const [userRatings, setUserRatings] = useState({});
   const [packPopularity, setPackPopularity] = useState({});
+  const [nftCollections, setNftCollections] = useState(null);
+  const [loadingNftCollections, setLoadingNftCollections] = useState(false);
   const t = translations[language] || translations.en;
 
   useEffect(() => {
@@ -63,6 +64,12 @@ const Marketplace = ({ user, language }) => {
   useEffect(() => {
     sortPacks();
   }, [sortBy]);
+
+  useEffect(() => {
+    if (filter === "external") {
+      fetchNftCollections();
+    }
+  }, [filter, user?.id]);
 
   const fetchActivityStats = async () => {
     try {
@@ -171,6 +178,24 @@ const Marketplace = ({ user, language }) => {
     }
   };
 
+  const fetchNftCollections = async () => {
+    if (!user?.id) return;
+    setLoadingNftCollections(true);
+    try {
+      const response = await axios.get(`${API}/user/${user.id}/nft-collections`);
+      setNftCollections(response.data);
+    } catch (error) {
+      console.error("Error fetching NFT collections:", error);
+      setNftCollections({
+        available_for_sale: [],
+        listed: [],
+        not_whitelisted: []
+      });
+    } finally {
+      setLoadingNftCollections(false);
+    }
+  };
+
   const handleRatePack = async (packId, rating, liked) => {
     if (!user?.id) {
       toast.error("Please connect your wallet first");
@@ -227,11 +252,11 @@ const Marketplace = ({ user, language }) => {
       );
     }
 
-    // Filter by type
-    if (filter === "my") {
-      filtered = filtered.filter(pack => userPacks.includes(pack.id));
-    } else if (filter === "external") {
-      filtered = filtered.filter(pack => !userPacks.includes(pack.id));
+    // Filter by type - External shows all packs (same as All)
+    // The "my" filter was removed since MyStickers moved to Profile
+    if (filter === "external") {
+      // Show all packs - same as "all" filter
+      filtered = filtered;
     }
 
     return filtered;
@@ -354,8 +379,10 @@ const Marketplace = ({ user, language }) => {
   };
 
   const handleOpenPackDetails = (pack) => {
+    console.log("Opening pack details for:", pack);
     setSelectedPack(pack);
     setShowPackDetails(true);
+    console.log("showPackDetails set to true");
     // Load ratings data
     fetchPackStats(pack.id);
     fetchUserRating(pack.id);
@@ -369,15 +396,15 @@ const Marketplace = ({ user, language }) => {
       
       {/* Header with Live Stats */}
       <div className="pt-2 relative z-10">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent" style={{ fontFamily: 'Space Grotesk' }}>
-            {t.marketplace.title}
+        {/* Brand Title */}
+        <div className="text-center mb-4">
+          <h1 className="text-2xl font-semibold" style={{ fontFamily: 'Space Grotesk', letterSpacing: '1.5px' }}>
+            <span className="text-white">SXT</span><span className="text-cyan-400">ON</span>
           </h1>
         </div>
-        <p className="text-gray-400 text-sm mb-2">{t.marketplace.subtitle}</p>
         
         {/* Activity Indicators */}
-        <div className="flex flex-wrap gap-2 mb-2">
+        <div className="flex flex-wrap gap-2 mb-6 justify-center items-center">
           <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 transition-colors relative overflow-hidden">
             <div className="cosmic-particles"></div>
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse relative z-10"></div>
@@ -401,7 +428,7 @@ const Marketplace = ({ user, language }) => {
 
       {/* Banner Ads Carousel */}
       {banners.length > 0 && (
-        <div className="space-y-2 relative z-10">
+        <div className="space-y-2 relative z-10 pt-2">
           <div className="flex items-center gap-2">
             <Sparkles className="text-orange-400" size={16} />
             <h2 className="text-base font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
@@ -417,7 +444,7 @@ const Marketplace = ({ user, language }) => {
                 target="_blank"
                 rel="noopener noreferrer"
                 data-testid={`banner-ad-${banner.id}`}
-                className="glass-card p-2 min-w-[200px] flex-shrink-0 border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-red-500/10 transition-colors duration-300 cursor-pointer relative overflow-hidden"
+                className="carousel-card glass-card p-2 min-w-[200px] flex-shrink-0 border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-red-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden"
               >
                 <div className="cosmic-particles"></div>
                 {banner.cover_image_url && (
@@ -444,7 +471,7 @@ const Marketplace = ({ user, language }) => {
 
       {/* Featured Carousel */}
       {featured.length > 0 && (
-        <div className="space-y-2 relative z-10">
+        <div className="space-y-2 relative z-10 pt-2">
           <div className="flex items-center gap-2">
             <Sparkles className="text-yellow-400" size={16} />
             <h2 className="text-base font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
@@ -457,7 +484,7 @@ const Marketplace = ({ user, language }) => {
               <div
                 key={pack.id}
                 data-testid={`featured-pack-${pack.id}`}
-                className="glass-card p-2.5 min-w-[200px] flex-shrink-0 border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 transition-colors duration-300 cursor-pointer relative overflow-hidden"
+                className="carousel-card glass-card p-2.5 min-w-[200px] flex-shrink-0 border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden"
               >
                 <div className="cosmic-particles"></div>
                 <div className="relative mb-2 overflow-hidden rounded-lg z-10">
@@ -467,9 +494,11 @@ const Marketplace = ({ user, language }) => {
                     className="w-full h-24 object-cover bg-gradient-to-br from-slate-700 to-slate-800"
                     onError={() => setImageErrors({...imageErrors, [pack.id]: true})}
                   />
-                  <Badge className={`absolute top-1 right-1 text-xs ${getRarityColor(pack.rarity)} shadow-lg`}>
-                    {pack.rarity.toUpperCase()}
-                  </Badge>
+                  {pack.rarity && (
+                    <Badge className={`absolute top-1 right-1 text-xs ${getRarityColor(pack.rarity)} shadow-lg`}>
+                      {pack.rarity.toUpperCase()}
+                    </Badge>
+                  )}
                   {pack.show_number && (
                     <Badge className="absolute top-1 left-1 text-xs bg-black/60 text-white border-white/30">
                       #{pack.sticker_count}
@@ -509,39 +538,16 @@ const Marketplace = ({ user, language }) => {
         </div>
       )}
 
-      {/* My Stickers Button */}
-      {user && (
-        <div className="relative z-10 mb-2">
-          <Button
-            onClick={() => {
-              fetchUserStickers();
-              setShowMyStickers(true);
-            }}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white h-9 text-sm"
-          >
-            <Package size={16} className="mr-2" />
-            My Stickers Gallery ({userStickers.length})
-          </Button>
-        </div>
-      )}
-
       {/* Filters & Sorting */}
       <div className="space-y-2 relative z-10">
         <Tabs value={filter} onValueChange={setFilter} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/10 h-9">
+          <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/10 h-9">
             <TabsTrigger 
               value="all" 
               data-testid="filter-all"
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500 text-sm"
             >
               {t.marketplace.all}
-            </TabsTrigger>
-            <TabsTrigger 
-              value="my" 
-              data-testid="filter-my"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 text-sm"
-            >
-              {t.marketplace.myStickers}
             </TabsTrigger>
             <TabsTrigger 
               value="external" 
@@ -579,21 +585,117 @@ const Marketplace = ({ user, language }) => {
         </div>
       </div>
 
-      {/* Packs Grid */}
-      {loading ? (
+      {/* Packs/NFT Grid */}
+      {loading && filter !== "external" ? (
         <div className="grid grid-cols-1 gap-3 relative z-10">
           {[1, 2, 3].map((i) => (
             <div key={i} className="glass-card p-3 skeleton h-32"></div>
           ))}
         </div>
+      ) : filter === "external" ? (
+        // NFT Collections View
+        <div className="grid grid-cols-1 gap-3 relative z-10">
+          {loadingNftCollections ? (
+            <div className="text-center py-8 text-gray-400">Loading your NFT collections...</div>
+          ) : !user?.wallet_address ? (
+            <div className="text-center py-8 glass-card p-6 border border-white/10 rounded-lg">
+              <p className="text-gray-400 mb-4">Connect your wallet to see your NFT collections</p>
+              <Button className="bg-cyan-500 hover:bg-cyan-600" size="sm">
+                Connect Wallet
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Available for Sale */}
+              {(nftCollections?.available_for_sale?.length || 0) > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-cyan-400 mb-3">Available for Sale ({nftCollections.available_for_sale.length})</h3>
+                  <div className="space-y-3">
+                    {nftCollections.available_for_sale.map((nft, idx) => (
+                      <div key={idx} className="glass-card p-3 flex gap-3 border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-green-500/50 transition-colors duration-300 rounded-lg">
+                        <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-slate-700 border border-white/10">
+                          <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-white">{nft.name}</h4>
+                          <p className="text-xs text-gray-400">{nft.collection}</p>
+                          <Badge className="mt-2 text-xs capitalize bg-purple-500/20 text-purple-300">{nft.rarity}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button className="bg-cyan-500 hover:bg-cyan-600 text-white h-8 text-sm">
+                            List for Sale
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Listed */}
+              {(nftCollections?.listed?.length || 0) > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-green-400 mb-3">Listed on Market ({nftCollections.listed.length})</h3>
+                  <div className="space-y-3">
+                    {nftCollections.listed.map((nft, idx) => (
+                      <div key={idx} className="glass-card p-3 flex gap-3 border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-green-500/50 transition-colors duration-300 rounded-lg">
+                        <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-slate-700 border border-white/10">
+                          <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-white">{nft.name}</h4>
+                          <p className="text-xs text-gray-400">{nft.collection}</p>
+                          <Badge className="mt-2 text-xs capitalize bg-purple-500/20 text-purple-300">{nft.rarity}</Badge>
+                        </div>
+                        <div className="flex flex-col items-end justify-center gap-1 flex-shrink-0">
+                          <div className="text-cyan-400 font-bold text-sm">{nft.price} {nft.currency}</div>
+                          <Button variant="outline" className="h-7 text-xs" size="sm">
+                            Remove from Sale
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Not Whitelisted */}
+              {(nftCollections?.not_whitelisted?.length || 0) > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-yellow-400 mb-3">Not Supported ({nftCollections.not_whitelisted.length})</h3>
+                  <div className="space-y-3">
+                    {nftCollections.not_whitelisted.map((nft, idx) => (
+                      <div key={idx} className="glass-card p-3 flex gap-3 border border-yellow-500/20 bg-gradient-to-br from-slate-800/50 to-slate-900/50 opacity-70 rounded-lg">
+                        <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-slate-700 border border-white/10">
+                          <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-white">{nft.name}</h4>
+                          <p className="text-xs text-gray-400">{nft.collection}</p>
+                          <p className="text-xs text-yellow-400 mt-1">⚠️ Collection not supported for trading</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {!nftCollections?.available_for_sale?.length && !nftCollections?.listed?.length && !nftCollections?.not_whitelisted?.length && (
+                <div className="text-center py-8 text-gray-400">
+                  No NFT collections found in your wallet
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       ) : (
+        // Regular Packs View
         <div className="grid grid-cols-1 gap-3 relative z-10">
           {getFilteredAndSortedPacks().map((pack) => (
             <div
               key={pack.id}
               data-testid={`pack-card-${pack.id}`}
-              onClick={() => handleOpenPackDetails(pack)}
-              className="glass-card p-3 flex gap-3 border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 transition-colors duration-300 cursor-pointer relative overflow-hidden group"
+              className="glass-card p-3 flex gap-3 border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 transition-colors duration-300 relative overflow-hidden group"
             >
               <div className="cosmic-particles"></div>
               <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg z-10">
@@ -696,7 +798,7 @@ const Marketplace = ({ user, language }) => {
         </div>
       )}
 
-      {!loading && packs.length === 0 && (
+      {!loading && packs.length === 0 && filter !== "external" && (
         <div className="text-center py-12 relative z-10">
           <div className="glass-card p-8 border border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-orange-500/10">
             <p className="text-yellow-400">{t.marketplace.noPacks}</p>
@@ -705,26 +807,29 @@ const Marketplace = ({ user, language }) => {
       )}
 
       {/* Pack Details Modal */}
-      <Dialog open={showPackDetails} onOpenChange={setShowPackDetails}>
-        <DialogContent className="max-w-md bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 z-50">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Info size={18} className="text-blue-400" />
-              {selectedPack?.name}
-            </DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Complete information about this sticker pack
-            </DialogDescription>
-          </DialogHeader>
+      {showPackDetails && selectedPack && (
+        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowPackDetails(false)}>
+          <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-lg max-w-lg w-full max-h-[70vh] overflow-y-auto z-[10000]" onClick={(e) => e.stopPropagation()}>
+            {/* Close Button */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Info size={18} className="text-blue-400" />
+                <h2 className="text-xl font-bold text-white">{selectedPack.name}</h2>
+              </div>
+              <button onClick={() => setShowPackDetails(false)} className="text-gray-400 hover:text-white transition-colors">
+                <X size={24} />
+              </button>
+            </div>
 
-          {selectedPack && (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            {/* Content */}
+            <div className="p-6 space-y-3">
               {/* Pack Image */}
-              <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/10">
+              <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/10 bg-slate-700">
                 <img
                   src={selectedPack.image_url || FALLBACK_IMAGE}
                   alt={selectedPack.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {e.target.src = FALLBACK_IMAGE}}
                 />
               </div>
 
@@ -734,15 +839,20 @@ const Marketplace = ({ user, language }) => {
                 <p className="text-sm text-white">{selectedPack.description}</p>
               </div>
 
-              {/* Sticker Count & Rarity Distribution */}
+              {/* Total Stickers & Price */}
               <div className="grid grid-cols-2 gap-2">
-                <div className="glass-card p-2 border border-white/10 rounded">
-                  <p className="text-xs text-gray-400">Total Stickers</p>
-                  <p className="text-lg font-bold text-cyan-400">{selectedPack.sticker_count}</p>
+                <div className="glass-card p-1.5 border border-white/10 rounded">
+                  <p className="text-xs text-gray-400">Total</p>
+                  <p className="text-sm font-bold text-cyan-400">{selectedPack.sticker_count}</p>
                 </div>
-                <div className="glass-card p-2 border border-white/10 rounded">
-                  <p className="text-xs text-gray-400">Edition</p>
-                  <p className="text-xs font-semibold text-blue-300 capitalize">{selectedPack.edition}</p>
+                <div className="glass-card p-1.5 border border-white/10 rounded">
+                  <p className="text-xs text-gray-400">Price</p>
+                  <p className={`text-xs font-bold ${getPriceColor(selectedPack.price_type)}`}>
+                    {selectedPack.price} {selectedPack.price_type}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    ≈ ${convertPrice(selectedPack.price, selectedPack.price_type)} USD
+                  </p>
                 </div>
               </div>
 
@@ -767,25 +877,6 @@ const Marketplace = ({ user, language }) => {
                 </div>
               </div>
 
-              {/* Price & Type */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="glass-card p-2 border border-white/10 rounded">
-                  <p className="text-xs text-gray-400">Price</p>
-                  <p className={`text-sm font-bold ${getPriceColor(selectedPack.price_type)}`}>
-                    {selectedPack.price} {selectedPack.price_type}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    ≈ ${convertPrice(selectedPack.price, selectedPack.price_type)} USD
-                  </p>
-                </div>
-                <div className="glass-card p-2 border border-white/10 rounded">
-                  <p className="text-xs text-gray-400">Featured</p>
-                  <p className="text-xs font-semibold text-green-400">
-                    {selectedPack.is_featured ? '✓ Yes' : '✗ No'}
-                  </p>
-                </div>
-              </div>
-
               {/* Preview Stickers */}
               {selectedPack.image_urls && selectedPack.image_urls.length > 0 && (
                 <div className="space-y-1.5">
@@ -804,58 +895,6 @@ const Marketplace = ({ user, language }) => {
                   </div>
                 </div>
               )}
-
-              {/* Popularity Metrics */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="glass-card p-2 border border-green-500/30 bg-green-500/10 rounded text-center">
-                  <p className="text-xs text-gray-400">Buyers</p>
-                  <p className="text-base font-bold text-green-400">{packPopularity[selectedPack?.id]?.purchase_count || 0}</p>
-                </div>
-                <div className="glass-card p-2 border border-blue-500/30 bg-blue-500/10 rounded text-center">
-                  <p className="text-xs text-gray-400">Sold</p>
-                  <p className="text-base font-bold text-blue-400">{packPopularity[selectedPack?.id]?.total_stickers_sold || 0}</p>
-                </div>
-                <div className="glass-card p-2 border border-purple-500/30 bg-purple-500/10 rounded text-center">
-                  <p className="text-xs text-gray-400">Trend</p>
-                  <p className="text-xs font-bold text-purple-400 capitalize">
-                    {packPopularity[selectedPack?.id]?.trend === 'trending' ? '🔥 Trending' : packPopularity[selectedPack?.id]?.trend === 'new' ? '✨ New' : '⭐ Popular'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Ratings Section */}
-              <div className="space-y-1.5 p-2 rounded border border-blue-500/30 bg-blue-500/10">
-                <p className="text-xs text-gray-400 font-semibold">Community Rating</p>
-                <div className="flex items-center gap-2">
-                  <div className="flex">
-                    {[1,2,3,4,5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={() => handleRatePack(selectedPack.id, star, true)}
-                        className="text-lg hover:scale-110 transition-transform"
-                      >
-                        <Star
-                          size={16}
-                          className={`${
-                            star <= (userRatings[selectedPack.id]?.rating || 0)
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-gray-500'
-                          }`}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                  <span className="text-xs text-yellow-400 font-semibold ml-1">
-                    {packStats[selectedPack.id]?.avg_rating || 0} ({packStats[selectedPack.id]?.total_ratings || 0})
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleRatePack(selectedPack.id, userRatings[selectedPack.id]?.rating || 5, !userRatings[selectedPack.id]?.liked)}
-                  className="text-xs px-2 py-1 rounded bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 transition-colors w-full"
-                >
-                  {userRatings[selectedPack.id]?.liked ? '❤️ Liked' : '🤍 Like'}
-                </button>
-              </div>
 
               {/* Status */}
               {selectedPack.is_upcoming && (
@@ -876,60 +915,12 @@ const Marketplace = ({ user, language }) => {
                 disabled={selectedPack.is_upcoming || buyingPackId === selectedPack.id || isConnecting}
                 className="w-full mt-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white h-8 text-sm"
               >
-                {buyingPackId === selectedPack.id ? 'Processing...' : selectedPack.is_upcoming ? 'Coming Soon' : wallet ? t.marketplace.buy : 'Connect Wallet'}
+                {buyingPackId === selectedPack.id ? 'Processing...' : selectedPack.is_upcoming ? 'Coming Soon' : t.marketplace.buy}
               </Button>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* My Stickers Gallery Modal */}
-      <Dialog open={showMyStickers} onOpenChange={setShowMyStickers}>
-        <DialogContent className="max-w-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 max-h-96 overflow-y-auto z-50">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Package size={18} className="text-purple-400" />
-              My Stickers Gallery
-            </DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Total stickers owned: {userStickers.length}
-            </DialogDescription>
-          </DialogHeader>
-
-          {userStickers.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-400">No stickers yet. Start collecting! 🎁</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {userStickers.map((sticker) => (
-                <div
-                  key={sticker.id}
-                  className="glass-card p-2 border border-white/10 rounded-lg hover:border-purple-500/50 transition-colors"
-                >
-                  <div className="relative w-full h-20 rounded mb-1.5 overflow-hidden border border-white/10 bg-slate-700">
-                    <img
-                      src={sticker.image_url}
-                      alt={`${sticker.pack_name} #${sticker.sticker_number}`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => e.target.style.display = 'none'}
-                    />
-                  </div>
-                  <div className="text-xs space-y-0.5">
-                    <p className="font-semibold text-white line-clamp-1">{sticker.pack_name}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400">#{sticker.sticker_number}</span>
-                      <Badge className={`text-xs ${getRarityColor(sticker.rarity?.toLowerCase())} shadow-lg`}>
-                        {sticker.rarity}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

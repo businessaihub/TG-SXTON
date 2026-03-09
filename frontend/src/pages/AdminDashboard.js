@@ -3,8 +3,9 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API } from "../App";
 import { Button } from "../components/ui/button";
-import { LayoutDashboard, Package, Settings, Activity, LogOut, Image, List, Sparkles, Ticket, AlertCircle, LogSquare, Crown } from "lucide-react";
+import { LayoutDashboard, Package, Settings, Activity, LogOut, Image, List, Sparkles, Ticket, AlertCircle, FileText, Crown, TrendingUp, Zap, Sliders, Gift, DollarSign, Gamepad2 } from "lucide-react";
 import Analytics from "../components/admin/Analytics";
+import AdvancedAnalytics from "../components/admin/AdvancedAnalytics";
 import PackManagement from "../components/admin/PackManagement";
 import BannerManagement from "../components/admin/BannerManagement";
 import QuestManagement from "../components/admin/QuestManagement";
@@ -12,9 +13,14 @@ import SettingsPanel from "../components/admin/SettingsPanel";
 import ActivitySimulation from "../components/admin/ActivitySimulation";
 import ActivityManagement from "../components/admin/ActivityManagement";
 import PromoCodes from "../components/admin/PromoCodes";
+import HoldSettings from "../components/admin/HoldSettings";
+import PackHoldOverrides from "../components/admin/PackHoldOverrides";
 import Moderation from "../components/admin/Moderation";
-import SystemLogs from "../components/admin/SystemLogs";
 import VipTierManagement from "../components/admin/VipTierManagement";
+import SystemLogs from "../components/admin/SystemLogs";
+import DailySpinManagement from "../components/admin/DailySpinManagement";
+import WithdrawalApproval from "../components/admin/WithdrawalApproval";
+import GameManagement from "../components/admin/GameManagement";
 
 // ✅ VARIANT B COMPLETE (6/9 features)
 // Features implemented: Analytics, UserManagement, PaymentHistory, BroadcastMessages, PromoCodes, Moderation
@@ -23,6 +29,15 @@ import VipTierManagement from "../components/admin/VipTierManagement";
 const AdminDashboard = ({ setIsAdmin }) => {
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState("analytics");
+  const [adminToken, setAdminToken] = useState("");
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('language') || 'en';
+  });
+
+  useEffect(() => {
+    const token = localStorage.getItem("admin_token");
+    setAdminToken(token || "");
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("admin_token");
@@ -32,13 +47,19 @@ const AdminDashboard = ({ setIsAdmin }) => {
 
   const menuItems = [
     { id: "analytics", label: "Analytics", icon: LayoutDashboard },
+    { id: "advanced", label: "Advanced", icon: TrendingUp },
     { id: "packs", label: "Packs", icon: Package },
+    { id: "games", label: "Games", icon: Gamepad2 },
     { id: "banners", label: "Banners", icon: Image },
     { id: "quests", label: "Quests", icon: Sparkles },
     { id: "activity", label: "Activity Management", icon: List },
+    { id: "systemlogs", label: "System Logs", icon: FileText },
     { id: "promo", label: "Promo Codes", icon: Ticket },
+    { id: "daily-spin", label: "Daily Spin", icon: Gift },
+    { id: "withdrawals", label: "Withdrawals", icon: DollarSign },
+    { id: "hold", label: "Hold Boost", icon: Zap },
+    { id: "hold-packs", label: "Pack Overrides", icon: Sliders },
     { id: "moderation", label: "Moderation", icon: AlertCircle },
-    { id: "logs", label: "System Logs", icon: LogSquare },
     { id: "vip", label: "VIP Tiers", icon: Crown },
     { id: "settings", label: "Settings", icon: Settings },
     { id: "simulation", label: "Activity Simulation", icon: Activity },
@@ -90,13 +111,19 @@ const AdminDashboard = ({ setIsAdmin }) => {
 <div className="flex-1 overflow-y-auto overflow-x-hidden p-6" style={{ position: 'relative' }}>
   <div className="min-h-full" style={{ position: 'relative' }}>
     {currentView === "analytics" && <Analytics />}
+    {currentView === "advanced" && <AdvancedAnalytics />}
     {currentView === "packs" && <PackManagement />}
+    {currentView === "games" && <GameManagement adminToken={adminToken} />}
     {currentView === "banners" && <BannerManagement />}
     {currentView === "quests" && <QuestManagement />}
     {currentView === "activity" && <ActivityManagement />}
-    {currentView === "promo" && <PromoCodes />}
+    {currentView === "systemlogs" && <SystemLogs />}
+    {currentView === "promo" && <PromoCodes adminToken={adminToken} />}
+    {currentView === "daily-spin" && <DailySpinManagement language={language} />}
+    {currentView === "withdrawals" && <WithdrawalApproval language={language} />}
+    {currentView === "hold" && <HoldSettings adminToken={adminToken} />}
+    {currentView === "hold-packs" && <PackHoldOverrides adminToken={adminToken} />}
     {currentView === "moderation" && <Moderation />}
-    {currentView === "logs" && <SystemLogs />}
     {currentView === "vip" && <VipTierManagement />}
     {currentView === "settings" && <SettingsPanel />}
     {currentView === "simulation" && <ActivitySimulation />}

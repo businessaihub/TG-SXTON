@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
-import { AlertCircle, Ban, Eye, BarChart3, MessageSquareX, Flag } from "lucide-react";
+import { AlertCircle, Ban, Eye, BarChart3, MessageSquareX, Flag, Globe } from "lucide-react";
 import { toast } from "sonner";
+import { API } from "../../App";
 
 const Moderation = ({ adminToken }) => {
   const [activeTab, setActiveTab] = useState("reports");
@@ -39,10 +41,48 @@ const Moderation = ({ adminToken }) => {
     }
   ]);
 
+  const [localizationData, setLocalizationData] = useState({
+    en: 45,
+    uk: 28,
+    tr: 12,
+    ru: 18,
+    zh: 8,
+    ar: 6,
+    ko: 4,
+    ja: 5,
+    de: 9,
+    fr: 7,
+    th: 3
+  });
+
   const [showBanForm, setShowBanForm] = useState(false);
   const [banUserId, setBanUserId] = useState("");
   const [banReason, setBanReason] = useState("");
   const [banDays, setBanDays] = useState("7");
+  const [loadingLocalization, setLoadingLocalization] = useState(true);
+
+  // Load localization analytics from backend
+  useEffect(() => {
+    const fetchLocalizationData = async () => {
+      try {
+        setLoadingLocalization(true);
+        const response = await axios.get(`${API}/admin/localization-analytics`);
+        if (response.data && response.data.by_language) {
+          setLocalizationData(response.data.by_language);
+        }
+      } catch (error) {
+        console.error("Error fetching localization data:", error);
+        toast.error("Failed to load localization analytics");
+      } finally {
+        setLoadingLocalization(false);
+      }
+    };
+
+    fetchLocalizationData();
+    // Refresh data every 30 seconds
+    const interval = setInterval(fetchLocalizationData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleBanUser = () => {
     if (!banUserId.trim() || !banReason.trim()) {
@@ -147,6 +187,17 @@ const Moderation = ({ adminToken }) => {
         >
           <BarChart3 size={16} className="inline mr-2" />
           Filters
+        </button>
+        <button
+          onClick={() => setActiveTab("localization")}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === "localization"
+              ? "text-cyan-400 border-b-2 border-cyan-400"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Globe size={16} className="inline mr-2" />
+          Localization Analytics
         </button>
       </div>
 
@@ -353,6 +404,95 @@ const Moderation = ({ adminToken }) => {
               <p className="text-gray-600">→ Coming soon: Blockchain verification</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Localization Analytics Tab */}
+      {activeTab === "localization" && (
+        <div className="space-y-6">
+          {loadingLocalization ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400"></div>
+            </div>
+          ) : (
+            <>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="glass-card p-4 border border-cyan-500/30 rounded-lg">
+                  <div className="text-sm text-gray-400">Total Users</div>
+                  <div className="text-2xl font-bold text-cyan-400 mt-2">
+                    {Object.values(localizationData).reduce((a, b) => a + b, 0)}
+                  </div>
+                </div>
+                <div className="glass-card p-4 border border-cyan-500/30 rounded-lg">
+                  <div className="text-sm text-gray-400">Most Popular</div>
+                  <div className="text-2xl font-bold text-green-400 mt-2">
+                    {Object.keys(localizationData).reduce((a, b) =>
+                      (localizationData[a] || 0) > (localizationData[b] || 0) ? a : b
+                    ).toUpperCase()}
+                  </div>
+                </div>
+                <div className="glass-card p-4 border border-cyan-500/30 rounded-lg">
+                  <div className="text-sm text-gray-400">Language Diversity</div>
+                  <div className="text-2xl font-bold text-purple-400 mt-2">
+                    {Object.keys(localizationData).filter(lang => (localizationData[lang] || 0) > 0).length}
+                  </div>
+                </div>
+              </div>
+
+              {/* Language Distribution Chart */}
+              <div className="glass-card border border-white/10 p-6 rounded-lg">
+                <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                  <Globe size={18} className="text-cyan-400" />
+                  Language Distribution
+                </h3>
+                <div className="space-y-3">
+                  {Object.entries(localizationData)
+                    .sort(([, a], [, b]) => (b || 0) - (a || 0))
+                    .map(([lang, count]) => {
+                      const total = Object.values(localizationData).reduce((a, b) => a + (b || 0), 0);
+                      const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                      const langNames = {
+                        en: "English",
+                        uk: "Українська",
+                        tr: "Türkçe",
+                        ru: "Русский",
+                        zh: "中文",
+                        ar: "العربية",
+                        ko: "한국어",
+                        ja: "日本語",
+                        de: "Deutsch",
+                        fr: "Français",
+                        th: "ไทย"
+                      };
+
+                      return (
+                        <div key={lang} className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-white font-medium">{langNames[lang] || lang}</span>
+                            <span className="text-cyan-400 font-semibold">{count || 0} users ({percentage}%)</span>
+                          </div>
+                          <div className="w-full bg-slate-800/50 rounded-full h-2 overflow-hidden">
+                            <div
+                              className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full transition-all"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="glass-card border border-white/10 p-4 rounded-lg bg-slate-800/30">
+                <p className="text-sm text-gray-400">
+                  📊 <strong>Language preference tracking:</strong> Data stored in localStorage per user session. 
+                  This analytics panel helps understand user localization preferences and can guide feature development priorities.
+                </p>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

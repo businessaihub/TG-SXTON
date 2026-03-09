@@ -18,6 +18,7 @@ const LanguageSelector = ({ language, setLanguage }) => {
     { code: "ja", name: "日本語", flag: "🇯🇵" },
     { code: "de", name: "Deutsch", flag: "🇩🇪" },
     { code: "fr", name: "Français", flag: "🇫🇷" },
+    { code: "uk", name: "Українська", flag: "🇺🇦" },
     { code: "th", name: "ไทย", flag: "🇹🇭" },
   ];
 

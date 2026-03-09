@@ -174,7 +174,7 @@ const Activity = ({ language }) => {
         </Tabs>
 
         {/* Additional Filters */}
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-3 justify-between items-center">
           <div className="flex items-center gap-2">
             <Filter className="text-gray-400" size={18} />
             <Select value={collectionFilter} onValueChange={setCollectionFilter}>

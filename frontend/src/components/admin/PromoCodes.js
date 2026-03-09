@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { API } from "../../App";
 import { Button } from "../ui/button";
@@ -8,64 +8,146 @@ import { Ticket, Plus, Copy, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 const PromoCodes = ({ adminToken }) => {
-  const [promoCodes, setPromoCodes] = useState([
-    {
-      id: "promo_1",
-      code: "SXTON50",
-      discount: 50,
-      discountType: "percent",
-      maxUses: 100,
-      usedCount: 45,
-      expiresAt: new Date(Date.now() + 7776000000).toISOString(),
-      isActive: true
-    },
-    {
-      id: "promo_2",
-      code: "LAUNCH20",
-      discount: 20,
-      discountType: "percent",
-      maxUses: 500,
-      usedCount: 234,
-      expiresAt: new Date(Date.now() + 2592000000).toISOString(),
-      isActive: true
-    }
-  ]);
-
+  const [promoCodes, setPromoCodes] = useState([]);
+  const [packs, setPacks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [newCode, setNewCode] = useState("");
+  const [promoType, setPromoType] = useState("discount");
   const [discount, setDiscount] = useState("");
   const [discountType, setDiscountType] = useState("percent");
+  const [sxtonAmount, setSxtonAmount] = useState("");
+  const [stickerRarity, setStickerRarity] = useState("common");
+  const [packId, setPackId] = useState("");
   const [maxUses, setMaxUses] = useState("");
-  const [showCodes, setShowCodes] = useState(false);
 
-  const handleAddPromo = () => {
-    if (!newCode.trim() || !discount || !maxUses) {
-      toast.error("Fill all fields");
+  useEffect(() => {
+    fetchPromoCodes();
+    fetchPacks();
+  }, [adminToken]);
+
+  const fetchPacks = async () => {
+    if (!adminToken) return;
+    try {
+      const response = await axios.get(`${API}/admin/packs`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      setPacks(response.data || []);
+    } catch (error) {
+      console.error("Error fetching packs:", error);
+    }
+  };
+
+  const fetchPromoCodes = async () => {
+    if (!adminToken) return;
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API}/admin/promo-codes`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      setPromoCodes(response.data);
+    } catch (error) {
+      console.error("Error fetching promo codes:", error);
+      toast.error("Failed to load promo codes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddPromo = async () => {
+    console.log("handleAddPromo called", { adminToken, newCode, promoType, maxUses });
+    
+    if (!adminToken) {
+      toast.error("Admin token missing");
+      console.error("No adminToken available");
       return;
     }
 
-    const promo = {
-      id: `promo_${Date.now()}`,
-      code: newCode.toUpperCase(),
-      discount: parseInt(discount),
-      discountType,
-      maxUses: parseInt(maxUses),
-      usedCount: 0,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      isActive: true
-    };
+    if (!newCode.trim() || !maxUses) {
+      toast.error("Fill all required fields");
+      return;
+    }
 
-    setPromoCodes([promo, ...promoCodes]);
-    setNewCode("");
-    setDiscount("");
-    setMaxUses("");
-    setShowForm(false);
-    toast.success("Promo code created!");
-  };
+    // Validate required fields based on type
+    if (promoType === "discount" && (!discount)) {
+      toast.error("Discount amount required");
+      return;
+    }
+    if (promoType === "sxton_token" && (!sxtonAmount)) {
+      toast.error("SXTON amount required");
+      return;
+    }
+    if (promoType === "guaranteed_sticker" && (!stickerRarity || !packId)) {
+      toast.error("Sticker rarity and pack selection required");
+      return;
+    }
 
-  const handleDelete = (id) => {
-    setPromoCodes(promoCodes.filter(p => p.id !== id));
-    toast.success("Promo code deleted");
+    try {
+      const payload = {
+        code: newCode.toUpperCase(),
+        promoType: promoType,
+        maxUses: parseInt(maxUses),
+        isActive: true
+      };
+
+      // Add type-specific fields
+      if (promoType === "discount") {
+        payload.discount = parseInt(discount);
+        payload.discountType = discountType;
+      } else if (promoType === "sxton_token") {
+        payload.sxtonAmount = parseInt(sxtonAmount);
+      } else if (promoType === "guaranteed_sticker") {
+        payload.stickerRarity = stickerRarity;
+        payload.packId = packId;
+      }
+      
+      console.log("Final payload:", payload);
+      console.log("Authorization header:", `Bearer ${adminToken}`);
+
+      const response = await axios.post(
+        `${API}/admin/promo-codes`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${adminToken}` }
+        }
+      );
+      
+      console.log("Response:", response.data);
+
+      toast.success("Promo code created!");
+      setNewCode("");
+      setPromoType("discount");
+      setDiscount("");
+      setDiscountType("percent");
+      setSxtonAmount("");
+      setStickerRarity("common");
+      setPackId("");
+      setMaxUses("");
+      setShowForm(false);
+
+      await fetchPromoCodes();
+    } catch (error) {
+      console.error("Full error object:", error);
+      console.error("Error response status:", error.response?.status);
+      console.error("Error response data:", JSON.stringify(error.response?.data, null, 2));
+      
+      if (error.response?.status === 422) {
+        const detail = error.response.data.detail;
+        if (Array.isArray(detail)) {
+          const message = detail.map(e => `${e.loc?.[1]}: ${e.msg}`).join(", ");
+          toast.error(`Validation error: ${message}`);
+        } else {
+          toast.error("Validation error - check required fields");
+        }
+      } else if (error.response?.status === 400) {
+        toast.error(error.response.data.detail || "Code already exists");
+      } else if (error.response?.status === 401) {
+        toast.error("Unauthorized - please login again");
+      } else {
+        toast.error("Failed to create promo code");
+      }
+      console.error("Error:", error);
+    }
   };
 
   const handleCopy = (code) => {
@@ -77,6 +159,11 @@ const PromoCodes = ({ adminToken }) => {
     setPromoCodes(promoCodes.map(p =>
       p.id === id ? { ...p, isActive: !p.isActive } : p
     ));
+  };
+
+  const handleDelete = (id) => {
+    setPromoCodes(promoCodes.filter(p => p.id !== id));
+    toast.success("Promo code deleted");
   };
 
   return (
@@ -113,27 +200,93 @@ const PromoCodes = ({ adminToken }) => {
             </div>
 
             <div>
-              <label className="text-sm text-gray-400 block mb-1">Discount</label>
-              <div className="flex gap-2">
-                <Input
-                  value={discount}
-                  onChange={(e) => setDiscount(e.target.value)}
-                  type="number"
-                  placeholder="50"
-                  className="bg-slate-800/50 border-white/10 text-white h-8 text-sm flex-1"
-                  min="0"
-                  max="100"
-                />
-                <select
-                  value={discountType}
-                  onChange={(e) => setDiscountType(e.target.value)}
-                  className="bg-slate-800/50 border border-white/10 text-white px-2 h-8 text-sm rounded"
-                >
-                  <option>percent</option>
-                  <option>fixed</option>
-                </select>
-              </div>
+              <label className="text-sm text-gray-400 block mb-1">Type</label>
+              <select
+                value={promoType}
+                onChange={(e) => setPromoType(e.target.value)}
+                className="w-full bg-slate-800/50 border border-white/10 text-white px-3 h-8 text-sm rounded"
+              >
+                <option value="discount">Discount</option>
+                <option value="sxton_token">SXTON Tokens</option>
+                <option value="guaranteed_sticker">Guaranteed Sticker</option>
+              </select>
             </div>
+
+            {/* Discount Type Fields */}
+            {promoType === "discount" && (
+              <div className="col-span-2">
+                <label className="text-sm text-gray-400 block mb-1">Discount</label>
+                <div className="flex gap-2">
+                  <Input
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                    type="number"
+                    placeholder="50"
+                    className="bg-slate-800/50 border-white/10 text-white h-8 text-sm flex-1"
+                    min="0"
+                    max="100"
+                  />
+                  <select
+                    value={discountType}
+                    onChange={(e) => setDiscountType(e.target.value)}
+                    className="bg-slate-800/50 border border-white/10 text-white px-2 h-8 text-sm rounded"
+                  >
+                    <option>percent</option>
+                    <option>fixed</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* SXTON Token Type Fields */}
+            {promoType === "sxton_token" && (
+              <div className="col-span-2">
+                <label className="text-sm text-gray-400 block mb-1">SXTON Amount</label>
+                <Input
+                  value={sxtonAmount}
+                  onChange={(e) => setSxtonAmount(e.target.value)}
+                  type="number"
+                  placeholder="500"
+                  className="bg-slate-800/50 border-white/10 text-white h-8 text-sm"
+                  min="1"
+                />
+              </div>
+            )}
+
+            {/* Guaranteed Sticker Type Fields */}
+            {promoType === "guaranteed_sticker" && (
+              <>
+                <div className="col-span-2">
+                  <label className="text-sm text-gray-400 block mb-1">Sticker Rarity</label>
+                  <select
+                    value={stickerRarity}
+                    onChange={(e) => setStickerRarity(e.target.value)}
+                    className="w-full bg-slate-800/50 border border-white/10 text-white px-3 h-8 text-sm rounded"
+                  >
+                    <option value="common">Common</option>
+                    <option value="rare">Rare</option>
+                    <option value="epic">Epic</option>
+                    <option value="legendary">Legendary</option>
+                  </select>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="text-sm text-gray-400 block mb-1">Select Pack</label>
+                  <select
+                    value={packId}
+                    onChange={(e) => setPackId(e.target.value)}
+                    className="w-full bg-slate-800/50 border border-white/10 text-white px-3 h-8 text-sm rounded"
+                  >
+                    <option value="">-- Choose Pack --</option>
+                    {packs.map((pack) => (
+                      <option key={pack.id} value={pack.id}>
+                        {pack.name} (${pack.price})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
 
             <div className="col-span-2">
               <label className="text-sm text-gray-400 block mb-1">Max Uses</label>
@@ -171,7 +324,8 @@ const PromoCodes = ({ adminToken }) => {
           <thead>
             <tr className="border-b border-white/10 bg-slate-800/50">
               <th className="px-4 py-3 text-left text-gray-400">Code</th>
-              <th className="px-4 py-3 text-left text-gray-400">Discount</th>
+              <th className="px-4 py-3 text-left text-gray-400">Type</th>
+              <th className="px-4 py-3 text-left text-gray-400">Reward</th>
               <th className="px-4 py-3 text-right text-gray-400">Usage</th>
               <th className="px-4 py-3 text-left text-gray-400">Expires</th>
               <th className="px-4 py-3 text-center text-gray-400">Actions</th>
@@ -180,7 +334,7 @@ const PromoCodes = ({ adminToken }) => {
           <tbody>
             {promoCodes.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-4 py-8 text-center text-gray-400">
+                <td colSpan="6" className="px-4 py-8 text-center text-gray-400">
                   No promo codes yet
                 </td>
               </tr>
@@ -195,8 +349,32 @@ const PromoCodes = ({ adminToken }) => {
                       </Badge>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-amber-400 font-semibold">
-                    {promo.discount}{promo.discountType === "percent" ? "%" : " TON"}
+                  <td className="px-4 py-3 text-gray-300">
+                    <span className={
+                      promo.promoType === "discount" ? "text-amber-400" :
+                      promo.promoType === "sxton_token" ? "text-blue-400" :
+                      "text-purple-400"
+                    }>
+                      {promo.promoType === "discount" && "Discount"}
+                      {promo.promoType === "sxton_token" && "SXTON"}
+                      {promo.promoType === "guaranteed_sticker" && "Sticker"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-semibold">
+                    {promo.promoType === "discount" && (
+                      <span className="text-amber-400">
+                        {promo.discount}{promo.discountType === "percent" ? "%" : " TON"}
+                      </span>
+                    )}
+                    {promo.promoType === "sxton_token" && (
+                      <span className="text-blue-400">{promo.sxtonAmount} SXTON</span>
+                    )}
+                    {promo.promoType === "guaranteed_sticker" && (
+                      <div className="text-purple-400 text-xs">
+                        <p className="capitalize">{promo.stickerRarity}</p>
+                        <p className="text-gray-500 text-xs">{packs.find(p => p.id === promo.packId)?.name || "Unknown Pack"}</p>
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="text-right">

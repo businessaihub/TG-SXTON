@@ -2055,6 +2055,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+@app.get("/")
+async def root():
+    return {"message": "StickersXTon API", "status": "running"}
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    try:
+        client.close()
+    except:
+        pass
+
+# Vercel serverless handler
+handler = app

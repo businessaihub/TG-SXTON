@@ -290,18 +290,21 @@ class LocalDB:
 
 async def _init_db_on_startup():
     global db
-    # For development, use local file store to avoid MongoDB connection delays
-    print('Using local file store for database')
-    db = LocalDB()
-    # Commented out MongoDB for faster startup
-    # try:
-    #     # Try pinging MongoDB with 3 second timeout
-    #     await asyncio.wait_for(client.admin.command('ping'), timeout=3.0)
-    #     db = client[os.environ['DB_NAME']]
-    #     print('Connected to MongoDB')
-    # except Exception as e:
-    #     print('MongoDB not available, falling back to local file store:', e)
-    #     db = LocalDB()
+    mongo_url = os.environ.get('MONGO_URL', '')
+    if mongo_url and mongo_url.startswith('mongodb'):
+        try:
+            from motor.motor_asyncio import AsyncIOMotorClient
+            _client = AsyncIOMotorClient(mongo_url)
+            await asyncio.wait_for(_client.admin.command('ping'), timeout=5.0)
+            db_name = os.environ.get('DB_NAME', 'tg_sxton')
+            db = _client[db_name]
+            print(f'Connected to MongoDB Atlas (db: {db_name})')
+        except Exception as e:
+            print('MongoDB not available, falling back to local file store:', e)
+            db = LocalDB()
+    else:
+        print('No MONGO_URL set, using local file store')
+        db = LocalDB()
 
 
 app = FastAPI()

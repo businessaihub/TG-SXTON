@@ -95,10 +95,8 @@ def get_rarity(sticker_number: int, total_count: int) -> str:
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/tg_sxton')
-client = AsyncIOMotorClient(mongo_url)
-# We'll try to use MongoDB when available; otherwise fall back to a simple file-backed local store
+# MongoDB connection - lazy init to avoid crash on import
+client = None
 db = None
 
 
@@ -257,8 +255,16 @@ from threading import Lock
 # Async lock for coordinating async operations on the in-memory store
 _async_lock = asyncio.Lock()
 
-DATA_DIR = ROOT_DIR / 'data'
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+# On Vercel, filesystem is read-only except /tmp
+if os.environ.get('VERCEL'):
+    DATA_DIR = Path('/tmp/data')
+else:
+    DATA_DIR = ROOT_DIR / 'data'
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    DATA_DIR = Path('/tmp/data')
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
 DATA_FILE = DATA_DIR / 'data_store.json'
 _store_lock = Lock()
 
@@ -289,15 +295,14 @@ class LocalDB:
 
 
 async def _init_db_on_startup():
-    global db
+    global db, client
     mongo_url = os.environ.get('MONGO_URL', '')
     if mongo_url and mongo_url.startswith('mongodb'):
         try:
-            from motor.motor_asyncio import AsyncIOMotorClient
-            _client = AsyncIOMotorClient(mongo_url)
-            await asyncio.wait_for(_client.admin.command('ping'), timeout=5.0)
+            client = AsyncIOMotorClient(mongo_url)
+            await asyncio.wait_for(client.admin.command('ping'), timeout=5.0)
             db_name = os.environ.get('DB_NAME', 'tg_sxton')
-            db = _client[db_name]
+            db = client[db_name]
             print(f'Connected to MongoDB Atlas (db: {db_name})')
         except Exception as e:
             print('MongoDB not available, falling back to local file store:', e)
@@ -2061,10 +2066,11 @@ async def root():
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    try:
-        client.close()
-    except:
-        pass
+    if client:
+        try:
+            client.close()
+        except:
+            pass
 
 # Vercel serverless handler
 handler = app

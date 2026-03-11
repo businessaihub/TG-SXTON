@@ -803,87 +803,85 @@ const Marketplace = ({ user, language }) => {
 
       {/* Pack Details Modal */}
       {showPackDetails && selectedPack && (
-        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-end sm:items-center justify-center backdrop-blur-sm" onClick={() => setShowPackDetails(false)}>
-          <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-t-2xl sm:rounded-lg w-full sm:max-w-lg max-h-[85vh] overflow-y-auto z-[10000]" onClick={(e) => e.stopPropagation()}>
-            {/* Close Button */}
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <Info size={18} className="text-blue-400" />
-                <h2 className="text-xl font-bold text-white">{selectedPack.name}</h2>
+        <div className="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center backdrop-blur-sm px-4" onClick={() => setShowPackDetails(false)}>
+          <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-xl w-full max-w-xs max-h-[70vh] overflow-y-auto z-[10000]" onClick={(e) => e.stopPropagation()}>
+            {/* Header Row */}
+            <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Info size={14} className="text-blue-400 flex-shrink-0" />
+                <h2 className="text-sm font-bold text-white truncate">{selectedPack.name}</h2>
               </div>
-              <button onClick={() => setShowPackDetails(false)} className="text-gray-400 hover:text-white transition-colors">
-                <X size={24} />
+              <button onClick={() => setShowPackDetails(false)} className="text-gray-400 hover:text-white transition-colors p-0.5 flex-shrink-0">
+                <X size={18} />
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-6 space-y-3">
-              {/* Pack Image */}
-              <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/10 bg-slate-700">
-                <img
-                  src={selectedPack.image_url || FALLBACK_IMAGE}
-                  alt={selectedPack.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {e.target.src = FALLBACK_IMAGE}}
-                />
-              </div>
-
-              {/* Basic Info */}
-              <div className="space-y-1.5">
-                <p className="text-xs text-gray-400">Description</p>
-                <p className="text-sm text-white">{selectedPack.description}</p>
-              </div>
-
-              {/* Total Stickers & Price */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="glass-card p-1.5 border border-white/10 rounded">
-                  <p className="text-xs text-gray-400">Total</p>
-                  <p className="text-sm font-bold text-cyan-400">{selectedPack.sticker_count}</p>
+            {/* Compact Content */}
+            <div className="px-3 pb-3 space-y-2">
+              {/* Image + Price Row */}
+              <div className="flex gap-2">
+                <div className="relative w-20 h-20 rounded overflow-hidden border border-white/10 bg-slate-700 flex-shrink-0">
+                  <img
+                    src={selectedPack.image_url || FALLBACK_IMAGE}
+                    alt={selectedPack.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {e.target.src = FALLBACK_IMAGE}}
+                  />
+                  {selectedPack.rarity && (
+                    <Badge className={`absolute top-0.5 right-0.5 text-[9px] leading-tight px-0.5 py-0 ${getRarityColor(selectedPack.rarity)}`}>
+                      {selectedPack.rarity.toUpperCase()}
+                    </Badge>
+                  )}
                 </div>
-                <div className="glass-card p-1.5 border border-white/10 rounded">
-                  <p className="text-xs text-gray-400">Price</p>
-                  <p className={`text-xs font-bold ${getPriceColor(selectedPack.price_type)}`}>
-                    {selectedPack.price} {selectedPack.price_type}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    ≈ ${convertPrice(selectedPack.price, selectedPack.price_type)} USD
-                  </p>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={`text-sm font-bold ${getPriceColor(selectedPack.price_type)}`}>
+                      {selectedPack.price} {selectedPack.price_type}
+                    </span>
+                    <span className="text-[10px] text-gray-500">≈ ${convertPrice(selectedPack.price, selectedPack.price_type)}</span>
+                  </div>
+                  <div className="text-[11px] text-gray-400">
+                    {selectedPack.sticker_count} stickers
+                  </div>
+                  {selectedPack.description && (
+                    <p className="text-[10px] text-gray-500 line-clamp-2 leading-tight">{selectedPack.description}</p>
+                  )}
                 </div>
               </div>
 
-              {/* Rarity Distribution */}
-              <div className="space-y-1.5">
-                <p className="text-xs text-gray-400 font-semibold">Rarity Distribution</p>
+              {/* Rarity Distribution - Compact */}
+              {Object.keys(getRarityDistribution(selectedPack)).length > 0 && (
                 <div className="space-y-1">
-                  {Object.entries(getRarityDistribution(selectedPack)).map(([rarity, count]) => (
-                    <div key={rarity} className="flex items-center justify-between text-xs">
-                      <span className="capitalize text-gray-300">{rarity}</span>
-                      <div className="flex items-center gap-2 flex-1 ml-2">
-                        <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase">Rarity</p>
+                  <div className="space-y-0.5">
+                    {Object.entries(getRarityDistribution(selectedPack)).map(([rarity, count]) => (
+                      <div key={rarity} className="flex items-center gap-1.5 text-[11px]">
+                        <span className="capitalize text-gray-400 w-14 truncate">{rarity}</span>
+                        <div className="flex-1 h-1 bg-slate-700 rounded-full overflow-hidden">
                           <div
                             className={`h-full ${rarity === 'legendary' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : rarity === 'epic' ? 'bg-gradient-to-r from-purple-500 to-pink-500' : rarity === 'rare' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 'bg-gray-500'}`}
                             style={{ width: `${(count / selectedPack.sticker_count) * 100}%` }}
                           />
                         </div>
-                        <span className="text-gray-400 w-6 text-right">{count}</span>
+                        <span className="text-gray-500 w-4 text-right">{count}</span>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Preview Stickers */}
               {selectedPack.image_urls && selectedPack.image_urls.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-xs text-gray-400 font-semibold">Sample Stickers</p>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase">Preview</p>
                   <div className="flex flex-wrap gap-1">
                     {selectedPack.image_urls.slice(0, 6).map((url, idx) => (
-                      <div key={idx} className="w-10 h-10 rounded border border-white/10 bg-slate-700 overflow-hidden">
+                      <div key={idx} className="w-8 h-8 rounded border border-white/10 bg-slate-700 overflow-hidden">
                         <img src={url} alt={`Sticker ${idx + 1}`} className="w-full h-full object-cover" />
                       </div>
                     ))}
                     {selectedPack.image_urls.length > 6 && (
-                      <div className="w-10 h-10 rounded border border-white/10 bg-slate-700 flex items-center justify-center text-xs text-gray-400">
+                      <div className="w-8 h-8 rounded border border-white/10 bg-slate-700 flex items-center justify-center text-[10px] text-gray-400">
                         +{selectedPack.image_urls.length - 6}
                       </div>
                     )}
@@ -891,24 +889,24 @@ const Marketplace = ({ user, language }) => {
                 </div>
               )}
 
-              {/* Status */}
+              {/* Coming Soon Status */}
               {selectedPack.is_upcoming && (
-                <div className="p-2 rounded border border-yellow-500/30 bg-yellow-500/10">
-                  <p className="text-xs text-yellow-400 font-semibold">🕒 Coming Soon</p>
+                <div className="px-2 py-1 rounded border border-yellow-500/30 bg-yellow-500/10 flex items-center gap-1.5">
+                  <span className="text-[11px] text-yellow-400 font-semibold">🕒 Coming Soon</span>
                   {selectedPack.countdown_date && (
-                    <p className="text-xs text-yellow-300">{new Date(selectedPack.countdown_date).toLocaleDateString()}</p>
+                    <span className="text-[10px] text-yellow-300">{new Date(selectedPack.countdown_date).toLocaleDateString()}</span>
                   )}
                 </div>
               )}
 
-              {/* Action Button */}
+              {/* Buy Button */}
               <Button
                 onClick={() => {
                   setShowPackDetails(false);
                   handleBuy(selectedPack);
                 }}
                 disabled={selectedPack.is_upcoming || buyingPackId === selectedPack.id || isConnecting}
-                className="w-full mt-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white h-8 text-sm"
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white h-8 text-xs"
               >
                 {buyingPackId === selectedPack.id ? 'Processing...' : selectedPack.is_upcoming ? 'Coming Soon' : t.marketplace.buy}
               </Button>

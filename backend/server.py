@@ -320,6 +320,14 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
 
+@app.middleware("http")
+async def ensure_db(request, call_next):
+    global db
+    if db is None:
+        await _init_db_on_startup()
+    return await call_next(request)
+
+
 @app.on_event("startup")
 async def startup_checks():
     await _init_db_on_startup()
@@ -2066,9 +2074,20 @@ logger = logging.getLogger(__name__)
 
 @app.get("/")
 async def root():
+    global db
+    # Lazy init: if db is still None, try connecting
+    if db is None:
+        await _init_db_on_startup()
     db_type = "mongodb" if db and not isinstance(db, LocalDB) else "localdb"
-    mongo_set = bool(os.environ.get('MONGO_URL', ''))
-    return {"message": "StickersXTon API", "status": "running", "db": db_type, "mongo_url_set": mongo_set, "startup_error": _startup_error}
+    mongo_url = os.environ.get('MONGO_URL', '')
+    mongo_preview = mongo_url[:40] + "..." if len(mongo_url) > 40 else mongo_url
+    return {
+        "message": "StickersXTon API",
+        "status": "running",
+        "db": db_type,
+        "mongo_url_preview": mongo_preview,
+        "startup_error": _startup_error
+    }
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

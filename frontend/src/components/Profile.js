@@ -374,7 +374,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                 <button className="p-1.5 hover:bg-white/10 rounded-lg transition h-fit">
                   <Globe size={20} className="text-cyan-400 hover:text-cyan-300" />
                 </button>
-              </DropdownMenuTrigger>>
+              </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setLanguage("en")}>
                   {language === "en" && <span className="mr-2">✓</span>}

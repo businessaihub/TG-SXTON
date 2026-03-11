@@ -295,21 +295,25 @@ class LocalDB:
 
 
 async def _init_db_on_startup():
-    global db, client
+    global db, client, _startup_error
+    _startup_error = None
     mongo_url = os.environ.get('MONGO_URL', '')
     if mongo_url and mongo_url.startswith('mongodb'):
         try:
-            client = AsyncIOMotorClient(mongo_url)
-            await asyncio.wait_for(client.admin.command('ping'), timeout=5.0)
+            client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=10000)
+            await asyncio.wait_for(client.admin.command('ping'), timeout=10.0)
             db_name = os.environ.get('DB_NAME', 'tg_sxton')
             db = client[db_name]
             print(f'Connected to MongoDB Atlas (db: {db_name})')
         except Exception as e:
+            _startup_error = str(e)
             print('MongoDB not available, falling back to local file store:', e)
             db = LocalDB()
     else:
         print('No MONGO_URL set, using local file store')
         db = LocalDB()
+
+_startup_error = None
 
 
 app = FastAPI()
@@ -2064,7 +2068,7 @@ logger = logging.getLogger(__name__)
 async def root():
     db_type = "mongodb" if db and not isinstance(db, LocalDB) else "localdb"
     mongo_set = bool(os.environ.get('MONGO_URL', ''))
-    return {"message": "StickersXTon API", "status": "running", "db": db_type, "mongo_url_set": mongo_set}
+    return {"message": "StickersXTon API", "status": "running", "db": db_type, "mongo_url_set": mongo_set, "startup_error": _startup_error}
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

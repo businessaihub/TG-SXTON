@@ -468,44 +468,43 @@ const Marketplace = ({ user, language }) => {
 
       {/* Featured Carousel */}
       {featured.length > 0 && (
-        <div className="space-y-2 relative z-10 pt-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="text-yellow-400" size={16} />
-            <h2 className="text-base font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
+        <div className="space-y-1.5 relative z-10 pt-1">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="text-yellow-400" size={14} />
+            <h2 className="text-sm font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
               {t.marketplace.featured}
             </h2>
           </div>
           
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {featured.map((pack) => (
               <div
                 key={pack.id}
                 data-testid={`featured-pack-${pack.id}`}
-                className="carousel-card glass-card p-2.5 min-w-[200px] flex-shrink-0 border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden"
+                className="carousel-card glass-card p-2 min-w-[160px] max-w-[180px] flex-shrink-0 border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden"
               >
                 <div className="cosmic-particles"></div>
-                <div className="relative mb-2 overflow-hidden rounded-lg z-10">
+                <div className="relative mb-1.5 overflow-hidden rounded z-10">
                   <img
                     src={imageErrors[pack.id] ? FALLBACK_IMAGE : (pack.image_url || FALLBACK_IMAGE)}
                     alt={pack.name}
-                    className="w-full h-24 object-cover bg-gradient-to-br from-slate-700 to-slate-800"
+                    className="w-full h-16 object-cover bg-gradient-to-br from-slate-700 to-slate-800"
                     onError={() => setImageErrors({...imageErrors, [pack.id]: true})}
                   />
                   {pack.rarity && (
-                    <Badge className={`absolute top-1 right-1 text-xs ${getRarityColor(pack.rarity)} shadow-lg`}>
+                    <Badge className={`absolute top-0.5 right-0.5 text-[10px] leading-tight px-1 py-0 ${getRarityColor(pack.rarity)} shadow-lg`}>
                       {pack.rarity.toUpperCase()}
                     </Badge>
                   )}
                   {pack.show_number && (
-                    <Badge className="absolute top-1 left-1 text-xs bg-black/60 text-white border-white/30">
+                    <Badge className="absolute top-0.5 left-0.5 text-[10px] leading-tight px-1 py-0 bg-black/60 text-white border-white/30">
                       #{pack.sticker_count}
                     </Badge>
                   )}
                 </div>
-                <h3 className="font-semibold text-white text-xs mb-1 relative z-10 truncate">{pack.name}</h3>
-                <p className="text-xs text-gray-400 mb-1.5 relative z-10">{pack.sticker_count} stickers</p>
+                <h3 className="font-semibold text-white text-[11px] leading-tight mb-0.5 relative z-10 truncate">{pack.name}</h3>
                 <div className="flex items-center justify-between relative z-10">
-                  <span className={`text-sm font-bold ${getPriceColor(pack.price_type)}`}>
+                  <span className={`text-xs font-bold ${getPriceColor(pack.price_type)}`}>
                     {pack.price} {pack.price_type}
                   </span>
                   <Button
@@ -513,20 +512,20 @@ const Marketplace = ({ user, language }) => {
                     onClick={() => handleBuy(pack)}
                     disabled={buyingPackId === pack.id || isConnecting}
                     data-testid={`buy-featured-${pack.id}`}
-                    className={`transition-colors shadow-lg h-7 px-2 text-xs ${
+                    className={`transition-colors shadow-lg h-6 px-1.5 text-[10px] ${
                       wallet
                         ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
                         : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
                     }`}
                   >
                     {buyingPackId === pack.id ? (
-                      <Sparkles size={12} className="mr-1 animate-spin" />
+                      <Sparkles size={10} className="mr-0.5 animate-spin" />
                     ) : wallet ? (
-                      <ShoppingCart size={12} className="mr-1" />
+                      <ShoppingCart size={10} className="mr-0.5" />
                     ) : (
-                      <Wallet size={12} className="mr-1" />
+                      <Wallet size={10} className="mr-0.5" />
                     )}
-                    {buyingPackId === pack.id ? "Processing..." : wallet ? t.marketplace.buy : "Connect Wallet"}
+                    {buyingPackId === pack.id ? "..." : wallet ? t.marketplace.buy : "Connect"}
                   </Button>
                 </div>
               </div>

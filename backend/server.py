@@ -2063,16 +2063,19 @@ logger = logging.getLogger(__name__)
 async def root():
     return {"message": "StickersXTon API", "status": "running"}
 
-@app.get("/debug")
+@app.get("/db-status")
 async def debug_info():
-    db_type = "mongodb" if db and not isinstance(db, LocalDB) else ("localdb" if db else "none")
-    mongo_url = os.environ.get('MONGO_URL', '')
-    mongo_preview = mongo_url[:40] + "..." if len(mongo_url) > 40 else mongo_url
-    return {
-        "db": db_type,
-        "mongo_url_preview": mongo_preview,
-        "startup_error": _startup_error
-    }
+    try:
+        db_type = "mongodb" if db and not isinstance(db, LocalDB) else ("localdb" if db else "none")
+        mongo_url = os.environ.get('MONGO_URL', '')
+        mongo_preview = mongo_url[:40] + "..." if len(mongo_url) > 40 else mongo_url
+        return {
+            "db": db_type,
+            "mongo_url_preview": mongo_preview,
+            "startup_error": str(_startup_error)
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/ping")
 async def ping():

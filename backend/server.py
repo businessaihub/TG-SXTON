@@ -2065,10 +2065,7 @@ async def root():
 
 @app.get("/debug")
 async def debug_info():
-    global db
-    if db is None:
-        await _init_db_on_startup()
-    db_type = "mongodb" if db and not isinstance(db, LocalDB) else "localdb"
+    db_type = "mongodb" if db and not isinstance(db, LocalDB) else ("localdb" if db else "none")
     mongo_url = os.environ.get('MONGO_URL', '')
     mongo_preview = mongo_url[:40] + "..." if len(mongo_url) > 40 else mongo_url
     return {

@@ -2066,7 +2066,7 @@ async def root():
 @app.get("/db-status")
 async def debug_info():
     try:
-        db_type = "mongodb" if db and not isinstance(db, LocalDB) else ("localdb" if db else "none")
+        db_type = "mongodb" if db is not None and not isinstance(db, LocalDB) else ("localdb" if db is not None else "none")
         mongo_url = os.environ.get('MONGO_URL', '')
         mongo_preview = mongo_url[:40] + "..." if len(mongo_url) > 40 else mongo_url
         return {

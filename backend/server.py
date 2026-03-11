@@ -296,24 +296,26 @@ class LocalDB:
 
 async def _init_db_on_startup():
     global db, client, _startup_error
-    _startup_error = None
     mongo_url = os.environ.get('MONGO_URL', '')
+    _startup_error = f"init called, url_len={len(mongo_url)}, starts_mongo={mongo_url.startswith('mongodb') if mongo_url else False}"
     if mongo_url and mongo_url.startswith('mongodb'):
         try:
-            client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=10000)
-            await asyncio.wait_for(client.admin.command('ping'), timeout=10.0)
+            client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=15000, connectTimeoutMS=15000, socketTimeoutMS=15000)
+            await asyncio.wait_for(client.admin.command('ping'), timeout=15.0)
             db_name = os.environ.get('DB_NAME', 'tg_sxton')
             db = client[db_name]
+            _startup_error = f"connected to {db_name}"
             print(f'Connected to MongoDB Atlas (db: {db_name})')
         except Exception as e:
-            _startup_error = str(e)
+            _startup_error = f"mongo_error: {type(e).__name__}: {str(e)}"
             print('MongoDB not available, falling back to local file store:', e)
             db = LocalDB()
     else:
+        _startup_error = f"no valid url, len={len(mongo_url)}"
         print('No MONGO_URL set, using local file store')
         db = LocalDB()
 
-_startup_error = None
+_startup_error = "not initialized yet"
 
 
 app = FastAPI()

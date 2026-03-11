@@ -2062,7 +2062,9 @@ logger = logging.getLogger(__name__)
 
 @app.get("/")
 async def root():
-    return {"message": "StickersXTon API", "status": "running"}
+    db_type = "mongodb" if db and not isinstance(db, LocalDB) else "localdb"
+    mongo_set = bool(os.environ.get('MONGO_URL', ''))
+    return {"message": "StickersXTon API", "status": "running", "db": db_type, "mongo_url_set": mongo_set}
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

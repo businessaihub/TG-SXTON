@@ -29,16 +29,16 @@ const Hot = ({ language }) => {
   };
 
   return (
-    <div className="p-4 space-y-6" data-testid="hot-container">
+    <div className="space-y-4" data-testid="hot-container">
       {/* Header */}
-      <div className="pt-4">
-        <div className="flex items-center gap-3 mb-2">
-          <Flame className="text-orange-400" size={32} />
-          <h1 className="text-4xl font-bold neon-cyan" style={{ fontFamily: 'Space Grotesk' }}>
+      <div className="pt-2">
+        <div className="flex items-center gap-2 mb-1">
+          <Flame className="text-orange-400" size={24} />
+          <h1 className="text-2xl font-bold neon-cyan" style={{ fontFamily: 'Space Grotesk' }}>
             {t.hot.title}
           </h1>
         </div>
-        <p className="text-gray-400">{t.hot.subtitle}</p>
+        <p className="text-sm text-gray-400">{t.hot.subtitle}</p>
       </div>
 
       {/* Hot Collections */}

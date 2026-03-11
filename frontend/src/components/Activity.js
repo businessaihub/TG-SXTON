@@ -127,15 +127,15 @@ const Activity = ({ language }) => {
   };
 
   return (
-    <div className="p-4 space-y-6 relative" data-testid="activity-container">
+    <div className="space-y-4 relative" data-testid="activity-container">
       <div className="cosmic-bg-subtle"></div>
       
       {/* Header */}
-      <div className="pt-4 relative z-10">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent" style={{ fontFamily: 'Space Grotesk' }}>
+      <div className="pt-2 relative z-10">
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent" style={{ fontFamily: 'Space Grotesk' }}>
           {t.activity.title}
         </h1>
-        <p className="text-gray-400">{t.activity.subtitle}</p>
+        <p className="text-sm text-gray-400">{t.activity.subtitle}</p>
       </div>
 
       {/* Filters */}
@@ -174,13 +174,11 @@ const Activity = ({ language }) => {
         </Tabs>
 
         {/* Additional Filters */}
-        <div className="flex gap-3 justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Filter className="text-gray-400" size={18} />
-            <Select value={collectionFilter} onValueChange={setCollectionFilter}>
-              <SelectTrigger className="w-48 bg-slate-800/50 border-white/10 text-white">
-                <SelectValue placeholder="Collection" />
-              </SelectTrigger>
+        <div className="flex gap-2 items-center">
+          <Select value={collectionFilter} onValueChange={setCollectionFilter}>
+            <SelectTrigger className="flex-1 min-w-0 bg-slate-800/50 border-white/10 text-white h-8 text-xs">
+              <SelectValue placeholder="Collection" />
+            </SelectTrigger>
               <SelectContent className="glass-card border-white/10">
                 <SelectItem value="all">All Collections</SelectItem>
                 {packs.map((pack) => (
@@ -188,10 +186,9 @@ const Activity = ({ language }) => {
                 ))}
               </SelectContent>
             </Select>
-          </div>
 
           <Select value={timeFilter} onValueChange={setTimeFilter}>
-            <SelectTrigger className="w-40 bg-slate-800/50 border-white/10 text-white">
+            <SelectTrigger className="w-28 flex-shrink-0 bg-slate-800/50 border-white/10 text-white h-8 text-xs">
               <SelectValue placeholder="Time" />
             </SelectTrigger>
             <SelectContent className="glass-card border-white/10">

@@ -196,11 +196,11 @@ const Quests = ({ user, setUser, language }) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 pt-2">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="text-purple-400" size={24} />
-        <h2 className="text-2xl font-bold" style={{ fontFamily: 'Space Grotesk' }}>
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles className="text-purple-400" size={20} />
+        <h2 className="text-xl font-bold" style={{ fontFamily: 'Space Grotesk' }}>
           {t.quests?.title || "Quests"}
         </h2>
       </div>

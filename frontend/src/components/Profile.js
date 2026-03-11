@@ -340,31 +340,31 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   };
 
   return (
-    <div className="p-4 space-y-6" data-testid="profile-container">
+    <div className="space-y-4 pt-2" data-testid="profile-container">
       {/* Header - Telegram Profile */}
-      <div className="pt-4 glass-card p-6 rounded-lg border border-white/10">
-        <div className="flex items-start gap-4">
+      <div className="glass-card p-4 rounded-lg border border-white/10">
+        <div className="flex items-start gap-3">
           {/* Left: Avatar + Statistics */}
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-2">
             {/* Telegram Avatar */}
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-3xl">👤</span>
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-2xl">👤</span>
             </div>
             
             {/* Statistics under avatar */}
             <div className="text-center">
-              <div className="text-2xl font-bold text-cyan-400">{stickers.length}</div>
-              <div className="text-xs text-gray-400">{t.profile.purchased}</div>
+              <div className="text-lg font-bold text-cyan-400">{stickers.length}</div>
+              <div className="text-[10px] text-gray-400">{t.profile.purchased}</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-400">{sellerStats?.total_sold || totalSold}</div>
-              <div className="text-xs text-gray-400">{t.profile.sold}</div>
+              <div className="text-lg font-bold text-purple-400">{sellerStats?.total_sold || totalSold}</div>
+              <div className="text-[10px] text-gray-400">{t.profile.sold}</div>
             </div>
           </div>
           
           {/* Center: User Info */}
           <div className="flex-1">
-            <h1 className="text-xl font-bold neon-cyan mb-1" style={{ fontFamily: 'Space Grotesk' }}>
+            <h1 className="text-lg font-bold neon-cyan mb-1" style={{ fontFamily: 'Space Grotesk' }}>
               {user?.username || "Anonymous"}
             </h1>
             <div className="space-y-2 text-sm">
@@ -484,11 +484,11 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
       </div>
 
       {/* Daily Login Reward Section */}
-      <div className="glass-card p-6 space-y-4">
+      <div className="glass-card p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Gift className="text-green-400" size={24} />
-            <h2 className="text-xl font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
+            <Gift className="text-green-400" size={20} />
+            <h2 className="text-lg font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
               🎁 Daily Login Bonus
             </h2>
           </div>
@@ -502,7 +502,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
             <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-4">
               <div className="text-center">
                 <div className="text-sm text-gray-400 mb-2">Current Streak</div>
-                <div className="text-5xl font-bold text-green-400 mb-2">
+                <div className="text-3xl font-bold text-green-400 mb-2">
                   {dailyRewardStatus.streak}/7 🔥
                 </div>
                 <div className="text-sm text-gray-300">
@@ -577,11 +577,11 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
       </div>
 
       {/* Referral Section */}
-      <div className="glass-card p-6 space-y-4">
+      <div className="glass-card p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Globe className="text-blue-400" size={24} />
-            <h2 className="text-xl font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
+            <Globe className="text-blue-400" size={20} />
+            <h2 className="text-lg font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
               🎯 Referral Program
             </h2>
           </div>
@@ -649,11 +649,11 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
       </div>
 
       {/* Game Balance Section */}
-      <div className="glass-card p-6 space-y-4">
+      <div className="glass-card p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <DollarSign className="text-yellow-400" size={24} />
-            <h2 className="text-xl font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
+            <DollarSign className="text-yellow-400" size={20} />
+            <h2 className="text-lg font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
               🎮 Game Balance
             </h2>
           </div>
@@ -663,7 +663,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
         <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-4">
           <div className="text-center">
             <div className="text-sm text-gray-400 mb-1">Available Balance</div>
-            <div className="text-4xl font-bold text-yellow-400">
+            <div className="text-3xl font-bold text-yellow-400">
               {loadingGameBalance ? "..." : `${gameBalance.toFixed(2)}`}
             </div>
             <div className="text-xs text-gray-400 mt-1">TON (for games only)</div>

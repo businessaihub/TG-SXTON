@@ -94,7 +94,7 @@ const Game = ({ user, language }) => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 pt-2">
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Zap className="text-yellow-400" size={24} />
@@ -346,7 +346,7 @@ const Game = ({ user, language }) => {
             <h2 className="text-xl font-bold text-white">{language === 'ru' ? 'Игровой Хаб' : 'Game Hub'}</h2>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {/* Daily Spin Wheel */}
             <GameCard
               emoji="🎡"
@@ -437,7 +437,7 @@ const GameCard = ({ emoji, title, description, badge, onClick }) => {
   return (
     <button
       onClick={onClick}
-      className="group relative h-40 rounded-xl bg-gradient-to-br from-[#2a2a3e]/80 to-[#1a1a2e]/80 border-2 border-cyan-500/30 p-4 hover:border-cyan-400/60 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 cursor-pointer overflow-hidden"
+      className="group relative h-32 rounded-xl bg-gradient-to-br from-[#2a2a3e]/80 to-[#1a1a2e]/80 border-2 border-cyan-500/30 p-3 active:border-cyan-400/60 transition-all duration-200 active:shadow-lg active:shadow-cyan-500/20 cursor-pointer overflow-hidden"
     >
       {/* Animated background */}
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-purple-500/0 group-hover:from-cyan-500/10 group-hover:to-purple-500/10 transition-all duration-300" />
@@ -454,7 +454,7 @@ const GameCard = ({ emoji, title, description, badge, onClick }) => {
       {/* Content */}
       <div className="relative h-full flex flex-col items-center justify-between z-10">
         {/* Emoji */}
-        <div className="text-5xl group-hover:scale-110 transition-transform duration-300">
+        <div className="text-4xl group-hover:scale-110 transition-transform duration-300">
           {emoji}
         </div>
         

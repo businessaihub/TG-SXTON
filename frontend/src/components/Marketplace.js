@@ -390,38 +390,35 @@ const Marketplace = ({ user, language }) => {
   };
 
   return (
-    <div className="p-3 space-y-3 relative" data-testid="marketplace-container">
+    <div className="space-y-3 relative" data-testid="marketplace-container">
       {/* Cosmic background */}
       <div className="cosmic-bg-subtle"></div>
       
       {/* Header with Live Stats */}
       <div className="pt-2 relative z-10">
         {/* Brand Title */}
-        <div className="text-center mb-4">
-          <h1 className="text-2xl font-semibold" style={{ fontFamily: 'Space Grotesk', letterSpacing: '1.5px' }}>
+        <div className="text-center mb-3">
+          <h1 className="text-xl font-semibold" style={{ fontFamily: 'Space Grotesk', letterSpacing: '1.5px' }}>
             <span className="text-white">SXT</span><span className="text-cyan-400">ON</span>
           </h1>
         </div>
         
         {/* Activity Indicators */}
-        <div className="flex flex-wrap gap-2 mb-6 justify-center items-center">
-          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 transition-colors relative overflow-hidden">
-            <div className="cosmic-particles"></div>
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse relative z-10"></div>
-            <span className="text-green-400 font-semibold text-sm relative z-10">{onlineUsers}</span>
-            <span className="text-gray-400 text-xs relative z-10">online</span>
+        <div className="flex gap-1.5 mb-4 justify-center items-center">
+          <div className="glass-card px-2 py-1 flex items-center gap-1.5 border border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 relative overflow-hidden">
+            <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse relative z-10"></div>
+            <span className="text-green-400 font-semibold text-xs relative z-10">{onlineUsers}</span>
+            <span className="text-gray-400 text-[10px] relative z-10">online</span>
           </div>
-          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 transition-colors relative overflow-hidden">
-            <div className="cosmic-particles"></div>
-            <ActivityIcon className="text-cyan-400 relative z-10" size={14} />
-            <span className="text-cyan-400 font-semibold text-sm relative z-10">{tradingVolume}</span>
-            <span className="text-gray-400 text-xs relative z-10">TON</span>
+          <div className="glass-card px-2 py-1 flex items-center gap-1.5 border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 relative overflow-hidden">
+            <ActivityIcon className="text-cyan-400 relative z-10" size={12} />
+            <span className="text-cyan-400 font-semibold text-xs relative z-10">{tradingVolume}</span>
+            <span className="text-gray-400 text-[10px] relative z-10">TON</span>
           </div>
-          <div className="glass-card px-3 py-1.5 flex items-center gap-2 border border-yellow-500/30 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 transition-colors relative overflow-hidden">
-            <div className="cosmic-particles"></div>
-            <Flame className="text-yellow-400 relative z-10" size={14} />
-            <span className="text-yellow-400 font-semibold text-sm relative z-10">{activeTraders}</span>
-            <span className="text-gray-400 text-xs relative z-10">trading</span>
+          <div className="glass-card px-2 py-1 flex items-center gap-1.5 border border-yellow-500/30 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 relative overflow-hidden">
+            <Flame className="text-yellow-400 relative z-10" size={12} />
+            <span className="text-yellow-400 font-semibold text-xs relative z-10">{activeTraders}</span>
+            <span className="text-gray-400 text-[10px] relative z-10">trading</span>
           </div>
         </div>
       </div>
@@ -561,26 +558,25 @@ const Marketplace = ({ user, language }) => {
 
         {/* Sort Dropdown & Search */}
         <div className="flex items-center gap-2">
-          <ArrowUpDown className="text-gray-400" size={16} />
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-40 bg-slate-800/50 border-white/10 text-white h-8 text-sm">
-              <SelectValue placeholder="Sort by..." />
+            <SelectTrigger className="w-28 bg-slate-800/50 border-white/10 text-white h-8 text-xs">
+              <SelectValue placeholder="Sort..." />
             </SelectTrigger>
             <SelectContent className="glass-card border-white/10">
               <SelectItem value="default">Default</SelectItem>
-              <SelectItem value="name">By Collection</SelectItem>
-              <SelectItem value="price-low">Price: Low to High</SelectItem>
-              <SelectItem value="price-high">Price: High to Low</SelectItem>
-              <SelectItem value="rarity">By Rarity</SelectItem>
+              <SelectItem value="name">Collection</SelectItem>
+              <SelectItem value="price-low">Price ↑</SelectItem>
+              <SelectItem value="price-high">Price ↓</SelectItem>
+              <SelectItem value="rarity">Rarity</SelectItem>
             </SelectContent>
           </Select>
           
           {/* Search Input */}
           <Input
-            placeholder="Search stickers..."
+            placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 max-w-xs bg-slate-800/50 border-white/10 text-white placeholder-gray-500 h-8 text-sm"
+            className="flex-1 min-w-0 bg-slate-800/50 border-white/10 text-white placeholder-gray-500 h-8 text-xs"
           />
         </div>
       </div>
@@ -808,8 +804,8 @@ const Marketplace = ({ user, language }) => {
 
       {/* Pack Details Modal */}
       {showPackDetails && selectedPack && (
-        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowPackDetails(false)}>
-          <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-lg max-w-lg w-full max-h-[70vh] overflow-y-auto z-[10000]" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-end sm:items-center justify-center backdrop-blur-sm" onClick={() => setShowPackDetails(false)}>
+          <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-t-2xl sm:rounded-lg w-full sm:max-w-lg max-h-[85vh] overflow-y-auto z-[10000]" onClick={(e) => e.stopPropagation()}>
             {/* Close Button */}
             <div className="flex items-center justify-between p-6 border-b border-white/10">
               <div className="flex items-center gap-2">

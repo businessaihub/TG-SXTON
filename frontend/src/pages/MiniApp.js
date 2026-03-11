@@ -140,8 +140,9 @@ const MiniApp = ({ isAdmin }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#0f0f1a] to-[#0a0a0f] pb-24">
-      <div className="max-w-md mx-auto p-4">
+    <div className="min-h-[100dvh] bg-gradient-to-b from-[#0a0a0f] via-[#0f0f1a] to-[#0a0a0f]"
+         style={{ paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px))' }}>
+      <div className="w-full max-w-lg mx-auto px-3">
         {renderContent()}
       </div>
       

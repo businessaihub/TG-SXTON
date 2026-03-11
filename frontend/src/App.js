@@ -6,6 +6,7 @@ import MiniApp from "./pages/MiniApp";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import { TonConnectProvider } from "./context/TonConnectContext";
+import { Toaster } from "sonner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -65,6 +66,7 @@ function App() {
           </Routes>
         </BrowserRouter>
       </TonConnectProvider>
+      <Toaster position="top-right" richColors />
     </div>
   );
 }

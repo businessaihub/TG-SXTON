@@ -67,7 +67,7 @@ const PackManagement = () => {
       if (prev.sticker_count === desired) return prev;
       return { ...prev, sticker_count: desired };
     });
-  }, [imageUploadMode]);
+  }, [imageUploadMode, formData.image_url, formData.image_urls]);
 
   const fetchPacks = async () => {
     try {

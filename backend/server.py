@@ -2074,6 +2074,10 @@ async def debug_info():
         "startup_error": _startup_error
     }
 
+@app.get("/ping")
+async def ping():
+    return {"ping": "pong", "commit": "e3acb28-v2"}
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     if client:

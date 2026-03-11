@@ -2061,16 +2061,17 @@ logger = logging.getLogger(__name__)
 
 @app.get("/")
 async def root():
+    return {"message": "StickersXTon API", "status": "running"}
+
+@app.get("/debug")
+async def debug_info():
     global db
-    # Lazy init: if db is still None, try connecting
     if db is None:
         await _init_db_on_startup()
     db_type = "mongodb" if db and not isinstance(db, LocalDB) else "localdb"
     mongo_url = os.environ.get('MONGO_URL', '')
     mongo_preview = mongo_url[:40] + "..." if len(mongo_url) > 40 else mongo_url
     return {
-        "message": "StickersXTon API",
-        "status": "running",
         "db": db_type,
         "mongo_url_preview": mongo_preview,
         "startup_error": _startup_error

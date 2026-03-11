@@ -340,266 +340,363 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   };
 
   return (
-    <div className="space-y-4 pt-2" data-testid="profile-container">
-      {/* Header - Telegram Profile */}
-      <div className="glass-card p-4 rounded-lg border border-white/10">
-        <div className="flex items-start gap-3">
-          {/* Left: Avatar + Statistics */}
-          <div className="flex flex-col items-center gap-2">
-            {/* Telegram Avatar */}
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-2xl">👤</span>
+    <div className="space-y-3 pt-1" data-testid="profile-container">
+
+      {/* ═══════ SECTION 1: Profile + Wallet + Balances ═══════ */}
+      <div className="glass-card rounded-lg border border-white/10 overflow-hidden">
+        {/* Row: Avatar + User Info + Language */}
+        <div className="p-3 pb-2">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-xl">👤</span>
             </div>
-            
-            {/* Statistics under avatar */}
-            <div className="text-center">
-              <div className="text-lg font-bold text-cyan-400">{stickers.length}</div>
-              <div className="text-[10px] text-gray-400">{t.profile.purchased}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-purple-400">{sellerStats?.total_sold || totalSold}</div>
-              <div className="text-[10px] text-gray-400">{t.profile.sold}</div>
-            </div>
-          </div>
-          
-          {/* Center: User Info */}
-          <div className="flex-1">
-            <h1 className="text-lg font-bold neon-cyan mb-1" style={{ fontFamily: 'Space Grotesk' }}>
-              {user?.username || "Anonymous"}
-            </h1>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-gray-400">
-                <Globe size={14} className="text-cyan-400" />
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base font-bold neon-cyan leading-tight" style={{ fontFamily: 'Space Grotesk' }}>
+                {user?.username || "Anonymous"}
+              </h1>
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
+                <Globe size={11} className="text-cyan-400" />
                 <span>ID: {user?.id?.substring(0, 8) || "N/A"}...</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <Shield size={14} className="text-green-400" />
-                <span className="capitalize">{t.profile.sellerStatus}: <span className="text-green-400 font-semibold">{sellerStatus}</span></span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <Star size={14} className="text-yellow-400" />
-                <span>{t.profile.sellerRating}: <span className="text-yellow-400 font-semibold">{sellerRating} ⭐</span></span>
+              <div className="flex items-center gap-3 mt-1">
+                <div className="flex items-center gap-1 text-[11px]">
+                  <Shield size={11} className="text-green-400" />
+                  <span className="capitalize text-green-400 font-semibold">{sellerStatus}</span>
+                </div>
+                <div className="flex items-center gap-1 text-[11px]">
+                  <Star size={11} className="text-yellow-400" />
+                  <span className="text-yellow-400 font-semibold">{sellerRating} ⭐</span>
+                </div>
               </div>
             </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-1.5 hover:bg-white/10 rounded-lg transition h-fit">
+                  <Globe size={20} className="text-cyan-400 hover:text-cyan-300" />
+                </button>
+              </DropdownMenuTrigger>>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setLanguage("en")}>
+                  {language === "en" && <span className="mr-2">✓</span>}
+                  🇬🇧 English
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("tr")}>
+                  {language === "tr" && <span className="mr-2">✓</span>}
+                  🇹🇷 Türkçe
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("zh")}>
+                  {language === "zh" && <span className="mr-2">✓</span>}
+                  🇨🇳 中文
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("ru")}>
+                  {language === "ru" && <span className="mr-2">✓</span>}
+                  🇷🇺 Русский
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("ar")}>
+                  {language === "ar" && <span className="mr-2">✓</span>}
+                  🇸🇦 العربية
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("ko")}>
+                  {language === "ko" && <span className="mr-2">✓</span>}
+                  🇰🇷 한국어
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("ja")}>
+                  {language === "ja" && <span className="mr-2">✓</span>}
+                  🇯🇵 日本語
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("de")}>
+                  {language === "de" && <span className="mr-2">✓</span>}
+                  🇩🇪 Deutsch
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("fr")}>
+                  {language === "fr" && <span className="mr-2">✓</span>}
+                  🇫🇷 Français
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("uk")}>
+                  {language === "uk" && <span className="mr-2">✓</span>}
+                  🇺🇦 Українська
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("th")}>
+                  {language === "th" && <span className="mr-2">✓</span>}
+                  🇹🇭 ไทย
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-
-          {/* Right: Language Selector Icon */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="p-2 hover:bg-white/10 rounded-lg transition h-fit">
-                <Globe size={24} className="text-cyan-400 hover:text-cyan-300" />
-              </button>
-            </DropdownMenuTrigger>>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setLanguage("en")}>
-                {language === "en" && <span className="mr-2">✓</span>}
-                🇬🇧 English
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage("tr")}>
-                {language === "tr" && <span className="mr-2">✓</span>}
-                🇹🇷 Türkçe
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage("zh")}>
-                {language === "zh" && <span className="mr-2">✓</span>}
-                🇨🇳 中文
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage("ru")}>
-                {language === "ru" && <span className="mr-2">✓</span>}
-                🇷🇺 Русский
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage("ar")}>
-                {language === "ar" && <span className="mr-2">✓</span>}
-                🇸🇦 العربية
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage("ko")}>
-                {language === "ko" && <span className="mr-2">✓</span>}
-                🇰🇷 한국어
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage("ja")}>
-                {language === "ja" && <span className="mr-2">✓</span>}
-                🇯🇵 日本語
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage("de")}>
-                {language === "de" && <span className="mr-2">✓</span>}
-                🇩🇪 Deutsch
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage("fr")}>
-                {language === "fr" && <span className="mr-2">✓</span>}
-                🇫🇷 Français
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage("uk")}>
-                {language === "uk" && <span className="mr-2">✓</span>}
-                🇺🇦 Українська
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage("th")}>
-                {language === "th" && <span className="mr-2">✓</span>}
-                🇹🇭 ไทย
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
 
-        {/* Promo Code Row */}
-        <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-          <Gem size={14} className="text-purple-400 flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="Promo Code..."
-            value={promoCode}
-            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-            className="flex-1 bg-slate-700/50 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-400/50 transition"
-          />
-          <Button
-            size="sm"
-            onClick={async () => {
-              if (!promoCode.trim()) {
-                toast.error("Enter a code");
-                return;
-              }
-              try {
-                const response = await axios.post(`${API}/promo-codes/validate?code=${promoCode}`);
-                
-                // Show type-specific success message
-                let message = "Code applied!";
-                if (response.data.promoType === "discount") {
-                  message = `${response.data.discount}${response.data.discountType === "percent" ? "%" : " TON"} discount applied!`;
-                } else if (response.data.promoType === "sxton_token") {
-                  message = `${response.data.sxtonAmount} SXTON tokens added to your balance!`;
-                } else if (response.data.promoType === "guaranteed_sticker") {
-                  const rarity = response.data.stickerRarity.charAt(0).toUpperCase() + response.data.stickerRarity.slice(1);
-                  message = `${rarity} sticker reward granted!`;
+        {/* Wallet Row */}
+        <div className="px-3 py-2 bg-white/[0.03] border-t border-white/10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <Wallet size={14} className="text-cyan-400 flex-shrink-0" />
+              {user?.wallet_address ? (
+                <span className="text-xs text-gray-400 font-mono truncate">
+                  {user.wallet_address.substring(0, 8)}...{user.wallet_address.substring(user.wallet_address.length - 6)}
+                </span>
+              ) : (
+                <span className="text-xs text-gray-500">{t.profile.wallet}</span>
+              )}
+            </div>
+            {user?.wallet_address ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleDisconnect}
+                data-testid="disconnect-wallet-btn"
+                className="border-red-500/30 text-red-400 hover:bg-red-500/10 h-7 text-xs px-2 flex-shrink-0"
+              >
+                <LogOut size={12} className="mr-1" />
+                {t.profile.disconnect}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={handleConnectWallet}
+                data-testid="connect-wallet-btn"
+                className="bg-cyan-500 hover:bg-cyan-600 btn-animated h-7 text-xs px-3 flex-shrink-0"
+              >
+                {t.profile.connect}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Balances + Stats Grid */}
+        <div className="px-3 py-2 border-t border-white/10">
+          <div className="grid grid-cols-5 gap-1.5 text-center">
+            <div className="bg-white/5 rounded-lg py-1.5">
+              <div className="text-[10px] text-gray-500">TON</div>
+              <div className="text-sm font-bold text-cyan-400" data-testid="ton-balance">{user?.ton_balance?.toFixed(2) || "0.00"}</div>
+            </div>
+            <div className="bg-white/5 rounded-lg py-1.5">
+              <div className="text-[10px] text-gray-500">Stars</div>
+              <div className="text-sm font-bold text-yellow-400" data-testid="stars-balance">{user?.stars_balance?.toFixed(0) || "0"}</div>
+            </div>
+            <div className="bg-white/5 rounded-lg py-1.5">
+              <div className="text-[10px] text-gray-500">SXTON</div>
+              <div className="text-sm font-bold text-purple-400" data-testid="sxton-balance">{user?.sxton_points?.toFixed(0) || "0"}</div>
+            </div>
+            <div className="bg-white/5 rounded-lg py-1.5">
+              <div className="text-[10px] text-gray-500">{t.profile.purchased}</div>
+              <div className="text-sm font-bold text-cyan-400">{stickers.length}</div>
+            </div>
+            <div className="bg-white/5 rounded-lg py-1.5">
+              <div className="text-[10px] text-gray-500">{t.profile.sold}</div>
+              <div className="text-sm font-bold text-purple-400">{sellerStats?.total_sold || totalSold}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Deposit / Withdraw + Promo */}
+        <div className="px-3 py-2 border-t border-white/10 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              className="bg-green-500 hover:bg-green-600 btn-animated h-8 text-xs"
+              data-testid="deposit-btn"
+            >
+              {t.profile.deposit}
+            </Button>
+            <Button
+              variant="outline"
+              className="btn-animated h-8 text-xs"
+              data-testid="withdraw-btn"
+            >
+              {t.profile.withdraw}
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Gem size={14} className="text-purple-400 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Promo Code..."
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+              className="flex-1 bg-slate-700/50 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-400/50 transition min-w-0"
+            />
+            <Button
+              size="sm"
+              onClick={async () => {
+                if (!promoCode.trim()) {
+                  toast.error("Enter a code");
+                  return;
                 }
-                
-                toast.success(message);
-                setPromoCode("");
-              } catch (error) {
-                toast.error(error.response?.data?.detail || "Invalid code");
-              }
-            }}
-            className="bg-purple-500 hover:bg-purple-600 text-xs h-6 px-2 flex-shrink-0"
-          >
-            Apply
-          </Button>
+                try {
+                  const response = await axios.post(`${API}/promo-codes/validate?code=${promoCode}`);
+                  
+                  let message = "Code applied!";
+                  if (response.data.promoType === "discount") {
+                    message = `${response.data.discount}${response.data.discountType === "percent" ? "%" : " TON"} discount applied!`;
+                  } else if (response.data.promoType === "sxton_token") {
+                    message = `${response.data.sxtonAmount} SXTON tokens added to your balance!`;
+                  } else if (response.data.promoType === "guaranteed_sticker") {
+                    const rarity = response.data.stickerRarity.charAt(0).toUpperCase() + response.data.stickerRarity.slice(1);
+                    message = `${rarity} sticker reward granted!`;
+                  }
+                  
+                  toast.success(message);
+                  setPromoCode("");
+                } catch (error) {
+                  toast.error(error.response?.data?.detail || "Invalid code");
+                }
+              }}
+              className="bg-purple-500 hover:bg-purple-600 text-xs h-6 px-2 flex-shrink-0"
+            >
+              Apply
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Daily Login Reward Section */}
-      <div className="glass-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Gift className="text-green-400" size={20} />
-            <h2 className="text-lg font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
-              🎁 Daily Login Bonus
-            </h2>
+      {/* ═══════ SECTION 2: Game Balance + Daily Reward ═══════ */}
+      <div className="glass-card rounded-lg border border-white/10 overflow-hidden">
+        {/* Game Balance */}
+        <div className="p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <DollarSign className="text-yellow-400" size={16} />
+              <span className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk' }}>🎮 Game Balance</span>
+            </div>
+            <div className="text-lg font-bold text-yellow-400">
+              {loadingGameBalance ? "..." : `${gameBalance.toFixed(2)} TON`}
+            </div>
           </div>
-        </div>
-        
-        {loadingDailyReward ? (
-          <div className="text-center py-4 text-gray-400">Loading...</div>
-        ) : dailyRewardStatus ? (
-          <div className="space-y-4">
-            {/* Streak Display */}
-            <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-4">
-              <div className="text-center">
-                <div className="text-sm text-gray-400 mb-2">Current Streak</div>
-                <div className="text-3xl font-bold text-green-400 mb-2">
-                  {dailyRewardStatus.streak}/7 🔥
-                </div>
-                <div className="text-sm text-gray-300">
-                  Next reward: {dailyRewardStatus.reward.toFixed(2)} TON
-                </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={() => setShowDepositModal(true)}
+              className="bg-green-500 hover:bg-green-600 text-white h-8 text-xs"
+            >
+              💰 Deposit
+            </Button>
+            <Button
+              onClick={() => setShowWithdrawModal(true)}
+              variant="outline"
+              className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 h-8 text-xs"
+              disabled={gameBalance < 0.1}
+            >
+              🔄 Withdraw
+            </Button>
+          </div>
+
+          {/* Recent Withdrawals */}
+          {withdrawHistory.length > 0 && (
+            <div className="mt-2 space-y-1">
+              <div className="text-[11px] text-gray-400 font-semibold">Recent Withdrawals</div>
+              <div className="max-h-28 overflow-y-auto space-y-1">
+                {withdrawHistory.slice(0, 5).map((w, idx) => (
+                  <div key={idx} className="bg-slate-800/50 rounded p-1.5 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-white font-mono">{w.amount.toFixed(2)} TON</span>
+                      <Badge 
+                        className={`text-[10px] ${
+                          w.status === "completed" ? "bg-green-500/30 text-green-300" :
+                          w.status === "approved" ? "bg-blue-500/30 text-blue-300" :
+                          w.status === "rejected" ? "bg-red-500/30 text-red-300" :
+                          "bg-yellow-500/30 text-yellow-300"
+                        }`}
+                      >
+                        {w.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="text-gray-500 text-[10px]">
+                      {w.processing_delay_hours > 0 && `~${w.processing_delay_hours}h delay`}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+          )}
+        </div>
 
-            {/* Streak Progress Bar */}
+        {/* Daily Login Reward */}
+        <div className="px-3 py-3 border-t border-white/10">
+          <div className="flex items-center gap-2 mb-2">
+            <Gift className="text-green-400" size={16} />
+            <span className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk' }}>🎁 Daily Login Bonus</span>
+          </div>
+
+          {loadingDailyReward ? (
+            <div className="text-center py-3 text-gray-400 text-sm">Loading...</div>
+          ) : dailyRewardStatus ? (
             <div className="space-y-2">
-              <div className="text-xs text-gray-400 font-semibold">Progression</div>
-              <div className="w-full bg-slate-700 rounded-full h-2">
+              {/* Compact streak + claim row */}
+              <div className="flex items-center justify-between bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-2.5">
+                <div>
+                  <div className="text-xl font-bold text-green-400">{dailyRewardStatus.streak}/7 🔥</div>
+                  <div className="text-[11px] text-gray-400">Next: {dailyRewardStatus.reward.toFixed(2)} TON</div>
+                </div>
+                <Button
+                  onClick={handleClaimDailyReward}
+                  disabled={!dailyRewardStatus.can_claim || claimingReward}
+                  className={`h-8 text-xs px-3 ${
+                    dailyRewardStatus.can_claim
+                      ? "bg-green-500 hover:bg-green-600 text-white"
+                      : "bg-slate-700 text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  {dailyRewardStatus.can_claim ? (
+                    <>🎁 Claim {dailyRewardStatus.reward.toFixed(2)}</>
+                  ) : (
+                    <>✓ Claimed</>
+                  )}
+                </Button>
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full bg-slate-700 rounded-full h-1.5">
                 <div 
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all"
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 h-1.5 rounded-full transition-all"
                   style={{ width: `${(dailyRewardStatus.streak / 7) * 100}%` }}
                 />
               </div>
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>Day 1</span>
-                <span>Day 7</span>
-              </div>
-            </div>
 
-            {/* Streak Rewards List */}
-            <div className="text-xs text-gray-400 space-y-1">
-              <div className="font-semibold mb-2">Rewards by Day:</div>
+              {/* 7-day grid */}
               <div className="grid grid-cols-7 gap-1">
                 {dailyRewardStatus.streak_rewards.map((amt, idx) => (
                   <div 
                     key={idx}
-                    className={`text-center p-2 rounded ${
+                    className={`text-center py-1 px-0.5 rounded ${
                       idx < dailyRewardStatus.streak 
                         ? "bg-green-500/20 border border-green-500/50 text-green-300" 
                         : "bg-slate-700/50 border border-slate-600/50 text-gray-400"
                     }`}
                   >
-                    <div className="text-xs font-bold">{idx + 1}</div>
-                    <div className="text-xs">{amt.toFixed(2)}</div>
+                    <div className="text-[10px] font-bold">{idx + 1}</div>
+                    <div className="text-[10px]">{amt.toFixed(2)}</div>
                   </div>
                 ))}
               </div>
-            </div>
 
-            {/* Claim Button */}
-            <Button
-              onClick={handleClaimDailyReward}
-              disabled={!dailyRewardStatus.can_claim || claimingReward}
-              className={`w-full ${
-                dailyRewardStatus.can_claim
-                  ? "bg-green-500 hover:bg-green-600 text-white"
-                  : "bg-slate-700 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              {dailyRewardStatus.can_claim ? (
-                <>
-                  🎁 Claim Reward ({dailyRewardStatus.reward.toFixed(2)} TON)
-                </>
-              ) : (
-                <>
-                  ✓ Already claimed today
-                </>
+              {!dailyRewardStatus.can_claim && dailyRewardStatus.time_until_next > 0 && (
+                <div className="text-center text-[11px] text-gray-400">
+                  Next reward in {Math.floor(dailyRewardStatus.time_until_next / 3600)}h {Math.floor((dailyRewardStatus.time_until_next % 3600) / 60)}m
+                </div>
               )}
-            </Button>
-
-            {!dailyRewardStatus.can_claim && dailyRewardStatus.time_until_next > 0 && (
-              <div className="text-center text-xs text-gray-400">
-                Next reward in {Math.floor(dailyRewardStatus.time_until_next / 3600)}h {Math.floor((dailyRewardStatus.time_until_next % 3600) / 60)}m
-              </div>
-            )}
-          </div>
-        ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      {/* Referral Section */}
-      <div className="glass-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Globe className="text-blue-400" size={20} />
-            <h2 className="text-lg font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
-              🎯 Referral Program
-            </h2>
-          </div>
+      {/* ═══════ SECTION 3: Referral Program ═══════ */}
+      <div className="glass-card p-3 rounded-lg border border-white/10">
+        <div className="flex items-center gap-2 mb-2">
+          <Globe className="text-blue-400" size={16} />
+          <span className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk' }}>🎯 Referral Program</span>
         </div>
-        
+
         {loadingReferral ? (
-          <div className="text-center py-4 text-gray-400">Loading...</div>
+          <div className="text-center py-3 text-gray-400 text-sm">Loading...</div>
         ) : referralCode ? (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {/* Referral Code */}
-            <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg p-4">
-              <div className="text-sm text-gray-400 mb-2">Your Referral Code</div>
+            <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg p-2.5">
+              <div className="text-[11px] text-gray-400 mb-1.5">Your Referral Code</div>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={referralCode.referral_code}
                   readOnly
-                  className="flex-1 bg-slate-800 border border-blue-500/30 rounded px-3 py-2 text-white font-mono font-bold text-center tracking-widest"
+                  className="flex-1 bg-slate-800 border border-blue-500/30 rounded px-2 py-1.5 text-white font-mono font-bold text-center text-sm tracking-widest min-w-0"
                 />
                 <Button
                   onClick={() => {
@@ -607,125 +704,319 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                     toast.success("Code copied!");
                   }}
                   size="sm"
-                  className="bg-blue-500 hover:bg-blue-600"
+                  className="bg-blue-500 hover:bg-blue-600 h-8 text-xs px-3 flex-shrink-0"
                 >
                   Copy
                 </Button>
               </div>
-              <div className="text-xs text-gray-500 mt-2">Share with friends to earn 5% from their deposits</div>
+              <div className="text-[10px] text-gray-500 mt-1.5">Share with friends to earn 5% from their deposits</div>
             </div>
-            
+
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-800/50 border border-blue-500/30 rounded-lg p-3">
-                <div className="text-xs text-gray-400 mb-1">Total Referrals</div>
-                <div className="text-2xl font-bold text-blue-400">{referralStats?.total_referrals || 0}</div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-slate-800/50 border border-blue-500/30 rounded-lg p-2 text-center">
+                <div className="text-[10px] text-gray-400">Total Referrals</div>
+                <div className="text-lg font-bold text-blue-400">{referralStats?.total_referrals || 0}</div>
               </div>
-              <div className="bg-slate-800/50 border border-green-500/30 rounded-lg p-3">
-                <div className="text-xs text-gray-400 mb-1">Earned from Referrals</div>
-                <div className="text-2xl font-bold text-green-400">{(referralStats?.total_earned || 0).toFixed(2)}</div>
+              <div className="bg-slate-800/50 border border-green-500/30 rounded-lg p-2 text-center">
+                <div className="text-[10px] text-gray-400">Earned</div>
+                <div className="text-lg font-bold text-green-400">{(referralStats?.total_earned || 0).toFixed(2)}</div>
               </div>
             </div>
-            
+
             {/* Referral List */}
             {referralStats?.referral_list && referralStats.referral_list.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-sm text-gray-400 font-semibold">Referred Users</div>
-                <div className="max-h-40 overflow-y-auto space-y-2">
+              <details className="text-xs text-gray-500">
+                <summary className="font-semibold cursor-pointer hover:text-gray-400 transition-colors text-[11px]">
+                  Referred Users ({referralStats.referral_list.length})
+                </summary>
+                <div className="max-h-32 overflow-y-auto space-y-1 mt-1.5">
                   {referralStats.referral_list.map((ref, idx) => (
-                    <div key={idx} className="bg-slate-800/50 rounded p-2 text-xs">
+                    <div key={idx} className="bg-slate-800/50 rounded p-1.5 text-xs">
                       <div className="flex justify-between items-center">
                         <span className="text-white font-mono">{ref.referred_user_id.slice(0, 8)}...</span>
                         <span className="text-green-400 font-semibold">+{ref.earned.toFixed(2)} TON</span>
                       </div>
-                      <div className="text-gray-500 text-xs mt-1">Deposit: {ref.deposit.toFixed(2)} TON</div>
+                      <div className="text-gray-500 text-[10px] mt-0.5">Deposit: {ref.deposit.toFixed(2)} TON</div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </details>
             )}
           </div>
         ) : null}
       </div>
 
-      {/* Game Balance Section */}
-      <div className="glass-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <DollarSign className="text-yellow-400" size={20} />
-            <h2 className="text-lg font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
-              🎮 Game Balance
-            </h2>
-          </div>
-        </div>
-        
-        {/* Balance Display */}
-        <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-4">
-          <div className="text-center">
-            <div className="text-sm text-gray-400 mb-1">Available Balance</div>
-            <div className="text-3xl font-bold text-yellow-400">
-              {loadingGameBalance ? "..." : `${gameBalance.toFixed(2)}`}
-            </div>
-            <div className="text-xs text-gray-400 mt-1">TON (for games only)</div>
-          </div>
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            onClick={() => setShowDepositModal(true)}
-            className="bg-green-500 hover:bg-green-600 text-white"
+      {/* ═══════ SECTION 4: History + Assets (Tabbed) ═══════ */}
+      <div className="glass-card p-3 rounded-lg border border-white/10">
+        {/* Segmented Tabs */}
+        <div className="flex gap-1 mb-3 p-0.5 bg-white/5 rounded-lg border border-white/10 overflow-x-auto">
+          <button
+            onClick={() => setActiveAssetTab("stickers")}
+            className={`flex-1 px-2 py-1.5 rounded text-xs font-semibold transition-all whitespace-nowrap ${
+              activeAssetTab === "stickers"
+                ? "bg-cyan-500 text-white shadow-lg"
+                : "text-gray-400 hover:text-white"
+            }`}
           >
-            💰 Deposit
-          </Button>
-          <Button
-            onClick={() => setShowWithdrawModal(true)}
-            variant="outline"
-            className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-            disabled={gameBalance < 0.1}
+            <Package size={12} className="inline mr-1" />
+            Stickers
+          </button>
+          <button
+            onClick={() => setActiveAssetTab("collections")}
+            className={`flex-1 px-2 py-1.5 rounded text-xs font-semibold transition-all whitespace-nowrap ${
+              activeAssetTab === "collections"
+                ? "bg-blue-500 text-white shadow-lg"
+                : "text-gray-400 hover:text-white"
+            }`}
           >
-            🔄 Withdraw
-          </Button>
+            <Gem size={12} className="inline mr-1" />
+            Collections
+          </button>
+          <button
+            onClick={() => setActiveAssetTab("history")}
+            className={`flex-1 px-2 py-1.5 rounded text-xs font-semibold transition-all whitespace-nowrap ${
+              activeAssetTab === "history"
+                ? "bg-purple-500 text-white shadow-lg"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <TrendingUp size={12} className="inline mr-1" />
+            History
+          </button>
         </div>
-        
-        {/* Recent Withdrawals */}
-        {withdrawHistory.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-sm text-gray-400 font-semibold">Recent Withdrawals</div>
-            <div className="max-h-40 overflow-y-auto space-y-2">
-              {withdrawHistory.slice(0, 5).map((w, idx) => (
-                <div key={idx} className="bg-slate-800/50 rounded p-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-white font-mono">{w.amount.toFixed(2)} TON</span>
-                    <Badge 
-                      className={`text-xs ${
-                        w.status === "completed" ? "bg-green-500/30 text-green-300" :
-                        w.status === "approved" ? "bg-blue-500/30 text-blue-300" :
-                        w.status === "rejected" ? "bg-red-500/30 text-red-300" :
-                        "bg-yellow-500/30 text-yellow-300"
-                      }`}
-                    >
-                      {w.status.toUpperCase()}
-                    </Badge>
+
+        {/* My Stickers Tab */}
+        {activeAssetTab === "stickers" && (
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            {loadingStickers || loadingListedStickers ? (
+              <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
+            ) : (stickers.length === 0 && listedStickers.length === 0) ? (
+              <div className="text-center py-4 text-gray-400 text-sm">
+                No stickers yet. <a href="#/marketplace" className="text-cyan-400 hover:underline">Buy some!</a>
+              </div>
+            ) : (
+              <>
+                {stickers.length > 0 && (
+                  <div>
+                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5">PURCHASED ({stickers.length})</div>
+                    {stickers.map((st) => (
+                      <div key={st.id} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-white/10">
+                        <div className="w-16 h-16 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
+                          <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-white truncate">{st.pack_name}</div>
+                          <div className="text-[10px] text-gray-400">#{st.sticker_number} • {st.rarity}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="text-gray-500 text-xs mt-1">
-                    {w.processing_delay_hours > 0 && `~${w.processing_delay_hours}h delay`}
+                )}
+                {listedStickers.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5">FOR SALE ({listedStickers.length})</div>
+                    {listedStickers.map((st) => (
+                      <div key={st.id} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-green-500/30">
+                        <div className="w-16 h-16 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-green-500/30">
+                          <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-white truncate">{st.pack_name}</div>
+                          <div className="text-[10px] text-gray-400">#{st.sticker_number} • {st.rarity}</div>
+                        </div>
+                        <div className="text-xs font-bold text-green-400 flex-shrink-0">{st.price.toFixed(2)} TON</div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* My Collections Tab */}
+        {activeAssetTab === "collections" && (
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            {!user?.wallet_address ? (
+              <div className="text-center py-6 text-gray-400 text-sm border border-blue-500/30 rounded p-3">
+                <p className="mb-1">🔗 Connect your wallet to see NFT collections</p>
+                <p className="text-[10px] text-gray-500">NFT from other markets will appear here</p>
+              </div>
+            ) : loadingNftCollections ? (
+              <div className="text-center py-4 text-gray-400 text-sm">Loading NFTs...</div>
+            ) : (
+              <>
+                {(nftCollections?.available_for_sale?.length || 0) > 0 && (
+                  <div>
+                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5">AVAILABLE ({nftCollections.available_for_sale.length})</div>
+                    {nftCollections.available_for_sale.map((nft, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-green-500/30">
+                        <div className="w-16 h-16 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
+                          <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-white truncate">{nft.name}</div>
+                          <div className="text-[10px] text-gray-400">{nft.collection} • {nft.rarity}</div>
+                        </div>
+                        <Button size="sm" className="bg-cyan-500 hover:bg-cyan-600 text-white h-7 text-[10px] flex-shrink-0">
+                          List
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(nftCollections?.listed?.length || 0) > 0 && (
+                  <div className="mt-2">
+                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5">LISTED ({nftCollections.listed.length})</div>
+                    {nftCollections.listed.map((nft, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-green-500/30">
+                        <div className="w-16 h-16 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-green-500/30">
+                          <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-white truncate">{nft.name}</div>
+                          <div className="text-[10px] text-gray-400">{nft.collection} • {nft.rarity}</div>
+                        </div>
+                        <div className="text-xs font-bold text-green-400 flex-shrink-0">{nft.price} {nft.currency}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(nftCollections?.not_whitelisted?.length || 0) > 0 && (
+                  <details className="mt-3 text-xs text-gray-500">
+                    <summary className="font-semibold px-1 py-0.5 cursor-pointer hover:text-gray-400 transition-colors text-[10px]">⊕ NOT SUPPORTED ({nftCollections.not_whitelisted.length})</summary>
+                    <div className="mt-1.5 space-y-1">
+                      {nftCollections.not_whitelisted.map((nft, idx) => (
+                        <div key={idx} className="flex items-center gap-2 p-1.5 opacity-50 border border-yellow-500/20 rounded">
+                          <div className="w-12 h-12 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
+                            <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-semibold text-white truncate">{nft.name}</div>
+                            <div className="text-[10px] text-yellow-400">Unsupported collection</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+                {!nftCollections?.available_for_sale?.length && !nftCollections?.listed?.length && !nftCollections?.not_whitelisted?.length && (
+                  <div className="text-center py-4 text-gray-400 text-sm">
+                    No NFT collections in your wallet
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* History Tab */}
+        {activeAssetTab === "history" && (
+          <div>
+            {/* Transaction type selector */}
+            <div className="flex gap-1 mb-2">
+              <button 
+                className={`flex-1 px-2 py-1 rounded text-[11px] font-medium transition-all ${
+                  activeTransactionTab === "purchases" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
+                }`}
+                data-testid="history-purchases-btn"
+                onClick={() => handleTransactionTab("purchases")}
+              >
+                <Clock size={11} className="inline mr-1" />
+                {t.profile.purchases}
+              </button>
+              <button 
+                className={`flex-1 px-2 py-1 rounded text-[11px] font-medium transition-all ${
+                  activeTransactionTab === "sales" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
+                }`}
+                data-testid="history-sales-btn"
+                onClick={() => handleTransactionTab("sales")}
+              >
+                <DollarSign size={11} className="inline mr-1" />
+                {t.profile.sales}
+              </button>
+              <button 
+                className={`flex-1 px-2 py-1 rounded text-[11px] font-medium transition-all ${
+                  activeTransactionTab === "earnings" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
+                }`}
+                data-testid="history-earnings-btn"
+                onClick={() => handleTransactionTab("earnings")}
+              >
+                <TrendingUp size={11} className="inline mr-1" />
+                {t.profile.earnings}
+              </button>
             </div>
+
+            {/* Transactions List */}
+            {loadingTransactions ? (
+              <div className="text-center py-4 text-gray-400 text-sm">Завантаження...</div>
+            ) : transactions.length === 0 ? (
+              <div className="text-center py-4 text-gray-400 text-sm">Немає транзакцій</div>
+            ) : (
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {transactions.map((tx) => (
+                  <div key={tx.id} className="p-2 bg-white/5 rounded border border-white/10 text-xs">
+                    <div className="flex justify-between items-start mb-0.5">
+                      <span className="font-semibold truncate mr-2">
+                        {tx.sticker?.pack_name || "Pack Transfer"}
+                      </span>
+                      <span className={`flex-shrink-0 ${tx.is_seller ? "text-green-400" : "text-red-400"}`}>
+                        {tx.is_seller ? "+" : "-"}{tx.amount.toFixed(2)} {tx.currency}
+                      </span>
+                    </div>
+                    {tx.sticker && (
+                      <p className="text-gray-400 text-[10px]">#{tx.sticker.number} {tx.sticker.rarity}</p>
+                    )}
+                    <p className="text-gray-500 text-[10px]">{new Date(tx.created_at).toLocaleDateString()}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Deposit Modal */}
+      {/* ═══════ SECTION 5: Settings (compact) ═══════ */}
+      <div className="glass-card p-3 rounded-lg border border-white/10">
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex-1 justify-start text-xs h-8">
+                <Bell size={14} className="mr-1.5" />
+                {t.profile.notifications}: {notificationsEnabled ? "🔔 On" : "🔕 Off"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="glass-card border-white/10">
+              <DropdownMenuItem 
+                onClick={() => handleToggleNotifications(true)}
+                className={`cursor-pointer ${notificationsEnabled ? "bg-cyan-500/20 text-cyan-400" : ""}`}
+              >
+                🔔 Enable
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => handleToggleNotifications(false)}
+                className={`cursor-pointer ${!notificationsEnabled ? "bg-cyan-500/20 text-cyan-400" : ""}`}
+              >
+                🔕 Disable
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="outline" className="text-xs text-red-400 hover:text-red-300 h-8 px-3 flex-shrink-0" onClick={onLogout}>
+            <LogOut size={14} className="mr-1" />
+            {t.profile.logout}
+          </Button>
+        </div>
+      </div>
+
+      {/* ═══════ MODALS (unchanged) ═══════ */}
       {showDepositModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-sm bg-slate-900 border-cyan-500/30 space-y-4 p-6">
-            <div className="text-xl font-bold text-cyan-400">💰 Deposit to Game Balance</div>
+        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <Card className="w-full sm:max-w-sm bg-slate-900 border-cyan-500/30 space-y-3 p-5 rounded-t-2xl sm:rounded-lg">
+            <div className="text-lg font-bold text-cyan-400">💰 Deposit to Game Balance</div>
             
-            <div className="space-y-2">
-              <div className="text-sm text-gray-400">Amount (TON)</div>
+            <div className="space-y-1.5">
+              <div className="text-xs text-gray-400">Amount (TON)</div>
               <input
                 type="number"
                 value={depositAmount}
@@ -736,12 +1027,12 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                 step="0.01"
                 className="w-full bg-slate-800 border border-cyan-500/20 rounded px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400"
               />
-              <div className="text-xs text-gray-500">Max: 10,000 TON per deposit</div>
+              <div className="text-[10px] text-gray-500">Max: 10,000 TON per deposit</div>
             </div>
             
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3">
-              <div className="text-xs text-yellow-400 font-semibold">ℹ️ Game Balance is for games only</div>
-              <div className="text-xs text-gray-400 mt-1">Not for marketplace transactions</div>
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-2.5">
+              <div className="text-[11px] text-yellow-400 font-semibold">ℹ️ Game Balance is for games only</div>
+              <div className="text-[10px] text-gray-400 mt-0.5">Not for marketplace transactions</div>
             </div>
             
             <div className="flex gap-2">
@@ -763,14 +1054,13 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
         </div>
       )}
 
-      {/* Withdraw Modal */}
       {showWithdrawModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-sm bg-slate-900 border-cyan-500/30 space-y-4 p-6">
-            <div className="text-xl font-bold text-cyan-400">🔄 Withdraw from Game Balance</div>
+        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <Card className="w-full sm:max-w-sm bg-slate-900 border-cyan-500/30 space-y-3 p-5 rounded-t-2xl sm:rounded-lg">
+            <div className="text-lg font-bold text-cyan-400">🔄 Withdraw from Game Balance</div>
             
-            <div className="space-y-2">
-              <div className="text-sm text-gray-400">Amount (TON)</div>
+            <div className="space-y-1.5">
+              <div className="text-xs text-gray-400">Amount (TON)</div>
               <input
                 type="number"
                 value={withdrawAmount}
@@ -781,11 +1071,11 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                 step="0.01"
                 className="w-full bg-slate-800 border border-cyan-500/20 rounded px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400"
               />
-              <div className="text-xs text-gray-500">Available: {gameBalance.toFixed(2)} TON</div>
+              <div className="text-[10px] text-gray-500">Available: {gameBalance.toFixed(2)} TON</div>
             </div>
             
             {withdrawAmount && (
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 space-y-2 text-xs">
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2.5 space-y-1.5 text-xs">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Amount:</span>
                   <span className="text-white font-semibold">{parseFloat(withdrawAmount).toFixed(2)} TON</span>
@@ -794,11 +1084,11 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                   <span className="text-gray-400">Fee (1%):</span>
                   <span className="text-white font-semibold">{(parseFloat(withdrawAmount) * 0.01).toFixed(4)} TON</span>
                 </div>
-                <div className="border-t border-blue-500/20 pt-2 mt-2 flex justify-between font-semibold">
+                <div className="border-t border-blue-500/20 pt-1.5 mt-1.5 flex justify-between font-semibold">
                   <span className="text-gray-300">You receive:</span>
                   <span className="text-green-400">{(parseFloat(withdrawAmount) * 0.99).toFixed(2)} TON</span>
                 </div>
-                <div className="text-xs text-blue-300 mt-3">
+                <div className="text-[11px] text-blue-300 mt-2">
                   ⏱️ Processing: 
                   {parseFloat(withdrawAmount) < 1 ? " Instant" :
                    parseFloat(withdrawAmount) <= 5 ? " ~6 hours" :
@@ -827,345 +1117,6 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
           </Card>
         </div>
       )}
-
-      {/* Wallet Section */}
-      <div className="glass-card p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Wallet className="text-cyan-400" size={24} />
-            <h2 className="text-xl font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
-              {t.profile.wallet}
-            </h2>
-          </div>
-          {user?.wallet_address ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleDisconnect}
-              data-testid="disconnect-wallet-btn"
-              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-            >
-              <LogOut size={16} className="mr-1" />
-              {t.profile.disconnect}
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              onClick={handleConnectWallet}
-              data-testid="connect-wallet-btn"
-              className="bg-cyan-500 hover:bg-cyan-600 btn-animated"
-            >
-              {t.profile.connect}
-            </Button>
-          )}
-        </div>
-
-        {user?.wallet_address && (
-          <div className="text-sm text-gray-400 font-mono">
-            {user.wallet_address.substring(0, 8)}...{user.wallet_address.substring(user.wallet_address.length - 6)}
-          </div>
-        )}
-      </div>
-
-      {/* Balances */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="glass-card p-4">
-          <div className="text-sm text-gray-400 mb-1">TON</div>
-          <div className="text-2xl font-bold text-cyan-400" data-testid="ton-balance">
-            {user?.ton_balance?.toFixed(2) || "0.00"}
-          </div>
-        </div>
-        <div className="glass-card p-4">
-          <div className="text-sm text-gray-400 mb-1">Stars</div>
-          <div className="text-2xl font-bold text-yellow-400" data-testid="stars-balance">
-            {user?.stars_balance?.toFixed(0) || "0"}
-          </div>
-        </div>
-        <div className="glass-card p-4">
-          <div className="text-sm text-gray-400 mb-1">SXTON</div>
-          <div className="text-2xl font-bold text-purple-400" data-testid="sxton-balance">
-            {user?.sxton_points?.toFixed(0) || "0"}
-          </div>
-        </div>
-      </div>
-
-      {/* Deposit/Withdraw */}
-      <div className="space-y-3">
-        <Button
-          className="w-full bg-green-500 hover:bg-green-600 btn-animated"
-          data-testid="deposit-btn"
-        >
-          {t.profile.deposit}
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full btn-animated"
-          data-testid="withdraw-btn"
-        >
-          {t.profile.withdraw}
-        </Button>
-      </div>
-
-      {/* Purchase History */}
-      <div className="glass-card p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp size={20} className="text-cyan-400" />
-          <h3 className="text-lg font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
-            {t.profile.transactionHistory}
-          </h3>
-        </div>
-        <div className="space-y-2 mb-4">
-          <Button 
-            variant={activeTransactionTab === "purchases" ? "default" : "outline"}
-            className="w-full justify-start text-sm" 
-            data-testid="history-purchases-btn"
-            onClick={() => handleTransactionTab("purchases")}
-          >
-            <Clock size={16} className="mr-2" />
-            {t.profile.purchases}
-          </Button>
-          <Button 
-            variant={activeTransactionTab === "sales" ? "default" : "outline"}
-            className="w-full justify-start text-sm" 
-            data-testid="history-sales-btn"
-            onClick={() => handleTransactionTab("sales")}
-          >
-            <DollarSign size={16} className="mr-2" />
-            {t.profile.sales}
-          </Button>
-          <Button 
-            variant={activeTransactionTab === "earnings" ? "default" : "outline"}
-            className="w-full justify-start text-sm" 
-            data-testid="history-earnings-btn"
-            onClick={() => handleTransactionTab("earnings")}
-          >
-            <TrendingUp size={16} className="mr-2" />
-            {t.profile.earnings}
-          </Button>
-        </div>
-        
-        {/* Transactions List */}
-        {loadingTransactions ? (
-          <div className="text-center py-6 text-gray-400 text-sm">Завантаження...</div>
-        ) : transactions.length === 0 ? (
-          <div className="text-center py-6 text-gray-400 text-sm">Немає транзакцій</div>
-        ) : (
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {transactions.map((tx) => (
-              <div key={tx.id} className="p-3 bg-white/5 rounded border border-white/10 text-xs">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="font-semibold">
-                    {tx.sticker?.pack_name || "Pack Transfer"}
-                  </span>
-                  <span className={tx.is_seller ? "text-green-400" : "text-red-400"}>
-                    {tx.is_seller ? "+" : "-"}{tx.amount.toFixed(2)} {tx.currency}
-                  </span>
-                </div>
-                {tx.sticker && (
-                  <p className="text-gray-400">#{tx.sticker.number} {tx.sticker.rarity}</p>
-                )}
-                <p className="text-gray-500 text-xs mt-1">{new Date(tx.created_at).toLocaleDateString()}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* My Assets - Unified Stickers & Collections */}
-      <div className="glass-card p-6">
-        {/* Segmented Tabs */}
-        <div className="flex gap-2 mb-4 p-1 bg-white/5 rounded-lg border border-white/10">
-          <button
-            onClick={() => setActiveAssetTab("stickers")}
-            className={`px-4 py-2 rounded text-sm font-semibold transition-all ${
-              activeAssetTab === "stickers"
-                ? "bg-cyan-500 text-white shadow-lg"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            My Stickers
-          </button>
-          <button
-            onClick={() => setActiveAssetTab("collections")}
-            className={`px-4 py-2 rounded text-sm font-semibold transition-all ${
-              activeAssetTab === "collections"
-                ? "bg-blue-500 text-white shadow-lg"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            My Collections
-          </button>
-        </div>
-
-        {/* My Stickers Tab - Compact List */}
-        {activeAssetTab === "stickers" && (
-          <div className="space-y-1 max-h-96 overflow-y-auto">
-            {loadingStickers || loadingListedStickers ? (
-              <div className="text-center py-6 text-gray-400 text-sm">Loading...</div>
-            ) : (stickers.length === 0 && listedStickers.length === 0) ? (
-              <div className="text-center py-6 text-gray-400 text-sm">
-                No stickers yet. <a href="#/marketplace" className="text-cyan-400 hover:underline">Buy some!</a>
-              </div>
-            ) : (
-              <>
-                {/* Purchased Stickers */}
-                {stickers.length > 0 && (
-                  <div>
-                    <div className="text-xs text-gray-500 font-semibold px-2 py-1">PURCHASED ({stickers.length})</div>
-                    {stickers.map((st) => (
-                      <div key={st.id} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-white/10">
-                        <div className="w-32 h-32 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
-                          <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-white truncate">{st.pack_name}</div>
-                          <div className="text-xs text-gray-400">#{st.sticker_number} • {st.rarity}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                {/* Listed Stickers */}
-                {listedStickers.length > 0 && (
-                  <div className="mt-3">
-                    <div className="text-xs text-gray-500 font-semibold px-2 py-1">FOR SALE ({listedStickers.length})</div>
-                    {listedStickers.map((st) => (
-                      <div key={st.id} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-green-500/30">
-                        <div className="w-32 h-32 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-green-500/30">
-                          <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-white truncate">{st.pack_name}</div>
-                          <div className="text-xs text-gray-400">#{st.sticker_number} • {st.rarity}</div>
-                        </div>
-                        <div className="text-xs font-bold text-green-400">{st.price.toFixed(2)} TON</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* My Collections Tab - Compact List */}
-        {activeAssetTab === "collections" && (
-          <div className="space-y-1 max-h-96 overflow-y-auto">
-            {!user?.wallet_address ? (
-              <div className="text-center py-8 text-gray-400 text-sm border border-blue-500/30 rounded p-4">
-                <p className="mb-2">🔗 Connect your wallet to see NFT collections</p>
-                <p className="text-xs text-gray-500">NFT from other markets will appear here</p>
-              </div>
-            ) : loadingNftCollections ? (
-              <div className="text-center py-6 text-gray-400 text-sm">Loading NFTs...</div>
-            ) : (
-              <>
-                {/* Available for Sale */}
-                {(nftCollections?.available_for_sale?.length || 0) > 0 && (
-                  <div>
-                    <div className="text-xs text-gray-500 font-semibold px-2 py-1">AVAILABLE ({nftCollections.available_for_sale.length})</div>
-                    {nftCollections.available_for_sale.map((nft, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-green-500/30">
-                        <div className="w-32 h-32 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
-                          <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-white truncate">{nft.name}</div>
-                          <div className="text-xs text-gray-400">{nft.collection} • {nft.rarity}</div>
-                        </div>
-                        <Button size="sm" className="bg-cyan-500 hover:bg-cyan-600 text-white h-8 text-xs flex-shrink-0">
-                          List
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                {/* Listed */}
-                {(nftCollections?.listed?.length || 0) > 0 && (
-                  <div className="mt-3">
-                    <div className="text-xs text-gray-500 font-semibold px-2 py-1">LISTED ({nftCollections.listed.length})</div>
-                    {nftCollections.listed.map((nft, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-green-500/30">
-                        <div className="w-32 h-32 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-green-500/30">
-                          <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-white truncate">{nft.name}</div>
-                          <div className="text-xs text-gray-400">{nft.collection} • {nft.rarity}</div>
-                        </div>
-                        <div className="text-xs font-bold text-green-400 flex-shrink-0">{nft.price} {nft.currency}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                {/* Not Whitelisted - Collapsible */}
-                {(nftCollections?.not_whitelisted?.length || 0) > 0 && (
-                  <details className="mt-4 text-xs text-gray-500">
-                    <summary className="font-semibold px-2 py-1 cursor-pointer hover:text-gray-400 transition-colors">⊕ NOT SUPPORTED ({nftCollections.not_whitelisted.length})</summary>
-                    <div className="mt-2 space-y-1">
-                      {nftCollections.not_whitelisted.map((nft, idx) => (
-                        <div key={idx} className="flex items-center gap-2 p-2 opacity-50 border border-yellow-500/20 rounded">
-                          <div className="w-20 h-20 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
-                            <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold text-white truncate">{nft.name}</div>
-                            <div className="text-xs text-yellow-400">Unsupported collection</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
-                
-                {!nftCollections?.available_for_sale?.length && !nftCollections?.listed?.length && !nftCollections?.not_whitelisted?.length && (
-                  <div className="text-center py-6 text-gray-400 text-sm">
-                    No NFT collections in your wallet
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Settings & Support */}
-      <div className="glass-card p-6">
-        <h3 className="text-lg font-semibold mb-3" style={{ fontFamily: 'Space Grotesk' }}>
-          {t.profile.settings}
-        </h3>
-        <div className="space-y-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full justify-start text-sm">
-                <Bell size={16} className="mr-2" />
-                {t.profile.notifications}: {notificationsEnabled ? "🔔 On" : "🔕 Off"}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="glass-card border-white/10">
-              <DropdownMenuItem 
-                onClick={() => handleToggleNotifications(true)}
-                className={`cursor-pointer ${notificationsEnabled ? "bg-cyan-500/20 text-cyan-400" : ""}`}
-              >
-                🔔 Enable
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => handleToggleNotifications(false)}
-                className={`cursor-pointer ${!notificationsEnabled ? "bg-cyan-500/20 text-cyan-400" : ""}`}
-              >
-                🔕 Disable
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="outline" className="w-full justify-start text-sm text-red-400 hover:text-red-300" onClick={onLogout}>
-            <LogOut size={16} className="mr-2" />
-            {t.profile.logout}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 };

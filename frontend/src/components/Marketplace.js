@@ -685,107 +685,86 @@ const Marketplace = ({ user, language }) => {
         </div>
       ) : (
         // Regular Packs View
-        <div className="grid grid-cols-1 gap-3 relative z-10">
+        <div className="grid grid-cols-2 gap-2 relative z-10">
           {getFilteredAndSortedPacks().map((pack) => (
             <div
               key={pack.id}
               data-testid={`pack-card-${pack.id}`}
-              className="glass-card p-3 flex gap-3 border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 transition-colors duration-300 relative overflow-hidden group"
+              className="glass-card flex flex-col border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 transition-colors duration-300 relative overflow-hidden group rounded-lg"
             >
               <div className="cosmic-particles"></div>
-              <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg z-10">
+              {/* Image - fixed aspect ratio */}
+              <div className="relative w-full aspect-[4/3] overflow-hidden z-10 bg-gradient-to-br from-slate-700 to-slate-800">
                 <img
                   src={imageErrors[pack.id] ? FALLBACK_IMAGE : (pack.image_url || FALLBACK_IMAGE)}
                   alt={pack.name}
-                  className="w-full h-full object-cover bg-gradient-to-br from-slate-700 to-slate-800"
+                  className="w-full h-full object-cover"
                   onError={() => setImageErrors({...imageErrors, [pack.id]: true})}
                 />
+                {pack.rarity && (
+                  <Badge className={`absolute top-1 left-1 text-[10px] leading-tight px-1 py-0 ${getRarityColor(pack.rarity)} shadow-lg`}>
+                    {pack.rarity}
+                  </Badge>
+                )}
                 {pack.show_number && (
-                  <Badge className="absolute -top-1 -right-1 bg-gradient-to-br from-cyan-500 to-blue-500 text-xs shadow-lg">
+                  <Badge className="absolute top-1 right-1 text-[10px] leading-tight px-1 py-0 bg-black/60 text-white border-white/30 shadow-lg">
                     #{pack.sticker_count}
                   </Badge>
                 )}
-              </div>
-              
-              <div className="flex-1 flex flex-col justify-between z-10">
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <h3 className="font-semibold text-white text-sm">{pack.name}</h3>
-                    <Badge className={`${getRarityColor(pack.rarity)} text-xs shadow-lg`}>
-                      {pack.rarity}
-                    </Badge>
+                {pack.is_upcoming && (
+                  <div className="absolute bottom-1 left-1 flex items-center gap-0.5 bg-black/60 rounded px-1 py-0.5">
+                    <Clock size={10} className="text-yellow-400" />
+                    <span className="text-[10px] text-yellow-400 font-semibold">Soon</span>
                   </div>
-                  <p className="text-xs text-gray-400 line-clamp-1">{pack.description}</p>
-                  
-                  {/* Sticker Preview */}
-                  {pack.image_urls && pack.image_urls.length > 0 && (
-                    <div className="flex gap-1 mt-1.5">
-                      {pack.image_urls.slice(0, 3).map((stickerUrl, idx) => (
-                        <div key={idx} className="w-8 h-8 rounded overflow-hidden border border-white/10 bg-slate-700">
-                          <img
-                            src={stickerUrl}
-                            alt={`Preview ${idx + 1}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => e.target.style.display = 'none'}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {pack.is_upcoming && (
-                    <div className="flex items-center gap-1 mt-1 text-xs">
-                      <Clock size={12} className="text-yellow-400" />
-                      <span className="text-yellow-400 font-semibold">Coming Soon</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex items-center justify-between mt-1.5">
-                  <div className="flex flex-col gap-0.5">
-                    <span className={`text-base font-bold ${getPriceColor(pack.price_type)}`}>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenPackDetails(pack);
+                  }}
+                  className="absolute bottom-1 right-1 p-1 rounded bg-black/50 hover:bg-blue-500/60 transition-colors"
+                  title="View Details"
+                >
+                  <Info size={12} className="text-blue-300" />
+                </button>
+              </div>
+
+              {/* Info - fixed structure */}
+              <div className="p-2 flex flex-col flex-1 z-10">
+                <h3 className="font-semibold text-white text-xs leading-tight truncate">{pack.name}</h3>
+                <div className="mt-auto pt-1.5 flex items-end justify-between">
+                  <div>
+                    <span className={`text-sm font-bold block ${getPriceColor(pack.price_type)}`}>
                       {pack.price} {pack.price_type}
                     </span>
-                    <span className="text-xs text-gray-500">
-                      ≈ ${convertPrice(pack.price, pack.price_type)} USD
+                    <span className="text-[10px] text-gray-500">
+                      ≈ ${convertPrice(pack.price, pack.price_type)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenPackDetails(pack);
-                      }}
-                      className="p-1.5 rounded-md bg-blue-500/20 hover:bg-blue-500/40 transition-colors opacity-0 group-hover:opacity-100"
-                      title="View Details"
-                    >
-                      <Info size={14} className="text-blue-400" />
-                    </button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleBuy(pack)}
-                      data-testid={`buy-pack-${pack.id}`}
-                      disabled={pack.is_upcoming || buyingPackId === pack.id || isConnecting}
-                      className={`transition-colors shadow-lg h-7 px-3 text-xs ${
-                        pack.is_upcoming
-                          ? "bg-gray-500/50 hover:bg-gray-500/50 text-gray-300"
-                          : wallet
-                          ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
-                          : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
-                      }`}
-                    >
-                      {buyingPackId === pack.id ? (
-                        <Sparkles size={12} className="mr-1 animate-spin" />
-                      ) : pack.is_upcoming ? (
-                        <Clock size={12} className="mr-1" />
-                      ) : wallet ? (
-                        <ShoppingCart size={12} className="mr-1" />
-                      ) : (
-                        <Wallet size={12} className="mr-1" />
-                      )}
-                      {buyingPackId === pack.id ? "Processing..." : pack.is_upcoming ? "Soon" : wallet ? t.marketplace.buy : "Connect Wallet"}
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleBuy(pack)}
+                    data-testid={`buy-pack-${pack.id}`}
+                    disabled={pack.is_upcoming || buyingPackId === pack.id || isConnecting}
+                    className={`transition-colors shadow-lg h-6 px-2 text-[10px] ${
+                      pack.is_upcoming
+                        ? "bg-gray-500/50 hover:bg-gray-500/50 text-gray-300"
+                        : wallet
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                        : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+                    }`}
+                  >
+                    {buyingPackId === pack.id ? (
+                      <Sparkles size={10} className="mr-0.5 animate-spin" />
+                    ) : pack.is_upcoming ? (
+                      <Clock size={10} className="mr-0.5" />
+                    ) : wallet ? (
+                      <ShoppingCart size={10} className="mr-0.5" />
+                    ) : (
+                      <Wallet size={10} className="mr-0.5" />
+                    )}
+                    {buyingPackId === pack.id ? "..." : pack.is_upcoming ? "Soon" : wallet ? t.marketplace.buy : "Connect"}
+                  </Button>
                 </div>
               </div>
             </div>

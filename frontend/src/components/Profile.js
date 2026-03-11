@@ -425,10 +425,10 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
           </div>
         </div>
 
-        {/* Wallet Row */}
+        {/* Wallet Row + Notification + Logout */}
         <div className="px-3 py-2 bg-white/[0.03] border-t border-white/10">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               <Wallet size={14} className="text-cyan-400 flex-shrink-0" />
               {user?.wallet_address ? (
                 <span className="text-xs text-gray-400 font-mono truncate">
@@ -437,28 +437,54 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
               ) : (
                 <span className="text-xs text-gray-500">{t.profile.wallet}</span>
               )}
+              {user?.wallet_address ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDisconnect}
+                  data-testid="disconnect-wallet-btn"
+                  className="border-red-500/30 text-red-400 hover:bg-red-500/10 h-7 text-xs px-2 flex-shrink-0"
+                >
+                  <LogOut size={12} className="mr-1" />
+                  {t.profile.disconnect}
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={handleConnectWallet}
+                  data-testid="connect-wallet-btn"
+                  className="bg-cyan-500 hover:bg-cyan-600 btn-animated h-7 text-xs px-3 flex-shrink-0"
+                >
+                  {t.profile.connect}
+                </Button>
+              )}
             </div>
-            {user?.wallet_address ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleDisconnect}
-                data-testid="disconnect-wallet-btn"
-                className="border-red-500/30 text-red-400 hover:bg-red-500/10 h-7 text-xs px-2 flex-shrink-0"
-              >
-                <LogOut size={12} className="mr-1" />
-                {t.profile.disconnect}
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                onClick={handleConnectWallet}
-                data-testid="connect-wallet-btn"
-                className="bg-cyan-500 hover:bg-cyan-600 btn-animated h-7 text-xs px-3 flex-shrink-0"
-              >
-                {t.profile.connect}
-              </Button>
-            )}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-1.5 hover:bg-white/10 rounded-lg transition">
+                    <Bell size={16} className={notificationsEnabled ? "text-cyan-400" : "text-gray-500"} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="glass-card border-white/10">
+                  <DropdownMenuItem
+                    onClick={() => handleToggleNotifications(true)}
+                    className={`cursor-pointer ${notificationsEnabled ? "bg-cyan-500/20 text-cyan-400" : ""}`}
+                  >
+                    🔔 Enable
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleToggleNotifications(false)}
+                    className={`cursor-pointer ${!notificationsEnabled ? "bg-cyan-500/20 text-cyan-400" : ""}`}
+                  >
+                    🔕 Disable
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <button className="p-1.5 hover:bg-white/10 rounded-lg transition" onClick={onLogout}>
+                <LogOut size={16} className="text-red-400" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -977,37 +1003,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
         )}
       </div>
 
-      {/* ═══════ SECTION 5: Settings (compact) ═══════ */}
-      <div className="glass-card p-3 rounded-lg border border-white/10">
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex-1 justify-start text-xs h-8">
-                <Bell size={14} className="mr-1.5" />
-                {t.profile.notifications}: {notificationsEnabled ? "🔔 On" : "🔕 Off"}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="glass-card border-white/10">
-              <DropdownMenuItem 
-                onClick={() => handleToggleNotifications(true)}
-                className={`cursor-pointer ${notificationsEnabled ? "bg-cyan-500/20 text-cyan-400" : ""}`}
-              >
-                🔔 Enable
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => handleToggleNotifications(false)}
-                className={`cursor-pointer ${!notificationsEnabled ? "bg-cyan-500/20 text-cyan-400" : ""}`}
-              >
-                🔕 Disable
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="outline" className="text-xs text-red-400 hover:text-red-300 h-8 px-3 flex-shrink-0" onClick={onLogout}>
-            <LogOut size={14} className="mr-1" />
-            {t.profile.logout}
-          </Button>
-        </div>
-      </div>
+
 
       {/* ═══════ MODALS (unchanged) ═══════ */}
       {showDepositModal && (

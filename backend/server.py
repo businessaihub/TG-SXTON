@@ -300,8 +300,8 @@ async def _init_db_on_startup():
     _startup_error = f"init called, url_len={len(mongo_url)}, starts_mongo={mongo_url.startswith('mongodb') if mongo_url else False}"
     if mongo_url and mongo_url.startswith('mongodb'):
         try:
-            client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=15000, connectTimeoutMS=15000, socketTimeoutMS=15000)
-            await asyncio.wait_for(client.admin.command('ping'), timeout=15.0)
+            client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000, socketTimeoutMS=5000)
+            await asyncio.wait_for(client.admin.command('ping'), timeout=5.0)
             db_name = os.environ.get('DB_NAME', 'tg_sxton')
             db = client[db_name]
             _startup_error = f"connected to {db_name}"
@@ -333,21 +333,6 @@ async def ensure_db(request, call_next):
 @app.on_event("startup")
 async def startup_checks():
     await _init_db_on_startup()
-    # Ensure all collections have indices for better performance
-    if not isinstance(db, LocalDB):
-        try:
-            await db.users.create_index("id")
-            await db.sticker_packs.create_index("id")
-            await db.stickers.create_index("id")
-            await db.activity.create_index("created_at", direction=-1)
-            await db.banner_ads.create_index("position")
-            await db.quests.create_index("id")
-            await db.quests.create_index("is_active")
-            await db.user_quest_progress.create_index("user_id")
-            await db.user_quest_progress.create_index([("user_id", 1), ("quest_id", 1)])
-            print("✓ Database indices created")
-        except Exception as e:
-            print(f"Warning: Could not create indices: {e}")
 
 
 # ============ MODELS ============

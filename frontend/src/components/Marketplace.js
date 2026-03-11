@@ -732,21 +732,21 @@ const Marketplace = ({ user, language }) => {
               {/* Info - fixed structure */}
               <div className="p-2 flex flex-col flex-1 z-10">
                 <h3 className="font-semibold text-white text-xs leading-tight truncate">{pack.name}</h3>
-                <div className="mt-auto pt-1.5 flex items-end justify-between">
-                  <div>
-                    <span className={`text-sm font-bold block ${getPriceColor(pack.price_type)}`}>
-                      {pack.price} {pack.price_type}
-                    </span>
-                    <span className="text-[10px] text-gray-500">
-                      ≈ ${convertPrice(pack.price, pack.price_type)}
-                    </span>
-                  </div>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className={`text-sm font-bold ${getPriceColor(pack.price_type)}`}>
+                    {pack.price} {pack.price_type}
+                  </span>
+                  <span className="text-[10px] text-gray-500">
+                    ≈ ${convertPrice(pack.price, pack.price_type)}
+                  </span>
+                </div>
+                <div className="mt-auto pt-1.5">
                   <Button
                     size="sm"
                     onClick={() => handleBuy(pack)}
                     data-testid={`buy-pack-${pack.id}`}
                     disabled={pack.is_upcoming || buyingPackId === pack.id || isConnecting}
-                    className={`transition-colors shadow-lg h-6 px-2 text-[10px] ${
+                    className={`w-full transition-colors shadow-lg h-7 text-[11px] ${
                       pack.is_upcoming
                         ? "bg-gray-500/50 hover:bg-gray-500/50 text-gray-300"
                         : wallet

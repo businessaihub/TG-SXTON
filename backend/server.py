@@ -561,6 +561,17 @@ async def telegram_auth(request: TelegramAuthRequest):
     user_doc = await db.users.find_one({"telegram_id": request.telegram_id}, {"_id": 0})
     
     if user_doc:
+        # Reset mock balances if user was created with old demo values (100/500/1000)
+        if (user_doc.get("ton_balance") == 100 and 
+            user_doc.get("stars_balance") == 500 and 
+            user_doc.get("sxton_points") == 1000):
+            await db.users.update_one(
+                {"telegram_id": request.telegram_id},
+                {"$set": {"ton_balance": 0.0, "stars_balance": 0.0, "sxton_points": 0.0}}
+            )
+            user_doc["ton_balance"] = 0.0
+            user_doc["stars_balance"] = 0.0
+            user_doc["sxton_points"] = 0.0
         return {"user": user_doc, "is_new": False}
     
     # Create new user

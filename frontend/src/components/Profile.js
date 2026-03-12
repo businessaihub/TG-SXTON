@@ -8,6 +8,7 @@ import { Wallet, LogOut, Clock, List, Star, Shield, Package, TrendingUp, DollarS
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useEffect } from "react";
+import { useTonConnect } from "../context/TonConnectContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +17,7 @@ import {
 } from "./ui/dropdown-menu";
 
 const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
+  const { wallet, connectWallet, disconnectWallet, isConnecting } = useTonConnect();
   const [walletConnected, setWalletConnected] = useState(false);
   const [stickers, setStickers] = useState([]);
   const [loadingStickers, setLoadingStickers] = useState(false);
@@ -73,7 +75,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
       if (!user || !user.id) return;
       setLoadingStickers(true);
       try {
-        const res = await API.get(`/user/${user.id}/stickers`);
+        const res = await axios.get(`${API}/user/${user.id}/stickers`);
         setStickers(res.data || []);
       } catch (e) {
         console.error('Failed to fetch stickers', e);
@@ -90,7 +92,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
       if (!user || !user.id) return;
       setLoadingSellerStats(true);
       try {
-        const res = await API.get(`/user/${user.id}/seller-stats`);
+        const res = await axios.get(`${API}/user/${user.id}/seller-stats`);
         if (res.data) {
           setSellerStats(res.data);
           setTotalSold(res.data.total_sold || 0);
@@ -115,7 +117,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
     if (!user || !user.id) return;
     setLoadingTransactions(true);
     try {
-      const res = await API.get(`/user/${user.id}/transactions?transaction_type=${type}`);
+      const res = await axios.get(`${API}/user/${user.id}/transactions?transaction_type=${type}`);
       setTransactions(res.data || []);
     } catch (e) {
       console.error('Failed to fetch transactions', e);
@@ -131,7 +133,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
       if (!user || !user.id) return;
       setLoadingListedStickers(true);
       try {
-        const res = await API.get(`/user/${user.id}/listed-stickers`);
+        const res = await axios.get(`${API}/user/${user.id}/listed-stickers`);
         setListedStickers(res.data || []);
       } catch (e) {
         console.error('Failed to fetch listed stickers', e);
@@ -148,7 +150,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
       if (!user || !user.id || !user.wallet_address) return;
       setLoadingNftCollections(true);
       try {
-        const res = await API.get(`/user/${user.id}/nft-collections`);
+        const res = await axios.get(`${API}/user/${user.id}/nft-collections`);
         setNftCollections(res.data || {});
       } catch (e) {
         console.error('Failed to fetch NFT collections', e);
@@ -305,7 +307,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   const handleToggleNotifications = async (enabled) => {
     if (!user || !user.id) return;
     try {
-      const res = await API.put(`/user/${user.id}/settings`, {
+      await axios.put(`${API}/user/${user.id}/settings`, {
         notifications_enabled: enabled
       });
       setNotificationsEnabled(enabled);
@@ -318,26 +320,34 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   };
 
   const handleConnectWallet = async () => {
-    // Mock TonConnect
-    const mockAddress = "EQ..." + Math.random().toString(36).substr(2, 9);
     try {
-      await API.post(`/wallet/connect`, {
-        user_id: user.id,
-        wallet_address: mockAddress
-      });
-      setWalletConnected(true);
-      setUser({ ...user, wallet_address: mockAddress });
-      toast.success(t.profile.walletConnected);
+      await connectWallet();
     } catch (error) {
       toast.error(t.profile.walletError);
     }
   };
 
-  const handleDisconnect = () => {
-    setWalletConnected(false);
-    setUser({ ...user, wallet_address: null });
-    toast.success(t.profile.walletDisconnected);
+  const handleDisconnect = async () => {
+    try {
+      await disconnectWallet();
+      setUser({ ...user, wallet_address: null });
+      toast.success(t.profile.walletDisconnected);
+    } catch (error) {
+      toast.error("Failed to disconnect wallet");
+    }
   };
+
+  // Sync TonConnect wallet with backend
+  useEffect(() => {
+    if (wallet && user?.id) {
+      const address = wallet.account?.address || "";
+      if (address && address !== user.wallet_address) {
+        axios.post(`${API}/wallet/connect?user_id=${user.id}&wallet_address=${address}`)
+          .then(() => setUser(prev => ({ ...prev, wallet_address: address })))
+          .catch(e => console.error("Failed to sync wallet", e));
+      }
+    }
+  }, [wallet]);
 
   return (
     <div className="space-y-3 pt-1" data-testid="profile-container">
@@ -430,14 +440,14 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 min-w-0">
               <Wallet size={14} className="text-cyan-400 flex-shrink-0" />
-              {user?.wallet_address ? (
+              {(wallet || user?.wallet_address) ? (
                 <span className="text-xs text-gray-400 font-mono truncate">
-                  {user.wallet_address.substring(0, 8)}...{user.wallet_address.substring(user.wallet_address.length - 6)}
+                  {(() => { const addr = wallet?.account?.address || user?.wallet_address || ""; return addr.substring(0, 8) + "..." + addr.substring(addr.length - 6); })()}
                 </span>
               ) : (
                 <span className="text-xs text-gray-500">{t.profile.wallet}</span>
               )}
-              {user?.wallet_address ? (
+              {(wallet || user?.wallet_address) ? (
                 <Button
                   size="sm"
                   variant="outline"
@@ -533,7 +543,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                   return;
                 }
                 try {
-                  const response = await axios.post(`${API}/promo-codes/validate?code=${promoCode}`);
+                  const response = await axios.post(`${API}/promo-codes/validate?code=${promoCode}&user_id=${user?.id || ""}`);
                   
                   let message = "Code applied!";
                   if (response.data.promoType === "discount") {
@@ -544,6 +554,12 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                     const rarity = response.data.stickerRarity.charAt(0).toUpperCase() + response.data.stickerRarity.slice(1);
                     message = `${rarity} sticker reward granted!`;
                   }
+                  
+                  // Refresh user data to show updated balance
+                  try {
+                    const userRes = await axios.get(`${API}/user/${user.id}`);
+                    setUser(userRes.data);
+                  } catch (e) {}
                   
                   toast.success(message);
                   setPromoCode("");

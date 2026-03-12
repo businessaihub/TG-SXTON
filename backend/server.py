@@ -2081,7 +2081,7 @@ async def admin_create_promo_code(body: dict):
 
 # ============ PROMO CODE VALIDATION (USER-FACING) ============
 @api_router.post("/promo-codes/validate")
-async def validate_promo_code(code: str):
+async def validate_promo_code(code: str, user_id: str = None):
     promo = await db.promo_codes.find_one({"code": code.upper()})
     if not promo:
         raise HTTPException(status_code=404, detail="Invalid promo code")
@@ -2097,15 +2097,49 @@ async def validate_promo_code(code: str):
         except (ValueError, TypeError):
             pass
 
+    # Check if user already used this code
+    if user_id:
+        already_used = await db.promo_usage.find_one({"code": code.upper(), "user_id": user_id})
+        if already_used:
+            raise HTTPException(status_code=400, detail="You have already used this promo code")
+
     # Increment usage count
     await db.promo_codes.update_one(
         {"code": code.upper()},
         {"$inc": {"usedCount": 1}}
     )
 
+    # Record usage
+    if user_id:
+        await db.promo_usage.insert_one({
+            "code": code.upper(),
+            "user_id": user_id,
+            "used_at": datetime.now(timezone.utc).isoformat()
+        })
+
+    promo_type = promo.get("promoType", "discount")
+
+    # Apply promo effect to user
+    if user_id:
+        if promo_type == "sxton_token":
+            amount = promo.get("sxtonAmount", 0)
+            if amount > 0:
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$inc": {"sxton_points": amount}}
+                )
+        elif promo_type == "discount":
+            discount = promo.get("discount", 0)
+            discount_type = promo.get("discountType", "percent")
+            if discount_type != "percent" and discount > 0:
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$inc": {"ton_balance": discount}}
+                )
+
     return {
         "success": True,
-        "promoType": promo.get("promoType", "discount"),
+        "promoType": promo_type,
         "discount": promo.get("discount", 0),
         "discountType": promo.get("discountType", "percent"),
         "sxtonAmount": promo.get("sxtonAmount", 0),

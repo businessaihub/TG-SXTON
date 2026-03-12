@@ -1010,6 +1010,100 @@ async def spin_roulette(user_id: str):
     
     return {"success": True, "pack": won_pack}
 
+# ============ DAILY REWARD ============
+
+@api_router.post("/daily-reward/claim")
+async def claim_daily_reward(user_id: str):
+    """Claim daily login reward (once per 24h)"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    now = datetime.now(timezone.utc)
+    last_claim = user.get("last_daily_claim")
+    if last_claim:
+        last_dt = datetime.fromisoformat(last_claim.replace("Z", "+00:00")) if isinstance(last_claim, str) else last_claim
+        if last_dt.tzinfo is None:
+            last_dt = last_dt.replace(tzinfo=timezone.utc)
+        diff = (now - last_dt).total_seconds()
+        if diff < 86400:
+            remaining = 86400 - int(diff)
+            raise HTTPException(status_code=400, detail=f"Already claimed. Next in {remaining // 3600}h {(remaining % 3600) // 60}m")
+    
+    streak = user.get("daily_streak", 0) + 1
+    # Rewards scale with streak (max 7 day cycle)
+    day_in_cycle = ((streak - 1) % 7) + 1
+    sxton_reward = day_in_cycle * 50  # 50, 100, 150... 350
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {
+            "$set": {"last_daily_claim": now.isoformat(), "daily_streak": streak},
+            "$inc": {"sxton_points": sxton_reward}
+        }
+    )
+    
+    updated = await db.users.find_one({"id": user_id}, {"_id": 0})
+    return {
+        "reward": sxton_reward,
+        "streak": streak,
+        "day_in_cycle": day_in_cycle,
+        "user": updated
+    }
+
+@api_router.get("/user/{user_id}/daily-status")
+async def daily_reward_status(user_id: str):
+    """Check if daily reward is available"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    now = datetime.now(timezone.utc)
+    last_claim = user.get("last_daily_claim")
+    available = True
+    remaining = 0
+    if last_claim:
+        last_dt = datetime.fromisoformat(last_claim.replace("Z", "+00:00")) if isinstance(last_claim, str) else last_claim
+        if last_dt.tzinfo is None:
+            last_dt = last_dt.replace(tzinfo=timezone.utc)
+        diff = (now - last_dt).total_seconds()
+        if diff < 86400:
+            available = False
+            remaining = 86400 - int(diff)
+    
+    streak = user.get("daily_streak", 0)
+    day_in_cycle = ((streak) % 7) + 1
+    next_reward = day_in_cycle * 50
+    
+    return {
+        "available": available,
+        "remaining_seconds": remaining,
+        "streak": streak,
+        "next_reward": next_reward,
+        "day_in_cycle": day_in_cycle
+    }
+
+# ============ REFERRAL ============
+
+@api_router.get("/user/{user_id}/referral-info")
+async def get_referral_info(user_id: str):
+    """Get referral link and stats"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    telegram_id = user.get("telegram_id", user_id)
+    referral_link = f"https://t.me/StickerXtonBot?start=ref_{telegram_id}"
+    
+    # Count referred users
+    referral_count = await db.users.count_documents({"referrer_id": user_id})
+    
+    return {
+        "referral_link": referral_link,
+        "referral_count": referral_count,
+        "total_earned": referral_count * 500  # 500 SXTON per referral
+    }
+
 # ============ HOT COLLECTIONS ============
 
 @api_router.get("/hot")

@@ -3,7 +3,7 @@ import axios from "axios";
 import { API } from "../App";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Wallet, LogOut, Clock, Star, Shield, Package, TrendingUp, DollarSign, Bell, Globe, Gem } from "lucide-react";
+import { Wallet, LogOut, Clock, Star, Shield, Package, TrendingUp, DollarSign, Bell, Globe, Gem, Gift, Users, Copy, Share2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useEffect } from "react";
@@ -46,6 +46,15 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   
   // Promo Code
   const [promoCode, setPromoCode] = useState("");
+  
+  // Daily Reward
+  const [dailyStatus, setDailyStatus] = useState(null);
+  const [loadingDaily, setLoadingDaily] = useState(false);
+  const [claimingDaily, setClaimingDaily] = useState(false);
+  
+  // Referrals
+  const [referralInfo, setReferralInfo] = useState(null);
+  const [loadingReferral, setLoadingReferral] = useState(false);
   
   const t = translations[language] || translations.en;
 
@@ -90,6 +99,76 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
       setNotificationsEnabled(user.notifications_enabled !== false);
     }
   }, [user]);
+
+  // Fetch daily reward status
+  useEffect(() => {
+    const fetchDailyStatus = async () => {
+      if (!user?.id) return;
+      setLoadingDaily(true);
+      try {
+        const res = await axios.get(`${API}/user/${user.id}/daily-status`);
+        setDailyStatus(res.data);
+      } catch (e) {
+        console.error('Failed to fetch daily status', e);
+      } finally {
+        setLoadingDaily(false);
+      }
+    };
+    fetchDailyStatus();
+  }, [user]);
+
+  // Fetch referral info
+  useEffect(() => {
+    const fetchReferralInfo = async () => {
+      if (!user?.id) return;
+      setLoadingReferral(true);
+      try {
+        const res = await axios.get(`${API}/user/${user.id}/referral-info`);
+        setReferralInfo(res.data);
+      } catch (e) {
+        console.error('Failed to fetch referral info', e);
+      } finally {
+        setLoadingReferral(false);
+      }
+    };
+    fetchReferralInfo();
+  }, [user]);
+
+  // Claim daily reward handler
+  const handleClaimDaily = async () => {
+    if (!user?.id || claimingDaily) return;
+    setClaimingDaily(true);
+    try {
+      const res = await axios.post(`${API}/daily-reward/claim?user_id=${user.id}`);
+      toast.success(`+${res.data.reward} SXTON! Day ${res.data.day_in_cycle}/7 streak`);
+      setUser(res.data.user);
+      setDailyStatus({ available: false, remaining_seconds: 86400, streak: res.data.streak, next_reward: (res.data.day_in_cycle % 7 + 1) * 50, day_in_cycle: res.data.day_in_cycle + 1 });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to claim reward");
+    } finally {
+      setClaimingDaily(false);
+    }
+  };
+
+  // Copy referral link handler
+  const handleCopyReferral = () => {
+    if (referralInfo?.referral_link) {
+      navigator.clipboard.writeText(referralInfo.referral_link).then(() => {
+        toast.success("Referral link copied!");
+      }).catch(() => {
+        toast.error("Failed to copy");
+      });
+    }
+  };
+
+  // Share referral link handler
+  const handleShareReferral = () => {
+    if (referralInfo?.referral_link && navigator.share) {
+      navigator.share({ title: "Join StickerXton!", url: referralInfo.referral_link }).catch(() => {});
+    } else if (referralInfo?.referral_link) {
+      handleCopyReferral();
+    }
+  };
 
   // Fetch transactions by type
   const fetchTransactions = async (type) => {
@@ -417,6 +496,153 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
             >
               Apply
             </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════ DAILY REWARD ═══════ */}
+      <div className="glass-card rounded-lg border border-white/10 overflow-hidden">
+        <div className="px-3 py-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <Gift size={16} className="text-white" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">Daily Reward</div>
+                {dailyStatus && (
+                  <div className="text-[10px] text-gray-400">
+                    Streak: {dailyStatus.streak} days • Day {dailyStatus.day_in_cycle}/7
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {dailyStatus && !dailyStatus.available && dailyStatus.remaining_seconds > 0 && (
+                <span className="text-[10px] text-gray-500">
+                  {Math.floor(dailyStatus.remaining_seconds / 3600)}h {Math.floor((dailyStatus.remaining_seconds % 3600) / 60)}m
+                </span>
+              )}
+              <Button
+                size="sm"
+                disabled={loadingDaily || claimingDaily || (dailyStatus && !dailyStatus.available)}
+                onClick={handleClaimDaily}
+                className={`h-7 text-xs px-3 ${
+                  dailyStatus?.available
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white btn-animated"
+                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                }`}
+              >
+                {claimingDaily ? "..." : dailyStatus?.available ? `Claim ${dailyStatus?.next_reward || 50} SXTON` : "Claimed"}
+              </Button>
+            </div>
+          </div>
+          {/* Streak dots */}
+          {dailyStatus && (
+            <div className="flex gap-1 mt-2 justify-center">
+              {[1, 2, 3, 4, 5, 6, 7].map(day => (
+                <div
+                  key={day}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border ${
+                    day <= (dailyStatus.streak % 7 || (dailyStatus.streak > 0 ? 7 : 0))
+                      ? "bg-amber-500/30 border-amber-500 text-amber-400"
+                      : day === ((dailyStatus.streak % 7) + 1) && dailyStatus.available
+                        ? "bg-amber-500/10 border-amber-500/50 text-amber-400 animate-pulse"
+                        : "bg-white/5 border-white/10 text-gray-600"
+                  }`}
+                >
+                  {day * 50}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ═══════ REFERRALS ═══════ */}
+      <div className="glass-card rounded-lg border border-white/10 overflow-hidden">
+        <div className="px-3 py-2.5">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
+              <Users size={16} className="text-white" />
+            </div>
+            <div className="flex-1">
+              <div className="text-xs font-bold text-white">Referrals</div>
+              <div className="text-[10px] text-gray-400">Earn 500 SXTON per friend</div>
+            </div>
+            {referralInfo && (
+              <div className="text-right">
+                <div className="text-sm font-bold text-blue-400">{referralInfo.referral_count}</div>
+                <div className="text-[10px] text-gray-500">invited</div>
+              </div>
+            )}
+          </div>
+          {referralInfo && (
+            <>
+              <div className="flex items-center gap-1.5 bg-white/5 rounded-lg p-2 border border-white/10">
+                <span className="text-[10px] text-gray-400 truncate flex-1 font-mono">
+                  {referralInfo.referral_link}
+                </span>
+                <button
+                  onClick={handleCopyReferral}
+                  className="p-1.5 hover:bg-white/10 rounded transition flex-shrink-0"
+                >
+                  <Copy size={14} className="text-cyan-400" />
+                </button>
+                <button
+                  onClick={handleShareReferral}
+                  className="p-1.5 hover:bg-white/10 rounded transition flex-shrink-0"
+                >
+                  <Share2 size={14} className="text-blue-400" />
+                </button>
+              </div>
+              {referralInfo.total_earned > 0 && (
+                <div className="text-[10px] text-gray-400 mt-1.5 text-center">
+                  Total earned: <span className="text-purple-400 font-bold">{referralInfo.total_earned} SXTON</span>
+                </div>
+              )}
+            </>
+          )}
+          {loadingReferral && (
+            <div className="text-center text-gray-500 text-xs py-2">Loading...</div>
+          )}
+        </div>
+      </div>
+
+      {/* ═══════ BALANCE TOP-UP ═══════ */}
+      <div className="glass-card rounded-lg border border-white/10 overflow-hidden">
+        <div className="px-3 py-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                <Plus size={16} className="text-white" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">Top-Up Balance</div>
+                <div className="text-[10px] text-gray-400">Deposit TON to your account</div>
+              </div>
+            </div>
+            {(wallet || user?.wallet_address) ? (
+              <Button
+                size="sm"
+                onClick={async () => {
+                  toast.info("Send TON to your connected wallet address to top up.");
+                }}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white h-7 text-xs px-3 btn-animated"
+              >
+                <DollarSign size={12} className="mr-1" />
+                Deposit
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={handleConnectWallet}
+                className="bg-cyan-500 hover:bg-cyan-600 text-white h-7 text-xs px-3"
+              >
+                <Wallet size={12} className="mr-1" />
+                Connect Wallet
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { API } from "../App";
 import { Button } from "./ui/button";
@@ -6,7 +6,7 @@ import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package } from "lucide-react";
+import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useTonConnect } from "../context/TonConnectContext";
@@ -36,7 +36,32 @@ const Marketplace = ({ user, language }) => {
   const [packPopularity, setPackPopularity] = useState({});
   const [nftCollections, setNftCollections] = useState(null);
   const [loadingNftCollections, setLoadingNftCollections] = useState(false);
+  const [featuredIndex, setFeaturedIndex] = useState(0);
+  const featuredTimerRef = useRef(null);
+  const touchStartRef = useRef(0);
   const t = translations[language] || translations.en;
+
+  // Featured banner auto-slide
+  const resetFeaturedTimer = useCallback(() => {
+    if (featuredTimerRef.current) clearInterval(featuredTimerRef.current);
+    featuredTimerRef.current = setInterval(() => {
+      setFeaturedIndex(prev => prev + 1);
+    }, 4000);
+  }, []);
+
+  useEffect(() => {
+    if (featured.length > 1) {
+      resetFeaturedTimer();
+      return () => clearInterval(featuredTimerRef.current);
+    }
+  }, [featured.length, resetFeaturedTimer]);
+
+  const featuredSlide = featured.length > 0 ? featured[((featuredIndex % featured.length) + featured.length) % featured.length] : null;
+
+  const goFeatured = (dir) => {
+    setFeaturedIndex(prev => prev + dir);
+    resetFeaturedTimer();
+  };
 
   useEffect(() => {
     fetchPacks();
@@ -466,71 +491,101 @@ const Marketplace = ({ user, language }) => {
         </div>
       )}
 
-      {/* Featured Carousel */}
-      {featured.length > 0 && (
-        <div className="space-y-1.5 relative z-10 pt-1">
-          <div className="flex items-center gap-1.5">
+      {/* Featured Banner Carousel */}
+      {featured.length > 0 && featuredSlide && (
+        <div className="relative z-10 pt-1" data-testid="featured-banner">
+          <div className="flex items-center gap-1.5 mb-1.5">
             <Sparkles className="text-yellow-400" size={14} />
             <h2 className="text-sm font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
               {t.marketplace.featured}
             </h2>
           </div>
-          
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {featured.map((pack) => (
-              <div
-                key={pack.id}
-                data-testid={`featured-pack-${pack.id}`}
-                className="carousel-card glass-card p-2 min-w-[160px] max-w-[180px] flex-shrink-0 border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden"
-              >
-                <div className="cosmic-particles"></div>
-                <div className="relative mb-1.5 overflow-hidden rounded z-10">
-                  <img
-                    src={imageErrors[pack.id] ? FALLBACK_IMAGE : (pack.image_url || FALLBACK_IMAGE)}
-                    alt={pack.name}
-                    className="w-full h-16 object-cover bg-gradient-to-br from-slate-700 to-slate-800"
-                    onError={() => setImageErrors({...imageErrors, [pack.id]: true})}
-                  />
-                  {pack.rarity && (
-                    <Badge className={`absolute top-0.5 right-0.5 text-[10px] leading-tight px-1 py-0 ${getRarityColor(pack.rarity)} shadow-lg`}>
-                      {pack.rarity.toUpperCase()}
-                    </Badge>
-                  )}
-                  {pack.show_number && (
-                    <Badge className="absolute top-0.5 left-0.5 text-[10px] leading-tight px-1 py-0 bg-black/60 text-white border-white/30">
-                      #{pack.sticker_count}
-                    </Badge>
-                  )}
-                </div>
-                <h3 className="font-semibold text-white text-[11px] leading-tight mb-0.5 relative z-10 truncate">{pack.name}</h3>
-                <p className="text-[10px] text-cyan-400/70 font-medium mb-0.5 relative z-10">[ {pack.total_sold || 0} / {pack.sticker_count || '?'} ]</p>
-                <div className="flex items-center justify-between relative z-10">
-                  <span className={`text-xs font-bold ${getPriceColor(pack.price_type)}`}>
-                    {pack.price} {pack.price_type}
-                  </span>
-                  <Button
-                    size="sm"
-                    onClick={() => handleBuy(pack)}
-                    disabled={buyingPackId === pack.id || isConnecting}
-                    data-testid={`buy-featured-${pack.id}`}
-                    className={`transition-colors shadow-lg h-6 px-1.5 text-[10px] ${
-                      wallet
-                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
-                        : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
-                    }`}
-                  >
-                    {buyingPackId === pack.id ? (
-                      <Sparkles size={10} className="mr-0.5 animate-spin" />
-                    ) : wallet ? (
-                      <ShoppingCart size={10} className="mr-0.5" />
-                    ) : (
-                      <Wallet size={10} className="mr-0.5" />
-                    )}
-                    {buyingPackId === pack.id ? "..." : wallet ? t.marketplace.buy : "Connect"}
-                  </Button>
-                </div>
+
+          <div
+            className="relative w-full rounded-xl overflow-hidden border border-white/10 cursor-pointer group"
+            style={{ height: '160px' }}
+            onClick={() => handleOpenPackDetails(featuredSlide)}
+            onTouchStart={(e) => { touchStartRef.current = e.touches[0].clientX; }}
+            onTouchEnd={(e) => {
+              const diff = touchStartRef.current - e.changedTouches[0].clientX;
+              if (Math.abs(diff) > 40) { goFeatured(diff > 0 ? 1 : -1); }
+            }}
+            data-testid={`featured-pack-${featuredSlide.id}`}
+          >
+            {/* Background image */}
+            <img
+              src={imageErrors[featuredSlide.id] ? FALLBACK_IMAGE : (featuredSlide.image_url || FALLBACK_IMAGE)}
+              alt={featuredSlide.name}
+              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+              key={featuredSlide.id}
+              onError={() => setImageErrors(prev => ({...prev, [featuredSlide.id]: true}))}
+            />
+            {/* Overlay gradient */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
+
+            {/* Content */}
+            <div className="relative z-10 h-full flex flex-col justify-center px-4 py-3">
+              <span className="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold mb-0.5">Featured Pack</span>
+              <h3 className="text-lg font-bold text-white leading-tight mb-1 drop-shadow-lg" style={{ fontFamily: 'Space Grotesk' }}>
+                {featuredSlide.name}
+              </h3>
+              {featuredSlide.rarity && (
+                <Badge className={`w-fit text-[10px] leading-tight px-1.5 py-0 mb-1.5 ${getRarityColor(featuredSlide.rarity)} shadow-lg`}>
+                  {featuredSlide.rarity.toUpperCase()}
+                </Badge>
+              )}
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-bold ${getPriceColor(featuredSlide.price_type)}`}>
+                  {featuredSlide.price} {featuredSlide.price_type}
+                </span>
+                <span className="text-[10px] text-gray-400">
+                  ≈ ${convertPrice(featuredSlide.price, featuredSlide.price_type)}
+                </span>
               </div>
-            ))}
+              <Button
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); handleOpenPackDetails(featuredSlide); }}
+                className="mt-2 w-fit bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg h-7 px-3 text-xs"
+              >
+                <Package size={12} className="mr-1" />
+                View Pack
+              </Button>
+            </div>
+
+            {/* Arrow buttons */}
+            {featured.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); goFeatured(-1); }}
+                  className="absolute left-1.5 top-1/2 -translate-y-1/2 p-1 rounded-full bg-black/40 hover:bg-black/70 text-white/70 hover:text-white transition-colors z-20"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); goFeatured(1); }}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-full bg-black/40 hover:bg-black/70 text-white/70 hover:text-white transition-colors z-20"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </>
+            )}
+
+            {/* Dots indicator */}
+            {featured.length > 1 && (
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                {featured.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={(e) => { e.stopPropagation(); setFeaturedIndex(i); resetFeaturedTimer(); }}
+                    className={`rounded-full transition-all duration-300 ${
+                      i === ((featuredIndex % featured.length) + featured.length) % featured.length
+                        ? 'w-4 h-1.5 bg-cyan-400'
+                        : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/60'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

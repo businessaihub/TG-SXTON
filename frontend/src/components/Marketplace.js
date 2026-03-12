@@ -503,7 +503,7 @@ const Marketplace = ({ user, language }) => {
                   )}
                 </div>
                 <h3 className="font-semibold text-white text-[11px] leading-tight mb-0.5 relative z-10 truncate">{pack.name}</h3>
-                <p className="text-[9px] text-gray-400 mb-0.5 relative z-10">[ {pack.total_sold || 0} / {pack.sticker_count || '?'} ]</p>
+                <p className="text-[10px] text-cyan-400/70 font-medium mb-0.5 relative z-10">[ {pack.total_sold || 0} / {pack.sticker_count || '?'} ]</p>
                 <div className="flex items-center justify-between relative z-10">
                   <span className={`text-xs font-bold ${getPriceColor(pack.price_type)}`}>
                     {pack.price} {pack.price_type}
@@ -733,7 +733,7 @@ const Marketplace = ({ user, language }) => {
               {/* Info - fixed structure */}
               <div className="p-2 flex flex-col flex-1 z-10">
                 <h3 className="font-semibold text-white text-xs leading-tight truncate">{pack.name}</h3>
-                <p className="text-[9px] text-gray-400 mt-0.5">[ {pack.total_sold || 0} / {pack.sticker_count || '?'} ]</p>
+                <p className="text-[10px] text-cyan-400/70 font-medium mt-0.5">[ {pack.total_sold || 0} / {pack.sticker_count || '?'} ]</p>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className={`text-sm font-bold ${getPriceColor(pack.price_type)}`}>
                     {pack.price} {pack.price_type}

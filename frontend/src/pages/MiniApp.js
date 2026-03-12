@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API } from "../App";
+import SplashScreen from "../components/SplashScreen";
 import Marketplace from "../components/Marketplace";
 import Activity from "../components/Activity";
 import Hot from "../components/Hot";
@@ -14,6 +15,7 @@ import { Home, Activity as ActivityIcon, Flame, User, Shield, Sparkles, Gamepad2
 const MiniApp = ({ isAdmin }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem("splash_shown"));
   const [currentTab, setCurrentTab] = useState("marketplace");
   const [user, setUser] = useState(null);
   const [language, setLanguage] = useState(() => {
@@ -133,6 +135,15 @@ const MiniApp = ({ isAdmin }) => {
         return <Marketplace user={user} language={language} />;
     }
   };
+
+  const handleSplashFinish = useCallback(() => {
+    sessionStorage.setItem("splash_shown", "1");
+    setShowSplash(false);
+  }, []);
+
+  if (showSplash) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
 
   if (!user) {
     return (

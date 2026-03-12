@@ -94,11 +94,11 @@ const Game = ({ user, language }) => {
   }
 
   return (
-    <div className="space-y-6 pt-2">
+    <div className="space-y-4 pt-1">
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Zap className="text-yellow-400" size={24} />
-          <h2 className="text-xl font-bold text-white">Hold Boost</h2>
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="text-yellow-400" size={20} />
+          <h2 className="text-lg font-bold text-white">Hold Boost</h2>
         </div>
 
         {error && (
@@ -341,12 +341,13 @@ const Game = ({ user, language }) => {
         </div>
       ) : (
         <div>
-          <div className="flex items-center gap-2 mb-6">
-            <Sparkles className="text-purple-400" size={24} />
-            <h2 className="text-xl font-bold text-white">{language === 'ru' ? 'Игровой Хаб' : 'Game Hub'}</h2>
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="text-purple-400" size={20} />
+            <h2 className="text-lg font-bold text-white">{language === 'ru' ? 'Игровой Хаб' : 'Game Hub'}</h2>
           </div>
+          <p className="text-[11px] text-gray-500 mb-3 ml-7">{language === 'ru' ? 'Играй и зарабатывай награды' : 'Play and earn rewards'}</p>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             {/* Daily Spin Wheel */}
             <GameCard
               emoji="🎡"
@@ -419,8 +420,8 @@ const Game = ({ user, language }) => {
             />
           </div>
 
-          <Card className="bg-blue-500/10 border-blue-500/30 p-4 mt-6">
-            <p className="text-sm text-blue-300">
+          <Card className="bg-blue-500/10 border-blue-500/30 p-3 mt-3">
+            <p className="text-xs text-blue-300">
               {language === 'ru'
                 ? '🎮 Играй, зарабатывай SXTON и выигрывай редкие стикеры!'
                 : '🎮 Play, earn SXTON and win rare stickers!'}
@@ -437,37 +438,40 @@ const GameCard = ({ emoji, title, description, badge, onClick }) => {
   return (
     <button
       onClick={onClick}
-      className="group relative h-32 rounded-xl bg-gradient-to-br from-[#2a2a3e]/80 to-[#1a1a2e]/80 border-2 border-cyan-500/30 p-3 active:border-cyan-400/60 transition-all duration-200 active:shadow-lg active:shadow-cyan-500/20 cursor-pointer overflow-hidden"
+      className="group relative h-[120px] rounded-xl bg-gradient-to-br from-[#2a2a3e]/90 to-[#1a1a2e]/90 border border-white/10 p-3 transition-all duration-200 cursor-pointer overflow-hidden shadow-md shadow-black/20 hover:shadow-lg hover:shadow-cyan-500/15 hover:border-cyan-500/40 hover:-translate-y-0.5 active:scale-[0.97] active:shadow-sm"
     >
       {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-purple-500/0 group-hover:from-cyan-500/10 group-hover:to-purple-500/10 transition-all duration-300" />
+      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-purple-500/0 group-hover:from-cyan-500/8 group-hover:to-purple-500/8 transition-all duration-300" />
       
       {/* Badge */}
       {badge && (
-        <div className="absolute top-2 right-2 z-10">
-          <Badge className={`${badge.color} text-white text-xs font-bold px-2 py-1`}>
+        <div className="absolute top-1.5 right-1.5 z-10">
+          <Badge className={`${badge.color} text-white text-[9px] font-bold px-1.5 py-0.5 leading-none shadow-sm`}>
             {badge.label}
           </Badge>
         </div>
       )}
       
       {/* Content */}
-      <div className="relative h-full flex flex-col items-center justify-between z-10">
+      <div className="relative h-full flex flex-col items-center justify-center gap-1 z-10">
         {/* Emoji */}
-        <div className="text-4xl group-hover:scale-110 transition-transform duration-300">
+        <div className="text-3xl group-hover:scale-110 transition-transform duration-200">
           {emoji}
         </div>
         
         {/* Title */}
-        <h3 className="text-sm font-black text-white text-center leading-tight">
+        <h3 className="text-xs font-black text-white text-center leading-tight tracking-wide">
           {title}
         </h3>
         
         {/* Description */}
-        <p className="text-xs text-gray-300 text-center">
+        <p className="text-[10px] text-gray-400 text-center leading-tight">
           {description}
         </p>
       </div>
+
+      {/* Bottom glow line */}
+      <div className="absolute bottom-0 left-2 right-2 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/0 to-transparent group-hover:via-cyan-500/40 transition-all duration-300" />
     </button>
   );
 };

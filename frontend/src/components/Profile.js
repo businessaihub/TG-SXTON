@@ -850,9 +850,9 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
 
             {/* Transactions List */}
             {loadingTransactions ? (
-              <div className="text-center py-4 text-gray-400 text-sm">Завантаження...</div>
+              <div className="text-center py-4 text-gray-400 text-sm">{t.profile.loading}</div>
             ) : transactions.length === 0 ? (
-              <div className="text-center py-4 text-gray-400 text-sm">Немає транзакцій</div>
+              <div className="text-center py-4 text-gray-400 text-sm">{t.profile.noTransactions}</div>
             ) : (
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {transactions.map((tx) => (

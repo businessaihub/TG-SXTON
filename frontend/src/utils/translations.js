@@ -58,7 +58,9 @@ export const translations = {
       language: "Language",
       notifications: "Notifications",
       logout: "Logout",
-      selectLanguage: "Select Language"
+      selectLanguage: "Select Language",
+      noTransactions: "No transactions",
+      loading: "Loading..."
     },
     quests: {
       title: "Daily Quests",
@@ -146,7 +148,9 @@ export const translations = {
       language: "Мова",
       notifications: "Сповіщення",
       logout: "Вихід",
-      selectLanguage: "Вибрати мову"
+      selectLanguage: "Вибрати мову",
+      noTransactions: "Немає транзакцій",
+      loading: "Завантаження..."
     },
     quests: {
       title: "Щоденні завдання",
@@ -234,7 +238,9 @@ export const translations = {
       language: "Dil",
       notifications: "Bildirimler",
       logout: "Çıkış Yap",
-      selectLanguage: "Dil Seç"
+      selectLanguage: "Dil Seç",
+      noTransactions: "İşlem yok",
+      loading: "Yükleniyor..."
     },
     roulette: {
       title: "Rulet",
@@ -313,7 +319,9 @@ export const translations = {
       language: "语言",
       notifications: "通知",
       logout: "登出",
-      selectLanguage: "选择语言"
+      selectLanguage: "选择语言",
+      noTransactions: "没有交易",
+      loading: "加载中..."
     },
     roulette: {
       title: "轮盘",
@@ -392,7 +400,9 @@ export const translations = {
       language: "Язык",
       notifications: "Уведомления",
       logout: "Выход",
-      selectLanguage: "Выбрать язык"
+      selectLanguage: "Выбрать язык",
+      noTransactions: "Нет транзакций",
+      loading: "Загрузка..."
     },
     roulette: {
       title: "Рулетка",
@@ -471,7 +481,9 @@ export const translations = {
       language: "اللغة",
       notifications: "الإخطارات",
       logout: "خروج",
-      selectLanguage: "اختر اللغة"
+      selectLanguage: "اختر اللغة",
+      noTransactions: "لا توجد معاملات",
+      loading: "جار التحميل..."
     },
     roulette: {
       title: "الروليت",
@@ -550,7 +562,9 @@ export const translations = {
       language: "언어",
       notifications: "알림",
       logout: "로그아웃",
-      selectLanguage: "언어 선택"
+      selectLanguage: "언어 선택",
+      noTransactions: "거래 없음",
+      loading: "로딩 중..."
     },
     roulette: {
       title: "룰렛",
@@ -629,7 +643,9 @@ export const translations = {
       language: "言語",
       notifications: "通知",
       logout: "ログアウト",
-      selectLanguage: "言語を選択"
+      selectLanguage: "言語を選択",
+      noTransactions: "取引なし",
+      loading: "読み込み中..."
     },
     roulette: {
       title: "ルーレット",
@@ -708,7 +724,9 @@ export const translations = {
       language: "Sprache",
       notifications: "Benachrichtigungen",
       logout: "Abmeldung",
-      selectLanguage: "Sprache wählen"
+      selectLanguage: "Sprache wählen",
+      noTransactions: "Keine Transaktionen",
+      loading: "Laden..."
     },
     roulette: {
       title: "Roulette",
@@ -787,7 +805,9 @@ export const translations = {
       language: "Langue",
       notifications: "Notifications",
       logout: "Déconnexion",
-      selectLanguage: "Sélectionner la langue"
+      selectLanguage: "Sélectionner la langue",
+      noTransactions: "Aucune transaction",
+      loading: "Chargement..."
     },
     roulette: {
       title: "Roulette",
@@ -866,7 +886,9 @@ export const translations = {
       language: "ภาษา",
       notifications: "การแจ้งเตือน",
       logout: "ออกจากระบบ",
-      selectLanguage: "เลือกภาษา"
+      selectLanguage: "เลือกภาษา",
+      noTransactions: "ไม่มีธุรกรรม",
+      loading: "กำลังโหลด..."
     },
     roulette: {
       title: "รูเล็ต",

@@ -49,19 +49,19 @@ const Marketplace = ({ user, language }) => {
     }, 4000);
   }, []);
 
-  useEffect(() => {
-    if (promoSlides.length > 1) {
-      resetFeaturedTimer();
-      return () => clearInterval(featuredTimerRef.current);
-    }
-  }, [promoSlides.length, resetFeaturedTimer]);
-
   // Combine featured packs + banners into unified promo slides
   const promoSlides = [
     ...featured.map(p => ({ ...p, _type: 'pack' })),
     ...banners.map(b => ({ ...b, _type: 'banner' }))
   ];
   const promoSlide = promoSlides.length > 0 ? promoSlides[((featuredIndex % promoSlides.length) + promoSlides.length) % promoSlides.length] : null;
+
+  useEffect(() => {
+    if (promoSlides.length > 1) {
+      resetFeaturedTimer();
+      return () => clearInterval(featuredTimerRef.current);
+    }
+  }, [promoSlides.length, resetFeaturedTimer]);
 
   const goFeatured = (dir) => {
     setFeaturedIndex(prev => prev + dir);

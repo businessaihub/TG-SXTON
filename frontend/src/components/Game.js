@@ -95,163 +95,170 @@ const Game = ({ user, language }) => {
 
   return (
     <div className="space-y-4 pt-1">
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Zap className="text-yellow-400" size={20} />
-          <h2 className="text-lg font-bold text-white">Hold Boost</h2>
-        </div>
 
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
-            <p className="text-red-400 text-sm mb-2">⚠️ {error}</p>
-            <p className="text-xs text-red-300">API: {API}/user/{user.id}/packs/hold-status</p>
-          </div>
-        )}
-
-        {loading && !holdStatus ? (
-          <div className="flex justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-cyan-400 mx-auto mb-3"></div>
-              <p className="text-gray-400 text-sm">Loading hold status...</p>
+      {/* Game Hub - Show active game or Game Hub grid */}
+      {activeGame === 'hold' ? (
+        <div>
+          <button
+            onClick={() => setActiveGame(null)}
+            className="flex items-center gap-2 mb-6 text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            <ChevronLeft size={20} />
+            <span className="font-semibold">{language === 'ru' ? 'Вернуться' : 'Back'}</span>
+          </button>
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="text-yellow-400" size={20} />
+              <h2 className="text-lg font-bold text-white">Hold Boost</h2>
             </div>
-          </div>
-        ) : !holdStatus || !holdStatus.packs || holdStatus.packs.length === 0 ? (
-          <div className="space-y-3">
-            <Card className="bg-[#1a1a2e]/80 border-cyan-500/20 p-6 text-center">
-              <Zap size={48} className="mx-auto mb-3 text-gray-500" />
-              <p className="text-gray-400 mb-2">
-                {language === 'ru' 
-                  ? 'Нет стикеров в холде' 
-                  : 'No stickers in hold'}
-              </p>
-              <p className="text-gray-500 text-sm">
-                {language === 'ru'
-                  ? 'Купите стикеры, чтобы начать получать бонус'
-                  : 'Buy stickers to start earning boost'}
-              </p>
-            </Card>
-            
-            <Button
-              onClick={createTestStickers}
-              disabled={creatingTestData}
-              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
-            >
-              <Plus size={16} className="mr-2" />
-              {creatingTestData
-                ? language === 'ru' ? 'Создание...' : 'Creating...'
-                : language === 'ru' ? 'Создать тестовые стикеры' : 'Create Test Stickers'}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Summary Stats */}
-            {holdStatus.summary && (
-              <div className="grid grid-cols-2 gap-3">
-                <Card className="bg-[#1a1a2e]/80 border-cyan-500/20 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Trophy size={18} className="text-yellow-400" />
-                    <span className="text-sm text-gray-400">
-                      {language === 'ru' ? 'Активные' : 'Active'}
-                    </span>
-                  </div>
-                  <p className="text-2xl font-bold text-cyan-400">
-                    {holdStatus.summary.total_active_holders || 0}
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+                <p className="text-red-400 text-sm mb-2">⚠️ {error}</p>
+                <p className="text-xs text-red-300">API: {API}/user/{user.id}/packs/hold-status</p>
+              </div>
+            )}
+
+            {loading && !holdStatus ? (
+              <div className="flex justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-cyan-400 mx-auto mb-3"></div>
+                  <p className="text-gray-400 text-sm">Loading hold status...</p>
+                </div>
+              </div>
+            ) : !holdStatus || !holdStatus.packs || holdStatus.packs.length === 0 ? (
+              <div className="space-y-3">
+                <Card className="bg-[#1a1a2e]/80 border-cyan-500/20 p-6 text-center">
+                  <Zap size={48} className="mx-auto mb-3 text-gray-500" />
+                  <p className="text-gray-400 mb-2">
+                    {language === 'ru' 
+                      ? 'Нет стикеров в холде' 
+                      : 'No stickers in hold'}
+                  </p>
+                  <p className="text-gray-500 text-sm">
+                    {language === 'ru'
+                      ? 'Купите стикеры, чтобы начать получать бонус'
+                      : 'Buy stickers to start earning boost'}
                   </p>
                 </Card>
+                
+                <Button
+                  onClick={createTestStickers}
+                  disabled={creatingTestData}
+                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                >
+                  <Plus size={16} className="mr-2" />
+                  {creatingTestData
+                    ? language === 'ru' ? 'Создание...' : 'Creating...'
+                    : language === 'ru' ? 'Создать тестовые стикеры' : 'Create Test Stickers'}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {holdStatus.summary && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Card className="bg-[#1a1a2e]/80 border-cyan-500/20 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Trophy size={18} className="text-yellow-400" />
+                        <span className="text-sm text-gray-400">
+                          {language === 'ru' ? 'Активные' : 'Active'}
+                        </span>
+                      </div>
+                      <p className="text-2xl font-bold text-cyan-400">
+                        {holdStatus.summary.total_active_holders || 0}
+                      </p>
+                    </Card>
 
-                <Card className="bg-[#1a1a2e]/80 border-cyan-500/20 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp size={18} className="text-green-400" />
-                    <span className="text-sm text-gray-400">
-                      {language === 'ru' ? 'Усиление' : 'Boost'}
-                    </span>
+                    <Card className="bg-[#1a1a2e]/80 border-cyan-500/20 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp size={18} className="text-green-400" />
+                        <span className="text-sm text-gray-400">
+                          {language === 'ru' ? 'Усиление' : 'Boost'}
+                        </span>
+                      </div>
+                      <p className="text-2xl font-bold text-green-400">
+                        {holdStatus.summary.verified_count || 0}
+                      </p>
+                    </Card>
                   </div>
-                  <p className="text-2xl font-bold text-green-400">
-                    {holdStatus.summary.verified_count || 0}
+                )}
+
+                <div className="space-y-3">
+                  {holdStatus.packs.map((pack) => {
+                    const progress = Math.min((pack.days_held / pack.threshold_days) * 100, 100);
+                    const isVerified = pack.verified_holder;
+
+                    return (
+                      <Card
+                        key={pack.sticker_id}
+                        className="bg-gradient-to-r from-[#1a1a2e]/80 to-[#2a1a3e]/80 border-cyan-500/20 p-4"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-white">{pack.pack_name}</h3>
+                            <p className="text-sm text-gray-400">#{pack.sticker_serial}</p>
+                          </div>
+                          {isVerified && (
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                              {language === 'ru' ? 'Проверено' : 'Verified'}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {!isVerified && (
+                          <>
+                            <div className="mb-2">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <Clock size={14} className="text-cyan-400" />
+                                  <span className="text-xs text-gray-400">
+                                    {language === 'ru'
+                                      ? `${pack.days_held} из ${pack.threshold_days} дней`
+                                      : `${pack.days_held} of ${pack.threshold_days} days`}
+                                  </span>
+                                </div>
+                                <span className="text-xs font-semibold text-cyan-400">
+                                  {Math.round(progress)}%
+                                </span>
+                              </div>
+                              <Progress value={progress} className="h-2" />
+                            </div>
+
+                            <p className="text-xs text-gray-400">
+                              {language === 'ru'
+                                ? `Осталось ${Math.max(0, pack.threshold_days - pack.days_held)} дней`
+                                : `${Math.max(0, pack.threshold_days - pack.days_held)} days remaining`}
+                            </p>
+                          </>
+                        )}
+
+                        {isVerified && (
+                          <div className="flex items-center gap-2 text-green-400">
+                            <Zap size={14} />
+                            <span className="text-sm font-semibold">
+                              {language === 'ru'
+                                ? `Усиление ${Math.round((pack.multiplier - 1) * 100)}% при перепродаже`
+                                : `${Math.round((pack.multiplier - 1) * 100)}% boost on resale`}
+                            </span>
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                <Card className="bg-blue-500/10 border-blue-500/30 p-4">
+                  <p className="text-sm text-blue-300">
+                    {language === 'ru'
+                      ? '💡 Держите стикеры 30 дней или больше, чтобы получить усиление при перепродаже'
+                      : '💡 Hold stickers for 30+ days to get a boost when reselling'}
                   </p>
                 </Card>
               </div>
             )}
-
-            {/* Packs Hold Progress */}
-            <div className="space-y-3">
-              {holdStatus.packs.map((pack) => {
-                const progress = Math.min((pack.days_held / pack.threshold_days) * 100, 100);
-                const isVerified = pack.verified_holder;
-
-                return (
-                  <Card
-                    key={pack.sticker_id}
-                    className="bg-gradient-to-r from-[#1a1a2e]/80 to-[#2a1a3e]/80 border-cyan-500/20 p-4"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-white">{pack.pack_name}</h3>
-                        <p className="text-sm text-gray-400">#{pack.sticker_serial}</p>
-                      </div>
-                      {isVerified && (
-                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                          {language === 'ru' ? 'Проверено' : 'Verified'}
-                        </Badge>
-                      )}
-                    </div>
-
-                    {!isVerified && (
-                      <>
-                        <div className="mb-2">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <Clock size={14} className="text-cyan-400" />
-                              <span className="text-xs text-gray-400">
-                                {language === 'ru'
-                                  ? `${pack.days_held} из ${pack.threshold_days} дней`
-                                  : `${pack.days_held} of ${pack.threshold_days} days`}
-                              </span>
-                            </div>
-                            <span className="text-xs font-semibold text-cyan-400">
-                              {Math.round(progress)}%
-                            </span>
-                          </div>
-                          <Progress value={progress} className="h-2" />
-                        </div>
-
-                        <p className="text-xs text-gray-400">
-                          {language === 'ru'
-                            ? `Осталось ${Math.max(0, pack.threshold_days - pack.days_held)} дней`
-                            : `${Math.max(0, pack.threshold_days - pack.days_held)} days remaining`}
-                        </p>
-                      </>
-                    )}
-
-                    {isVerified && (
-                      <div className="flex items-center gap-2 text-green-400">
-                        <Zap size={14} />
-                        <span className="text-sm font-semibold">
-                          {language === 'ru'
-                            ? `Усиление ${Math.round((pack.multiplier - 1) * 100)}% при перепродаже`
-                            : `${Math.round((pack.multiplier - 1) * 100)}% boost on resale`}
-                        </span>
-                      </div>
-                    )}
-                  </Card>
-                );
-              })}
-            </div>
-
-            {/* Info Box */}
-            <Card className="bg-blue-500/10 border-blue-500/30 p-4">
-              <p className="text-sm text-blue-300">
-                {language === 'ru'
-                  ? '💡 Держите стикеры 30 дней или больше, чтобы получить усиление при перепродаже'
-                  : '💡 Hold stickers for 30+ days to get a boost when reselling'}
-              </p>
-            </Card>
           </div>
-        )}
-      </div>
-
-      {/* Game Hub - Show active game or Game Hub grid */}
-      {activeGame === 'price' ? (
+        </div>
+      ) : activeGame === 'price' ? (
         <div>
           <button
             onClick={() => setActiveGame(null)}
@@ -348,6 +355,15 @@ const Game = ({ user, language }) => {
           <p className="text-[11px] text-gray-500 mb-3 ml-7">{language === 'ru' ? 'Играй и зарабатывай награды' : 'Play and earn rewards'}</p>
 
           <div className="grid grid-cols-2 gap-2">
+            {/* Hold Boost */}
+            <GameCard
+              emoji="⚡"
+              title="HOLD"
+              description={language === 'ru' ? 'Буст за холд' : 'Hold boost'}
+              badge={{ label: 'BOOST', color: 'bg-yellow-500' }}
+              onClick={() => setActiveGame('hold')}
+            />
+
             {/* Daily Spin Wheel */}
             <GameCard
               emoji="🎡"

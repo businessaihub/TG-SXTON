@@ -514,23 +514,8 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
           </div>
         </div>
 
-        {/* Deposit / Withdraw + Promo */}
-        <div className="px-3 py-2 border-t border-white/10 space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              className="bg-green-500 hover:bg-green-600 btn-animated h-8 text-xs"
-              data-testid="deposit-btn"
-            >
-              {t.profile.deposit}
-            </Button>
-            <Button
-              variant="outline"
-              className="btn-animated h-8 text-xs"
-              data-testid="withdraw-btn"
-            >
-              {t.profile.withdraw}
-            </Button>
-          </div>
+        {/* Promo Code */}
+        <div className="px-3 py-2 border-t border-white/10">
           <div className="flex items-center gap-2">
             <Gem size={14} className="text-purple-400 flex-shrink-0" />
             <input

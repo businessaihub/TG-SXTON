@@ -22,40 +22,43 @@ const MiniApp = ({ isAdmin }) => {
   });
 
   useEffect(() => {
-    // Initialize user (mock Telegram auth)
     const initUser = async () => {
       try {
-        const telegramId = "user_" + Math.random().toString(36).substr(2, 9);
+        // Try to get real Telegram WebApp data
+        const tg = window.Telegram?.WebApp;
+        const tgUser = tg?.initDataUnsafe?.user;
+
+        let telegramId, username;
+
+        if (tgUser?.id) {
+          // Real Telegram environment
+          telegramId = String(tgUser.id);
+          username = tgUser.username || tgUser.first_name || "tg_user";
+        } else {
+          // Browser testing — use stable ID from localStorage
+          telegramId = localStorage.getItem("tg_sxton_telegram_id");
+          if (!telegramId) {
+            telegramId = "dev_" + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem("tg_sxton_telegram_id", telegramId);
+          }
+          username = "dev_user";
+        }
+
         const response = await axios.post(`${API}/auth/telegram`, {
           telegram_id: telegramId,
-          username: "demo_user"
+          username: username
         });
         setUser(response.data.user);
-        
-        // Mock balance for testing
-        await axios.post(`${API}/wallet/mock-balance`, {
-          user_id: response.data.user.id,
-          ton: 100,
-          stars: 500,
-          points: 1000
-        });
       } catch (error) {
         console.error("Error initializing user:", error);
-        // Fallback: create a temporary offline demo user so UI loads
-        const fallback = {
-          id: "local_demo_user",
-          username: "demo_offline",
-          ton_balance: 100,
-          stars_balance: 500,
-          sxton_points: 1000,
+        setUser({
+          id: "offline_user",
+          username: "offline",
+          ton_balance: 0,
+          stars_balance: 0,
+          sxton_points: 0,
           referral_count: 0
-        };
-        // eslint-disable-next-line no-undef
-        if (typeof window !== 'undefined' && window.__TAURI__ === undefined) {
-          // Only show toast in browser environments where toast is available
-          try { window.toast && window.toast('Offline demo mode'); } catch (e) {}
-        }
-        setUser(fallback);
+        });
       }
     };
     initUser();

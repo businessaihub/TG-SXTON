@@ -111,7 +111,7 @@ const AdminDashboard = ({ setIsAdmin }) => {
 <div className="flex-1 overflow-y-auto overflow-x-hidden p-6" style={{ position: 'relative' }}>
   <div className="min-h-full" style={{ position: 'relative' }}>
     {currentView === "analytics" && <Analytics />}
-    {currentView === "advanced" && <AdvancedAnalytics />}
+    {currentView === "advanced" && <AdvancedAnalytics adminToken={adminToken} />}
     {currentView === "packs" && <PackManagement />}
     {currentView === "games" && <GameManagement adminToken={adminToken} />}
     {currentView === "banners" && <BannerManagement />}
@@ -120,11 +120,11 @@ const AdminDashboard = ({ setIsAdmin }) => {
     {currentView === "systemlogs" && <SystemLogs />}
     {currentView === "promo" && <PromoCodes adminToken={adminToken} />}
     {currentView === "daily-spin" && <DailySpinManagement language={language} />}
-    {currentView === "withdrawals" && <WithdrawalApproval language={language} />}
+    {currentView === "withdrawals" && <WithdrawalApproval adminToken={adminToken} language={language} />}
     {currentView === "hold" && <HoldSettings adminToken={adminToken} />}
     {currentView === "hold-packs" && <PackHoldOverrides adminToken={adminToken} />}
-    {currentView === "moderation" && <Moderation />}
-    {currentView === "vip" && <VipTierManagement />}
+    {currentView === "moderation" && <Moderation adminToken={adminToken} />}
+    {currentView === "vip" && <VipTierManagement adminToken={adminToken} />}
     {currentView === "settings" && <SettingsPanel />}
     {currentView === "simulation" && <ActivitySimulation />}
   </div>

@@ -9,7 +9,7 @@ import { RefreshCw, TrendingUp, Users, AlertTriangle, Target } from "lucide-reac
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 
-const AdvancedAnalytics = () => {
+const AdvancedAnalytics = ({ adminToken }) => {
   const [activeTab, setActiveTab] = useState("rfm");
   const [loading, setLoading] = useState(false);
   
@@ -31,7 +31,7 @@ const AdvancedAnalytics = () => {
   // Revenue trends data
   const [revenueTrends, setRevenueTrends] = useState(null);
   
-  const token = localStorage.getItem("admin_token");
+  const token = adminToken || localStorage.getItem("admin_token");
 
   useEffect(() => {
     fetchAllAnalytics();

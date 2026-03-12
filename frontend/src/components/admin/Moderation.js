@@ -66,7 +66,9 @@ const Moderation = ({ adminToken }) => {
     const fetchLocalizationData = async () => {
       try {
         setLoadingLocalization(true);
-        const response = await axios.get(`${API}/admin/localization-analytics`);
+        const response = await axios.get(`${API}/admin/localization-analytics`, {
+          headers: { Authorization: `Bearer ${adminToken}` }
+        });
         if (response.data && response.data.by_language) {
           setLocalizationData(response.data.by_language);
         }

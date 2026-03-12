@@ -285,7 +285,7 @@ const VipTierManagement = ({ adminToken }) => {
               </tr>
             ) : (
               filteredUsers.map((user) => {
-                const tier = tiers[user.tier];
+                const tier = tiers[user.tier] || tiers.basic;
                 return (
                   <tr key={user.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="px-4 py-3">
@@ -306,7 +306,7 @@ const VipTierManagement = ({ adminToken }) => {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-green-400">
-                      ${user.spending.toFixed(2)}
+                      ${(user.spending || 0).toFixed(2)}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-400">
                       {new Date(user.joined).toLocaleDateString()}

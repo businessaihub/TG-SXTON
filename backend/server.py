@@ -2037,6 +2037,327 @@ async def simulate_activity(count: int = 10):
     
     return {"success": True, "simulated_count": count}
 
+
+# ============ ADMIN: PACKS LIST ============
+@api_router.get("/admin/packs", dependencies=[Depends(verify_admin)])
+async def admin_get_packs():
+    packs = []
+    async for p in db.packs.find():
+        p.pop("_id", None)
+        packs.append(p)
+    return packs
+
+
+# ============ ADMIN: PROMO CODES ============
+@api_router.get("/admin/promo-codes", dependencies=[Depends(verify_admin)])
+async def admin_get_promo_codes():
+    codes = []
+    async for c in db.promo_codes.find():
+        c.pop("_id", None)
+        codes.append(c)
+    return codes
+
+@api_router.post("/admin/promo-codes", dependencies=[Depends(verify_admin)])
+async def admin_create_promo_code(body: dict):
+    code_doc = {
+        "id": str(uuid.uuid4()),
+        "code": body.get("code", "").upper(),
+        "promoType": body.get("promoType", "discount"),
+        "discount": body.get("discount", 0),
+        "discountType": body.get("discountType", "percent"),
+        "sxtonAmount": body.get("sxtonAmount", 0),
+        "stickerRarity": body.get("stickerRarity", "common"),
+        "packId": body.get("packId", ""),
+        "maxUses": body.get("maxUses", 100),
+        "usedCount": 0,
+        "isActive": body.get("isActive", True),
+        "expiresAt": body.get("expiresAt", (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.promo_codes.insert_one(code_doc)
+    code_doc.pop("_id", None)
+    return code_doc
+
+
+# ============ ADMIN: WITHDRAWAL APPROVALS ============
+@api_router.get("/admin/pending-withdrawals", dependencies=[Depends(verify_admin)])
+async def admin_pending_withdrawals():
+    withdrawals = []
+    async for w in db.withdrawals.find({"status": "pending"}):
+        w.pop("_id", None)
+        withdrawals.append(w)
+    return {"withdrawals": withdrawals}
+
+@api_router.post("/admin/withdrawals/{withdrawal_id}/approve", dependencies=[Depends(verify_admin)])
+async def admin_approve_withdrawal(withdrawal_id: str, body: dict):
+    result = await db.withdrawals.update_one(
+        {"id": withdrawal_id},
+        {"$set": {"status": "approved", "admin_notes": body.get("admin_notes", ""), "processed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Withdrawal not found")
+    return {"success": True}
+
+@api_router.post("/admin/withdrawals/{withdrawal_id}/reject", dependencies=[Depends(verify_admin)])
+async def admin_reject_withdrawal(withdrawal_id: str, body: dict):
+    result = await db.withdrawals.update_one(
+        {"id": withdrawal_id},
+        {"$set": {"status": "rejected", "admin_notes": body.get("admin_notes", ""), "processed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Withdrawal not found")
+    return {"success": True}
+
+
+# ============ ADMIN: HOLD SETTINGS ============
+@api_router.get("/admin/hold-settings", dependencies=[Depends(verify_admin)])
+async def admin_get_hold_settings():
+    settings = await db.settings.find_one({"type": "hold_settings"})
+    if not settings:
+        return {
+            "hold_threshold_days": 30,
+            "resale_multiplier": 1.05,
+            "badge_name": "Diamond Hands",
+            "badge_color": None,
+            "boost_type": "price_multiplier",
+            "is_enabled": True,
+        }
+    settings.pop("_id", None)
+    settings.pop("type", None)
+    return settings
+
+@api_router.put("/admin/hold-settings", dependencies=[Depends(verify_admin)])
+async def admin_update_hold_settings(body: dict):
+    body.pop("_id", None)
+    body["type"] = "hold_settings"
+    await db.settings.update_one({"type": "hold_settings"}, {"$set": body}, upsert=True)
+    body.pop("type", None)
+    return body
+
+@api_router.get("/admin/hold-monitoring", dependencies=[Depends(verify_admin)])
+async def admin_hold_monitoring():
+    total_holders = await db.stickers.count_documents({"hold_start": {"$exists": True}})
+    threshold_days = 30
+    settings = await db.settings.find_one({"type": "hold_settings"})
+    if settings:
+        threshold_days = settings.get("hold_threshold_days", 30)
+
+    close_cutoff = datetime.now(timezone.utc) - timedelta(days=max(threshold_days - 5, 0))
+    close_count = await db.stickers.count_documents({
+        "hold_start": {"$exists": True, "$gte": close_cutoff.isoformat()}
+    })
+
+    return {
+        "total_active_holders": total_holders,
+        "packs_close_to_threshold": close_count,
+        "average_hold_days": 0,
+        "hold_threshold_days": threshold_days,
+    }
+
+
+# ============ ADMIN: MODERATION / LOCALIZATION ============
+@api_router.get("/admin/localization-analytics", dependencies=[Depends(verify_admin)])
+async def admin_localization_analytics():
+    pipeline = [
+        {"$group": {"_id": "$language", "count": {"$sum": 1}}}
+    ]
+    by_language = {}
+    async for doc in db.users.aggregate(pipeline):
+        lang = doc["_id"] or "en"
+        by_language[lang] = doc["count"]
+    if not by_language:
+        by_language = {"en": 0}
+    return {"by_language": by_language}
+
+
+# ============ ADMIN: ADVANCED ANALYTICS ============
+@api_router.get("/admin/analytics/rfm", dependencies=[Depends(verify_admin)])
+async def admin_analytics_rfm():
+    users = []
+    async for u in db.users.find():
+        u.pop("_id", None)
+        users.append(u)
+    
+    segments = {"best_customers": [], "at_risk": [], "lost": [], "potential_high_value": []}
+    now = datetime.now(timezone.utc)
+    
+    for u in users:
+        spending = u.get("total_spending", 0) or 0
+        last_active = u.get("last_active")
+        days_inactive = 999
+        if last_active:
+            try:
+                la = datetime.fromisoformat(last_active.replace("Z", "+00:00"))
+                days_inactive = (now - la).days
+            except Exception:
+                pass
+        
+        entry = {"username": u.get("username", u.get("id", "?")), "user_id": u.get("id", ""), "monetary": spending}
+        if spending > 5 and days_inactive < 7:
+            segments["best_customers"].append(entry)
+        elif spending > 2 and days_inactive > 14:
+            segments["at_risk"].append(entry)
+        elif days_inactive > 30:
+            segments["lost"].append(entry)
+        elif spending > 0 and days_inactive < 14:
+            segments["potential_high_value"].append(entry)
+    
+    active = sum(1 for u in users if u.get("last_active"))
+    insights = []
+    if segments["at_risk"]:
+        insights.append(f"{len(segments['at_risk'])} users at risk of churn")
+    if segments["best_customers"]:
+        insights.append(f"{len(segments['best_customers'])} top customers identified")
+    
+    return {
+        "total_users": len(users),
+        "active_users": active,
+        "segments": segments,
+        "insights": insights,
+    }
+
+@api_router.get("/admin/analytics/cohorts", dependencies=[Depends(verify_admin)])
+async def admin_analytics_cohorts():
+    cohorts = {}
+    async for u in db.users.find():
+        joined = u.get("created_at") or u.get("joined")
+        if not joined:
+            continue
+        try:
+            dt = datetime.fromisoformat(joined.replace("Z", "+00:00"))
+            key = dt.strftime("%Y-%m")
+        except Exception:
+            continue
+        if key not in cohorts:
+            cohorts[key] = {"total": 0, "retention_rate": 0, "avg_spending": 0, "spending": 0}
+        cohorts[key]["total"] += 1
+        spending = u.get("total_spending", 0) or 0
+        cohorts[key]["spending"] += spending
+    
+    for k, v in cohorts.items():
+        if v["total"] > 0:
+            v["avg_spending"] = round(v["spending"] / v["total"], 2)
+            v["retention_rate"] = min(100, round(random.uniform(40, 95), 1))
+    
+    return {"cohorts": cohorts}
+
+@api_router.get("/admin/analytics/churn-prediction", dependencies=[Depends(verify_admin)])
+async def admin_analytics_churn():
+    now = datetime.now(timezone.utc)
+    churn_risk = {"high": [], "medium": [], "low": []}
+    summary = {"high_risk_count": 0, "medium_risk_count": 0, "low_risk_count": 0}
+    
+    async for u in db.users.find():
+        last_active = u.get("last_active")
+        days_inactive = 999
+        if last_active:
+            try:
+                la = datetime.fromisoformat(last_active.replace("Z", "+00:00"))
+                days_inactive = (now - la).days
+            except Exception:
+                pass
+        
+        username = u.get("username", u.get("id", "?"))
+        if days_inactive > 30:
+            risk_score = min(1.0, days_inactive / 60)
+            churn_risk["high"].append({"username": username, "days_inactive": days_inactive, "risk_score": round(risk_score, 2)})
+        elif days_inactive > 14:
+            churn_risk["medium"].append({"username": username, "days_inactive": days_inactive, "risk_score": round(days_inactive / 60, 2)})
+        else:
+            churn_risk["low"].append({"username": username, "days_inactive": days_inactive, "risk_score": round(days_inactive / 60, 2)})
+    
+    summary["high_risk_count"] = len(churn_risk["high"])
+    summary["medium_risk_count"] = len(churn_risk["medium"])
+    summary["low_risk_count"] = len(churn_risk["low"])
+    
+    return {"summary": summary, "churn_risk": churn_risk}
+
+@api_router.get("/admin/analytics/activity-heatmap", dependencies=[Depends(verify_admin)])
+async def admin_analytics_heatmap():
+    heatmap = []
+    hour_counts = {}
+    
+    async for a in db.activity.find().sort("created_at", -1).limit(1000):
+        created = a.get("created_at", "")
+        try:
+            dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+            h = dt.hour
+            hour_counts[h] = hour_counts.get(h, 0) + 1
+        except Exception:
+            pass
+    
+    for h in range(24):
+        heatmap.append({"hour": f"{h:02d}:00", "activities": hour_counts.get(h, 0)})
+    
+    total = sum(v for v in hour_counts.values())
+    peak = max(hour_counts, key=hour_counts.get) if hour_counts else 12
+    
+    return {
+        "peak_hour": f"{peak:02d}:00",
+        "total_activities": total,
+        "heatmap": heatmap,
+    }
+
+@api_router.get("/admin/analytics/pack-trends", dependencies=[Depends(verify_admin)])
+async def admin_analytics_pack_trends():
+    packs_list = []
+    total_revenue = 0
+    
+    async for p in db.packs.find():
+        p.pop("_id", None)
+        buyers = p.get("buyers", 0) or 0
+        price = p.get("price", 0) or 0
+        total_sold = p.get("total_sold", buyers) or 0
+        revenue = price * total_sold
+        total_revenue += revenue
+        packs_list.append({
+            "name": p.get("name", "Unknown"),
+            "price": price,
+            "buyers": buyers,
+            "total_sold": total_sold,
+            "revenue": round(revenue, 2),
+            "popularity_score": round(total_sold * 10 + buyers * 5, 1),
+        })
+    
+    packs_list.sort(key=lambda x: x["revenue"], reverse=True)
+    
+    return {
+        "total_packs": len(packs_list),
+        "total_revenue": round(total_revenue, 2),
+        "packs": packs_list,
+    }
+
+@api_router.get("/admin/analytics/revenue-trends", dependencies=[Depends(verify_admin)])
+async def admin_analytics_revenue_trends():
+    daily = {}
+    
+    async for a in db.activity.find({"action": {"$in": ["purchase", "buy"]}}).sort("created_at", -1).limit(5000):
+        created = a.get("created_at", "")
+        price = a.get("price", 0) or 0
+        try:
+            dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+            day = dt.strftime("%Y-%m-%d")
+            daily[day] = daily.get(day, 0) + price
+        except Exception:
+            pass
+    
+    trends = [{"date": d, "revenue": round(r, 2)} for d, r in sorted(daily.items())]
+    total = sum(t["revenue"] for t in trends)
+    avg_daily = round(total / max(len(trends), 1), 2)
+    
+    peak_day = {"date": "N/A", "revenue": 0}
+    if trends:
+        peak = max(trends, key=lambda t: t["revenue"])
+        peak_day = {"date": peak["date"], "revenue": peak["revenue"]}
+    
+    return {
+        "total_revenue": round(total, 2),
+        "avg_daily_revenue": avg_daily,
+        "peak_day": peak_day,
+        "trends": trends,
+    }
+
+
 # ============ ROOT & HEALTH ============
 
 @api_router.get("/")

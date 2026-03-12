@@ -382,7 +382,7 @@ const PromoCodes = ({ adminToken }) => {
                       <div className="w-24 h-1 bg-slate-700 rounded mt-1 ml-auto overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-amber-500 to-orange-500"
-                          style={{ width: `${(promo.usedCount / promo.maxUses) * 100}%` }}
+                          style={{ width: `${promo.maxUses ? ((promo.usedCount || 0) / promo.maxUses) * 100 : 0}%` }}
                         />
                       </div>
                     </div>
@@ -434,12 +434,12 @@ const PromoCodes = ({ adminToken }) => {
         </div>
         <div className="bg-slate-800/30 p-4 rounded border border-white/10 text-center">
           <p className="text-sm text-gray-400">Total Redeemed</p>
-          <p className="text-2xl font-bold text-cyan-400">{promoCodes.reduce((sum, p) => sum + p.usedCount, 0)}</p>
+          <p className="text-2xl font-bold text-cyan-400">{promoCodes.reduce((sum, p) => sum + (p.usedCount || 0), 0)}</p>
         </div>
         <div className="bg-slate-800/30 p-4 rounded border border-white/10 text-center">
           <p className="text-sm text-gray-400">Remaining Uses</p>
           <p className="text-2xl font-bold text-green-400">
-            {promoCodes.reduce((sum, p) => sum + (p.maxUses - p.usedCount), 0)}
+            {promoCodes.reduce((sum, p) => sum + ((p.maxUses || 0) - (p.usedCount || 0)), 0)}
           </p>
         </div>
       </div>

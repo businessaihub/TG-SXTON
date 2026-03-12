@@ -7,7 +7,7 @@ import { Badge } from "../ui/badge";
 import { AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
-const WithdrawalApproval = ({ language = "en" }) => {
+const WithdrawalApproval = ({ adminToken, language = "en" }) => {
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState(null);
@@ -74,7 +74,9 @@ const WithdrawalApproval = ({ language = "en" }) => {
   const loadWithdrawals = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/admin/pending-withdrawals`);
+      const res = await axios.get(`${API}/admin/pending-withdrawals`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
       setWithdrawals(res.data.withdrawals || []);
     } catch (err) {
       console.error("Error loading withdrawals:", err);
@@ -91,7 +93,8 @@ const WithdrawalApproval = ({ language = "en" }) => {
       setProcessing(true);
       await axios.post(
         `${API}/admin/withdrawals/${withdrawalId}/approve`,
-        { admin_notes: adminNotes }
+        { admin_notes: adminNotes },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
       );
       
       setWithdrawals(prev =>
@@ -114,7 +117,8 @@ const WithdrawalApproval = ({ language = "en" }) => {
       setProcessing(true);
       await axios.post(
         `${API}/admin/withdrawals/${withdrawalId}/reject`,
-        { admin_notes: adminNotes }
+        { admin_notes: adminNotes },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
       );
       
       setWithdrawals(prev =>
@@ -197,7 +201,7 @@ const WithdrawalApproval = ({ language = "en" }) => {
                 <div>
                   <div className="text-xs text-gray-500">{labels.amount}</div>
                   <div className="font-bold text-yellow-400 text-lg">
-                    {withdrawal.amount.toFixed(2)} TON
+                    {(withdrawal.amount || 0).toFixed(2)} TON
                   </div>
                 </div>
                 

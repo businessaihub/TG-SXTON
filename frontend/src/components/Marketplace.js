@@ -50,13 +50,18 @@ const Marketplace = ({ user, language }) => {
   }, []);
 
   useEffect(() => {
-    if (featured.length > 1) {
+    if (promoSlides.length > 1) {
       resetFeaturedTimer();
       return () => clearInterval(featuredTimerRef.current);
     }
-  }, [featured.length, resetFeaturedTimer]);
+  }, [promoSlides.length, resetFeaturedTimer]);
 
-  const featuredSlide = featured.length > 0 ? featured[((featuredIndex % featured.length) + featured.length) % featured.length] : null;
+  // Combine featured packs + banners into unified promo slides
+  const promoSlides = [
+    ...featured.map(p => ({ ...p, _type: 'pack' })),
+    ...banners.map(b => ({ ...b, _type: 'banner' }))
+  ];
+  const promoSlide = promoSlides.length > 0 ? promoSlides[((featuredIndex % promoSlides.length) + promoSlides.length) % promoSlides.length] : null;
 
   const goFeatured = (dir) => {
     setFeaturedIndex(prev => prev + dir);
@@ -448,112 +453,93 @@ const Marketplace = ({ user, language }) => {
         </div>
       </div>
 
-      {/* Banner Ads Carousel */}
-      {banners.length > 0 && (
-        <div className="space-y-2 relative z-10 pt-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="text-orange-400" size={16} />
-            <h2 className="text-base font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
-              Promotional Offers
-            </h2>
-          </div>
-          
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {banners.map((banner) => (
-              <a
-                key={banner.id}
-                href={banner.link_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid={`banner-ad-${banner.id}`}
-                className="carousel-card glass-card p-2 min-w-[200px] flex-shrink-0 border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-red-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden"
-              >
-                <div className="cosmic-particles"></div>
-                {banner.cover_image_url && (
-                  <div className="relative mb-1.5 overflow-hidden rounded-lg z-10">
-                    <img
-                      src={banner.cover_image_url}
-                      alt={banner.title}
-                      className="w-full h-20 object-cover"
-                    />
-                  </div>
-                )}
-                <h3 className="font-semibold text-white text-xs mb-0.5 relative z-10 line-clamp-1">{banner.title}</h3>
-                <p className="text-xs text-gray-400 mb-1.5 relative z-10 line-clamp-1">{banner.description}</p>
-                <div className="flex items-center gap-2 relative z-10">
-                  <Badge className="bg-orange-500/20 text-orange-400 text-xs">
-                    {banner.link_type === "channel" ? "📱" : "🌐"}
-                  </Badge>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Featured Banner Carousel */}
-      {featured.length > 0 && featuredSlide && (
-        <div className="relative z-10 pt-1" data-testid="featured-banner">
+      {/* Promotional Carousel (featured packs + banner ads combined) */}
+      {promoSlides.length > 0 && promoSlide && (
+        <div className="relative z-10 pt-2" data-testid="promo-banner">
           <div className="flex items-center gap-1.5 mb-1.5">
-            <Sparkles className="text-yellow-400" size={14} />
+            <Sparkles className="text-orange-400" size={14} />
             <h2 className="text-sm font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
-              {t.marketplace.featured}
+              Promotional
             </h2>
           </div>
 
           <div
             className="relative w-full rounded-xl overflow-hidden border border-white/10 cursor-pointer group"
             style={{ height: '160px' }}
-            onClick={() => handleOpenPackDetails(featuredSlide)}
+            onClick={() => {
+              if (promoSlide._type === 'pack') handleOpenPackDetails(promoSlide);
+              else if (promoSlide.link_url) window.open(promoSlide.link_url, '_blank', 'noopener,noreferrer');
+            }}
             onTouchStart={(e) => { touchStartRef.current = e.touches[0].clientX; }}
             onTouchEnd={(e) => {
               const diff = touchStartRef.current - e.changedTouches[0].clientX;
               if (Math.abs(diff) > 40) { goFeatured(diff > 0 ? 1 : -1); }
             }}
-            data-testid={`featured-pack-${featuredSlide.id}`}
           >
             {/* Background image */}
             <img
-              src={imageErrors[featuredSlide.id] ? FALLBACK_IMAGE : (featuredSlide.image_url || FALLBACK_IMAGE)}
-              alt={featuredSlide.name}
+              src={
+                promoSlide._type === 'pack'
+                  ? (imageErrors[promoSlide.id] ? FALLBACK_IMAGE : (promoSlide.image_url || FALLBACK_IMAGE))
+                  : (promoSlide.cover_image_url || FALLBACK_IMAGE)
+              }
+              alt={promoSlide._type === 'pack' ? promoSlide.name : promoSlide.title}
               className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
-              key={featuredSlide.id}
-              onError={() => setImageErrors(prev => ({...prev, [featuredSlide.id]: true}))}
+              key={promoSlide.id}
+              onError={() => setImageErrors(prev => ({...prev, [promoSlide.id]: true}))}
             />
             {/* Overlay gradient */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
 
-            {/* Content */}
-            <div className="relative z-10 h-full flex flex-col justify-center px-4 py-3">
-              <span className="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold mb-0.5">Featured Pack</span>
-              <h3 className="text-lg font-bold text-white leading-tight mb-1 drop-shadow-lg" style={{ fontFamily: 'Space Grotesk' }}>
-                {featuredSlide.name}
-              </h3>
-              {featuredSlide.rarity && (
-                <Badge className={`w-fit text-[10px] leading-tight px-1.5 py-0 mb-1.5 ${getRarityColor(featuredSlide.rarity)} shadow-lg`}>
-                  {featuredSlide.rarity.toUpperCase()}
-                </Badge>
-              )}
-              <div className="flex items-center gap-2">
-                <span className={`text-sm font-bold ${getPriceColor(featuredSlide.price_type)}`}>
-                  {featuredSlide.price} {featuredSlide.price_type}
-                </span>
-                <span className="text-[10px] text-gray-400">
-                  ≈ ${convertPrice(featuredSlide.price, featuredSlide.price_type)}
-                </span>
+            {/* Content — pack slide */}
+            {promoSlide._type === 'pack' && (
+              <div className="relative z-10 h-full flex flex-col justify-center pl-10 pr-4 py-3">
+                <span className="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold mb-0.5">Featured Pack</span>
+                <h3 className="text-lg font-bold text-white leading-tight mb-1 drop-shadow-lg" style={{ fontFamily: 'Space Grotesk' }}>
+                  {promoSlide.name}
+                </h3>
+                {promoSlide.rarity && (
+                  <Badge className={`w-fit text-[10px] leading-tight px-1.5 py-0 mb-1.5 ${getRarityColor(promoSlide.rarity)} shadow-lg`}>
+                    {promoSlide.rarity.toUpperCase()}
+                  </Badge>
+                )}
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm font-bold ${getPriceColor(promoSlide.price_type)}`}>
+                    {promoSlide.price} {promoSlide.price_type}
+                  </span>
+                  <span className="text-[10px] text-gray-400">
+                    ≈ ${convertPrice(promoSlide.price, promoSlide.price_type)}
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleOpenPackDetails(promoSlide); }}
+                  className="mt-2 w-fit bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg h-7 px-3 text-xs"
+                >
+                  <Package size={12} className="mr-1" />
+                  View Pack
+                </Button>
               </div>
-              <Button
-                size="sm"
-                onClick={(e) => { e.stopPropagation(); handleOpenPackDetails(featuredSlide); }}
-                className="mt-2 w-fit bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg h-7 px-3 text-xs"
-              >
-                <Package size={12} className="mr-1" />
-                View Pack
-              </Button>
-            </div>
+            )}
+
+            {/* Content — banner/ad slide */}
+            {promoSlide._type === 'banner' && (
+              <div className="relative z-10 h-full flex flex-col justify-center pl-10 pr-4 py-3">
+                <span className="text-[10px] uppercase tracking-widest text-orange-400 font-semibold mb-0.5">Promo</span>
+                <h3 className="text-lg font-bold text-white leading-tight mb-1 drop-shadow-lg" style={{ fontFamily: 'Space Grotesk' }}>
+                  {promoSlide.title}
+                </h3>
+                {promoSlide.description && (
+                  <p className="text-xs text-gray-300 mb-2 line-clamp-2">{promoSlide.description}</p>
+                )}
+                <Badge className="w-fit bg-orange-500/20 text-orange-400 text-[10px] px-1.5 py-0">
+                  {promoSlide.link_type === 'channel' ? '📱 Channel' : '🌐 Website'}
+                </Badge>
+              </div>
+            )}
 
             {/* Arrow buttons */}
-            {featured.length > 1 && (
+            {promoSlides.length > 1 && (
               <>
                 <button
                   onClick={(e) => { e.stopPropagation(); goFeatured(-1); }}
@@ -571,14 +557,14 @@ const Marketplace = ({ user, language }) => {
             )}
 
             {/* Dots indicator */}
-            {featured.length > 1 && (
+            {promoSlides.length > 1 && (
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
-                {featured.map((_, i) => (
+                {promoSlides.map((_, i) => (
                   <button
                     key={i}
                     onClick={(e) => { e.stopPropagation(); setFeaturedIndex(i); resetFeaturedTimer(); }}
                     className={`rounded-full transition-all duration-300 ${
-                      i === ((featuredIndex % featured.length) + featured.length) % featured.length
+                      i === ((featuredIndex % promoSlides.length) + promoSlides.length) % promoSlides.length
                         ? 'w-4 h-1.5 bg-cyan-400'
                         : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/60'
                     }`}

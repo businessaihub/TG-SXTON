@@ -2079,6 +2079,41 @@ async def admin_create_promo_code(body: dict):
     return code_doc
 
 
+# ============ PROMO CODE VALIDATION (USER-FACING) ============
+@api_router.post("/promo-codes/validate")
+async def validate_promo_code(code: str):
+    promo = await db.promo_codes.find_one({"code": code.upper()})
+    if not promo:
+        raise HTTPException(status_code=404, detail="Invalid promo code")
+    if not promo.get("isActive", False):
+        raise HTTPException(status_code=400, detail="This promo code is no longer active")
+    if promo.get("usedCount", 0) >= promo.get("maxUses", 0):
+        raise HTTPException(status_code=400, detail="This promo code has been fully used")
+    if promo.get("expiresAt"):
+        try:
+            expires = datetime.fromisoformat(promo["expiresAt"].replace("Z", "+00:00"))
+            if expires < datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="This promo code has expired")
+        except (ValueError, TypeError):
+            pass
+
+    # Increment usage count
+    await db.promo_codes.update_one(
+        {"code": code.upper()},
+        {"$inc": {"usedCount": 1}}
+    )
+
+    return {
+        "success": True,
+        "promoType": promo.get("promoType", "discount"),
+        "discount": promo.get("discount", 0),
+        "discountType": promo.get("discountType", "percent"),
+        "sxtonAmount": promo.get("sxtonAmount", 0),
+        "stickerRarity": promo.get("stickerRarity", "common"),
+        "packId": promo.get("packId", ""),
+    }
+
+
 # ============ ADMIN: WITHDRAWAL APPROVALS ============
 @api_router.get("/admin/pending-withdrawals", dependencies=[Depends(verify_admin)])
 async def admin_pending_withdrawals():

@@ -1,0 +1,6 @@
+{
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npx craco build",
+  "outputDirectory": "build",
+  "framework": null
+}

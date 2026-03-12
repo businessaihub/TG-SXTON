@@ -16,6 +16,7 @@ const MiniApp = ({ isAdmin }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem("splash_shown"));
+  const [splashTimerDone, setSplashTimerDone] = useState(false);
   const [currentTab, setCurrentTab] = useState("marketplace");
   const [user, setUser] = useState(null);
   const [language, setLanguage] = useState(() => {
@@ -137,9 +138,16 @@ const MiniApp = ({ isAdmin }) => {
   };
 
   const handleSplashFinish = useCallback(() => {
-    sessionStorage.setItem("splash_shown", "1");
-    setShowSplash(false);
+    setSplashTimerDone(true);
   }, []);
+
+  // Close splash only when BOTH timer done AND user loaded
+  useEffect(() => {
+    if (splashTimerDone && user) {
+      sessionStorage.setItem("splash_shown", "1");
+      setShowSplash(false);
+    }
+  }, [splashTimerDone, user]);
 
   if (showSplash) {
     return <SplashScreen onFinish={handleSplashFinish} />;

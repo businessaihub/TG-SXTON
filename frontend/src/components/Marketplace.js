@@ -146,11 +146,12 @@ const Marketplace = ({ user, language }) => {
         setCriticalError("Failed to load packs. Please try again later.");
         setPacks([]);
       } else {
-        setPacks(response.data);
+        setPacks(Array.isArray(response.data) ? response.data : []);
       }
       setLoading(false);
     } catch (error) {
       setCriticalError("Failed to load packs. Please try again later.");
+      setPacks([]);
       setLoading(false);
     }
   };
@@ -162,10 +163,11 @@ const Marketplace = ({ user, language }) => {
         setCriticalError("Failed to load featured packs.");
         setFeatured([]);
       } else {
-        setFeatured(response.data);
+        setFeatured(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       setCriticalError("Failed to load featured packs.");
+      setFeatured([]);
     }
   };
 
@@ -176,11 +178,14 @@ const Marketplace = ({ user, language }) => {
         setCriticalError("Failed to load banners.");
         setBanners([]);
       } else {
-        const activeBanners = response.data.filter(b => b.is_active).sort((a, b) => a.position - b.position);
+        const activeBanners = Array.isArray(response.data)
+          ? response.data.filter(b => b && b.is_active).sort((a, b) => a.position - b.position)
+          : [];
         setBanners(activeBanners);
       }
     } catch (error) {
       setCriticalError("Failed to load banners.");
+      setBanners([]);
     }
   };
 
@@ -487,7 +492,9 @@ const Marketplace = ({ user, language }) => {
     <div className="space-y-3 relative" data-testid="marketplace-container">
       {criticalError ? (
         <div className="bg-red-900 text-white p-4 rounded-lg text-center mt-6">
-          {criticalError}
+          <h2 className="text-lg font-bold mb-2">Market Unavailable</h2>
+          <p>{criticalError}</p>
+          <p className="mt-2 text-sm text-gray-200">Please try again later or contact support if the issue persists.</p>
         </div>
       ) : (
         <>
@@ -524,7 +531,7 @@ const Marketplace = ({ user, language }) => {
           </div>
 
           {/* Promotional Carousel (featured packs + banner ads combined) */}
-          {promoSlides.length > 0 && promoSlide && (
+          {promoSlides && Array.isArray(promoSlides) && promoSlides.length > 0 && promoSlide && (
             <div className="relative z-10 pt-2" data-testid="promo-banner">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Sparkles className="text-orange-400" size={14} />

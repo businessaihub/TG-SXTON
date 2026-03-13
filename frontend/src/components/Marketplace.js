@@ -312,6 +312,7 @@ const Marketplace = ({ user, language }) => {
     setBuyingPackId(pack.id);
 
     try {
+      let response;
       if (paymentType === "TON" && wallet) {
         // Real TON payment via TonConnect
         const commentText = `pack:${pack.id}:${user.id}`;
@@ -325,10 +326,8 @@ const Marketplace = ({ user, language }) => {
             },
           ],
         };
-
         const result = await sendTransaction(transaction);
-
-        await axios.post(`${API}/buy/pack`, {
+        response = await axios.post(`${API}/buy/pack`, {
           user_id: user.id,
           pack_id: pack.id,
           payment_type: "TON",
@@ -336,21 +335,42 @@ const Marketplace = ({ user, language }) => {
         });
       } else {
         // SXTON or STARS — internal balance purchase (no TonConnect needed)
-        await axios.post(`${API}/buy/pack`, {
+        response = await axios.post(`${API}/buy/pack`, {
           user_id: user.id,
           pack_id: pack.id,
           payment_type: paymentType,
         });
       }
 
-      toast.success(`✨ ${t.marketplace.purchased} ${pack.name}!`, {
-        style: {
-          background: "linear-gradient(to right, #10b981, #059669)",
-          color: "#fff",
-        },
-      });
+      // Update user balance and stickers after SXTON/STARS purchase
+      if (response.data && response.data.success) {
+        toast.success(`✨ ${t.marketplace.purchased} ${pack.name}!`, {
+          style: {
+            background: "linear-gradient(to right, #10b981, #059669)",
+            color: "#fff",
+          },
+        });
 
-      setTimeout(() => window.location.reload(), 1500);
+        // Fetch updated user info (balance)
+        const userRes = await axios.get(`${API}/user/${user.id}`);
+        setUser(userRes.data);
+
+        // Fetch updated stickers
+        const stickersRes = await axios.get(`${API}/user/${user.id}/stickers`);
+        if (stickersRes.data) {
+          setUserStickers(stickersRes.data);
+        }
+
+        setBuyingPackId(null);
+        setShowPackDetails(false);
+      } else {
+        toast.error(t.marketplace.purchaseFailed || "Purchase failed");
+      }
+    } catch (error) {
+      setBuyingPackId(null);
+      setShowPackDetails(false);
+      toast.error(error.response?.data?.detail || t.marketplace.purchaseFailed || "Purchase failed");
+    }
     try {
       let response;
       if (paymentType === "TON" && wallet) {

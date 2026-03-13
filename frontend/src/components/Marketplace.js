@@ -142,10 +142,15 @@ const Marketplace = ({ user, language }) => {
   const fetchPacks = async () => {
     try {
       const response = await axios.get(`${API}/packs?filter_type=${filter}`);
-      setPacks(response.data);
+      if (!response.data || !Array.isArray(response.data)) {
+        setCriticalError("Failed to load packs. Please try again later.");
+        setPacks([]);
+      } else {
+        setPacks(response.data);
+      }
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching packs:", error);
+      setCriticalError("Failed to load packs. Please try again later.");
       setLoading(false);
     }
   };
@@ -153,20 +158,29 @@ const Marketplace = ({ user, language }) => {
   const fetchFeatured = async () => {
     try {
       const response = await axios.get(`${API}/packs/featured`);
-      setFeatured(response.data);
+      if (!response.data || !Array.isArray(response.data)) {
+        setCriticalError("Failed to load featured packs.");
+        setFeatured([]);
+      } else {
+        setFeatured(response.data);
+      }
     } catch (error) {
-      console.error("Error fetching featured:", error);
+      setCriticalError("Failed to load featured packs.");
     }
   };
 
   const fetchBanners = async () => {
     try {
       const response = await axios.get(`${API}/banners`);
-      // Filter only active banners and sort by position
-      const activeBanners = response.data.filter(b => b.is_active).sort((a, b) => a.position - b.position);
-      setBanners(activeBanners);
+      if (!response.data || !Array.isArray(response.data)) {
+        setCriticalError("Failed to load banners.");
+        setBanners([]);
+      } else {
+        const activeBanners = response.data.filter(b => b.is_active).sort((a, b) => a.position - b.position);
+        setBanners(activeBanners);
+      }
     } catch (error) {
-      console.error("Error fetching banners:", error);
+      setCriticalError("Failed to load banners.");
     }
   };
 
@@ -471,159 +485,167 @@ const Marketplace = ({ user, language }) => {
 
   return (
     <div className="space-y-3 relative" data-testid="marketplace-container">
-      {/* Cosmic background */}
-      <div className="cosmic-bg-subtle"></div>
-      
-      {/* Header with Live Stats */}
-      <div className="pt-2 relative z-10">
-        {/* Brand Title */}
-        <div className="text-center mb-3">
-          <h1 className="text-xl font-semibold" style={{ fontFamily: 'Space Grotesk', letterSpacing: '1.5px' }}>
-            <span className="text-white">SXT</span><span className="text-cyan-400">ON</span>
-          </h1>
+      {criticalError ? (
+        <div className="bg-red-900 text-white p-4 rounded-lg text-center mt-6">
+          {criticalError}
         </div>
-        
-        {/* Activity Indicators */}
-        <div className="flex gap-1.5 mb-4 justify-center items-center">
-          <div className="glass-card px-2 py-1 flex items-center gap-1.5 border border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 relative overflow-hidden">
-            <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse relative z-10"></div>
-            <span className="text-green-400 font-semibold text-xs relative z-10">{onlineUsers}</span>
-            <span className="text-gray-400 text-[10px] relative z-10">online</span>
+      ) : (
+        <>
+          {/* Cosmic background */}
+          <div className="cosmic-bg-subtle"></div>
+          
+          {/* Header with Live Stats */}
+          <div className="pt-2 relative z-10">
+            {/* Brand Title */}
+            <div className="text-center mb-3">
+              <h1 className="text-xl font-semibold" style={{ fontFamily: 'Space Grotesk', letterSpacing: '1.5px' }}>
+                <span className="text-white">SXT</span><span className="text-cyan-400">ON</span>
+              </h1>
+            </div>
+            
+            {/* Activity Indicators */}
+            <div className="flex gap-1.5 mb-4 justify-center items-center">
+              <div className="glass-card px-2 py-1 flex items-center gap-1.5 border border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 relative overflow-hidden">
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse relative z-10"></div>
+                <span className="text-green-400 font-semibold text-xs relative z-10">{onlineUsers}</span>
+                <span className="text-gray-400 text-[10px] relative z-10">online</span>
+              </div>
+              <div className="glass-card px-2 py-1 flex items-center gap-1.5 border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 relative overflow-hidden">
+                <ActivityIcon className="text-cyan-400 relative z-10" size={12} />
+                <span className="text-cyan-400 font-semibold text-xs relative z-10">{tradingVolume}</span>
+                <span className="text-gray-400 text-[10px] relative z-10">TON</span>
+              </div>
+              <div className="glass-card px-2 py-1 flex items-center gap-1.5 border border-yellow-500/30 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 relative overflow-hidden">
+                <Flame className="text-yellow-400 relative z-10" size={12} />
+                <span className="text-yellow-400 font-semibold text-xs relative z-10">{activeTraders}</span>
+                <span className="text-gray-400 text-[10px] relative z-10">trading</span>
+              </div>
+            </div>
           </div>
-          <div className="glass-card px-2 py-1 flex items-center gap-1.5 border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 relative overflow-hidden">
-            <ActivityIcon className="text-cyan-400 relative z-10" size={12} />
-            <span className="text-cyan-400 font-semibold text-xs relative z-10">{tradingVolume}</span>
-            <span className="text-gray-400 text-[10px] relative z-10">TON</span>
-          </div>
-          <div className="glass-card px-2 py-1 flex items-center gap-1.5 border border-yellow-500/30 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 relative overflow-hidden">
-            <Flame className="text-yellow-400 relative z-10" size={12} />
-            <span className="text-yellow-400 font-semibold text-xs relative z-10">{activeTraders}</span>
-            <span className="text-gray-400 text-[10px] relative z-10">trading</span>
-          </div>
-        </div>
-      </div>
 
-      {/* Promotional Carousel (featured packs + banner ads combined) */}
-      {promoSlides.length > 0 && promoSlide && (
-        <div className="relative z-10 pt-2" data-testid="promo-banner">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Sparkles className="text-orange-400" size={14} />
-            <h2 className="text-sm font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
-              Promotional
-            </h2>
-          </div>
+          {/* Promotional Carousel (featured packs + banner ads combined) */}
+          {promoSlides.length > 0 && promoSlide && (
+            <div className="relative z-10 pt-2" data-testid="promo-banner">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Sparkles className="text-orange-400" size={14} />
+                <h2 className="text-sm font-semibold text-white" style={{ fontFamily: 'Space Grotesk' }}>
+                  Promotional
+                </h2>
+              </div>
 
-          <div
-            className="relative w-full rounded-xl overflow-hidden border border-white/10 cursor-pointer group"
-            style={{ height: '160px' }}
-            onClick={() => {
-              if (promoSlide._type === 'pack') handleOpenPackDetails(promoSlide);
-              else if (promoSlide.link_url) window.open(promoSlide.link_url, '_blank', 'noopener,noreferrer');
-            }}
-            onTouchStart={(e) => { touchStartRef.current = e.touches[0].clientX; }}
-            onTouchEnd={(e) => {
-              const diff = touchStartRef.current - e.changedTouches[0].clientX;
-              if (Math.abs(diff) > 40) { goFeatured(diff > 0 ? 1 : -1); }
-            }}
-          >
-            {/* Background image */}
-            <img
-              src={
-                promoSlide._type === 'pack'
-                  ? (imageErrors[promoSlide.id] ? FALLBACK_IMAGE : (promoSlide.image_url || FALLBACK_IMAGE))
-                  : (promoSlide.cover_image_url || FALLBACK_IMAGE)
-              }
-              alt={promoSlide._type === 'pack' ? promoSlide.name : promoSlide.title}
-              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
-              key={promoSlide.id}
-              onError={() => setImageErrors(prev => ({...prev, [promoSlide.id]: true}))}
-            />
-            {/* Overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
+              <div
+                className="relative w-full rounded-xl overflow-hidden border border-white/10 cursor-pointer group"
+                style={{ height: '160px' }}
+                onClick={() => {
+                  if (promoSlide._type === 'pack') handleOpenPackDetails(promoSlide);
+                  else if (promoSlide.link_url) window.open(promoSlide.link_url, '_blank', 'noopener,noreferrer');
+                }}
+                onTouchStart={(e) => { touchStartRef.current = e.touches[0].clientX; }}
+                onTouchEnd={(e) => {
+                  const diff = touchStartRef.current - e.changedTouches[0].clientX;
+                  if (Math.abs(diff) > 40) { goFeatured(diff > 0 ? 1 : -1); }
+                }}
+              >
+                {/* Background image */}
+                <img
+                  src={
+                    promoSlide._type === 'pack'
+                      ? (imageErrors[promoSlide.id] ? FALLBACK_IMAGE : (promoSlide.image_url || FALLBACK_IMAGE))
+                      : (promoSlide.cover_image_url || FALLBACK_IMAGE)
+                  }
+                  alt={promoSlide._type === 'pack' ? promoSlide.name : promoSlide.title}
+                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+                  key={promoSlide.id}
+                  onError={() => setImageErrors(prev => ({...prev, [promoSlide.id]: true}))}
+                />
+                {/* Overlay gradient */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
 
-            {/* Content — pack slide */}
-            {promoSlide._type === 'pack' && (
-              <div className="relative z-10 h-full flex flex-col justify-center pl-10 pr-4 py-3">
-                <span className="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold mb-0.5">Featured Pack</span>
-                <h3 className="text-lg font-bold text-white leading-tight mb-1 drop-shadow-lg" style={{ fontFamily: 'Space Grotesk' }}>
-                  {promoSlide.name}
-                </h3>
-                {promoSlide.rarity && (
-                  <Badge className={`w-fit text-[10px] leading-tight px-1.5 py-0 mb-1.5 ${getRarityColor(promoSlide.rarity)} shadow-lg`}>
-                    {promoSlide.rarity.toUpperCase()}
-                  </Badge>
+                {/* Content — pack slide */}
+                {promoSlide._type === 'pack' && (
+                  <div className="relative z-10 h-full flex flex-col justify-center pl-10 pr-4 py-3">
+                    <span className="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold mb-0.5">Featured Pack</span>
+                    <h3 className="text-lg font-bold text-white leading-tight mb-1 drop-shadow-lg" style={{ fontFamily: 'Space Grotesk' }}>
+                      {promoSlide.name}
+                    </h3>
+                    {promoSlide.rarity && (
+                      <Badge className={`w-fit text-[10px] leading-tight px-1.5 py-0 mb-1.5 ${getRarityColor(promoSlide.rarity)} shadow-lg`}>
+                        {promoSlide.rarity.toUpperCase()}
+                      </Badge>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-bold ${getPriceColor(promoSlide.price_type)}`}>
+                        {promoSlide.price} {promoSlide.price_type}
+                      </span>
+                      <span className="text-[10px] text-gray-400">
+                        ≈ ${convertPrice(promoSlide.price, promoSlide.price_type)}
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); handleOpenPackDetails(promoSlide); }}
+                      className="mt-2 w-fit bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg h-7 px-3 text-xs"
+                    >
+                      <Package size={12} className="mr-1" />
+                      View Pack
+                    </Button>
+                  </div>
                 )}
-                <div className="flex items-center gap-2">
-                  <span className={`text-sm font-bold ${getPriceColor(promoSlide.price_type)}`}>
-                    {promoSlide.price} {promoSlide.price_type}
-                  </span>
-                  <span className="text-[10px] text-gray-400">
-                    ≈ ${convertPrice(promoSlide.price, promoSlide.price_type)}
-                  </span>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); handleOpenPackDetails(promoSlide); }}
-                  className="mt-2 w-fit bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg h-7 px-3 text-xs"
-                >
-                  <Package size={12} className="mr-1" />
-                  View Pack
-                </Button>
-              </div>
-            )}
 
-            {/* Content — banner/ad slide */}
-            {promoSlide._type === 'banner' && (
-              <div className="relative z-10 h-full flex flex-col justify-center pl-10 pr-4 py-3">
-                <span className="text-[10px] uppercase tracking-widest text-orange-400 font-semibold mb-0.5">Promo</span>
-                <h3 className="text-lg font-bold text-white leading-tight mb-1 drop-shadow-lg" style={{ fontFamily: 'Space Grotesk' }}>
-                  {promoSlide.title}
-                </h3>
-                {promoSlide.description && (
-                  <p className="text-xs text-gray-300 mb-2 line-clamp-2">{promoSlide.description}</p>
+                {/* Content — banner/ad slide */}
+                {promoSlide._type === 'banner' && (
+                  <div className="relative z-10 h-full flex flex-col justify-center pl-10 pr-4 py-3">
+                    <span className="text-[10px] uppercase tracking-widest text-orange-400 font-semibold mb-0.5">Promo</span>
+                    <h3 className="text-lg font-bold text-white leading-tight mb-1 drop-shadow-lg" style={{ fontFamily: 'Space Grotesk' }}>
+                      {promoSlide.title}
+                    </h3>
+                    {promoSlide.description && (
+                      <p className="text-xs text-gray-300 mb-2 line-clamp-2">{promoSlide.description}</p>
+                    )}
+                    <Badge className="w-fit bg-orange-500/20 text-orange-400 text-[10px] px-1.5 py-0">
+                      {promoSlide.link_type === 'channel' ? '📱 Channel' : '🌐 Website'}
+                    </Badge>
+                  </div>
                 )}
-                <Badge className="w-fit bg-orange-500/20 text-orange-400 text-[10px] px-1.5 py-0">
-                  {promoSlide.link_type === 'channel' ? '📱 Channel' : '🌐 Website'}
-                </Badge>
-              </div>
-            )}
 
-            {/* Arrow buttons */}
-            {promoSlides.length > 1 && (
-              <>
-                <button
-                  onClick={(e) => { e.stopPropagation(); goFeatured(-1); }}
-                  className="absolute left-1.5 top-1/2 -translate-y-1/2 p-1 rounded-full bg-black/40 hover:bg-black/70 text-white/70 hover:text-white transition-colors z-20"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); goFeatured(1); }}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-full bg-black/40 hover:bg-black/70 text-white/70 hover:text-white transition-colors z-20"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </>
-            )}
+                {/* Arrow buttons */}
+                {promoSlides.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); goFeatured(-1); }}
+                      className="absolute left-1.5 top-1/2 -translate-y-1/2 p-1 rounded-full bg-black/40 hover:bg-black/70 text-white/70 hover:text-white transition-colors z-20"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); goFeatured(1); }}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-full bg-black/40 hover:bg-black/70 text-white/70 hover:text-white transition-colors z-20"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </>
+                )}
 
-            {/* Dots indicator */}
-            {promoSlides.length > 1 && (
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
-                {promoSlides.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={(e) => { e.stopPropagation(); setFeaturedIndex(i); resetFeaturedTimer(); }}
-                    className={`rounded-full transition-all duration-300 ${
-                      i === ((featuredIndex % promoSlides.length) + promoSlides.length) % promoSlides.length
-                        ? 'w-4 h-1.5 bg-cyan-400'
-                        : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/60'
-                    }`}
-                  />
-                ))}
+                {/* Dots indicator */}
+                {promoSlides.length > 1 && (
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                    {promoSlides.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={(e) => { e.stopPropagation(); setFeaturedIndex(i); resetFeaturedTimer(); }}
+                        className={`rounded-full transition-all duration-300 ${
+                          i === ((featuredIndex % promoSlides.length) + promoSlides.length) % promoSlides.length
+                            ? 'w-4 h-1.5 bg-cyan-400'
+                            : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/60'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Filters & Sorting */}

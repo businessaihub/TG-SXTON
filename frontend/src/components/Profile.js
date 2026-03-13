@@ -255,6 +255,10 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   const handleDisconnect = async () => {
     try {
       await disconnectWallet();
+      // Clear wallet on backend so it doesn't reappear on reload
+      if (user?.id) {
+        await axios.post(`${API}/wallet/disconnect?user_id=${user.id}`).catch(() => {});
+      }
       setUser({ ...user, wallet_address: null });
       toast.success(t.profile.walletDisconnected);
     } catch (error) {
@@ -266,7 +270,9 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   useEffect(() => {
     if (wallet && user?.id) {
       const address = wallet.account?.address || "";
-      if (address && address !== user.wallet_address) {
+      // Only sync if wallet has an address AND user doesn't already have it
+      // Skip if user.wallet_address is null (user intentionally disconnected)
+      if (address && user.wallet_address !== null && address !== user.wallet_address) {
         axios.post(`${API}/wallet/connect?user_id=${user.id}&wallet_address=${address}`)
           .then(() => setUser(prev => ({ ...prev, wallet_address: address })))
           .catch(e => console.error("Failed to sync wallet", e));
@@ -498,21 +504,17 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
             </Button>
           </div>
         </div>
-      </div>
 
-      {/* ═══════ DAILY REWARD ═══════ */}
-      <div className="glass-card rounded-lg border border-white/10 overflow-hidden">
-        <div className="px-3 py-2.5">
+      {/* ═══════ DAILY REWARD (inside main card) ═══════ */}
+        <div className="px-3 py-2 border-t border-white/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                <Gift size={16} className="text-white" />
-              </div>
+              <Gift size={14} className="text-amber-400 flex-shrink-0" />
               <div>
                 <div className="text-xs font-bold text-white">Daily Reward</div>
                 {dailyStatus && (
                   <div className="text-[10px] text-gray-400">
-                    Streak: {dailyStatus.streak} days • Day {dailyStatus.day_in_cycle}/7
+                    Streak: {dailyStatus.streak} • Day {dailyStatus.day_in_cycle}/7
                   </div>
                 )}
               </div>
@@ -527,7 +529,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                 size="sm"
                 disabled={loadingDaily || claimingDaily || (dailyStatus && !dailyStatus.available)}
                 onClick={handleClaimDaily}
-                className={`h-7 text-xs px-3 ${
+                className={`h-6 text-[11px] px-2 ${
                   dailyStatus?.available
                     ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white btn-animated"
                     : "bg-gray-600 text-gray-400 cursor-not-allowed"
@@ -539,11 +541,11 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
           </div>
           {/* Streak dots */}
           {dailyStatus && (
-            <div className="flex gap-1 mt-2 justify-center">
+            <div className="flex gap-1 mt-1.5 justify-center">
               {[1, 2, 3, 4, 5, 6, 7].map(day => (
                 <div
                   key={day}
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border ${
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold border ${
                     day <= (dailyStatus.streak % 7 || (dailyStatus.streak > 0 ? 7 : 0))
                       ? "bg-amber-500/30 border-amber-500 text-amber-400"
                       : day === ((dailyStatus.streak % 7) + 1) && dailyStatus.available
@@ -557,54 +559,44 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
             </div>
           )}
         </div>
-      </div>
 
-      {/* ═══════ REFERRALS ═══════ */}
-      <div className="glass-card rounded-lg border border-white/10 overflow-hidden">
-        <div className="px-3 py-2.5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
-              <Users size={16} className="text-white" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs font-bold text-white">Referrals</div>
-              <div className="text-[10px] text-gray-400">Earn 500 SXTON per friend</div>
+        {/* ═══════ REFERRALS (inside main card) ═══════ */}
+        <div className="px-3 py-2 border-t border-white/10">
+          <div className="flex items-center gap-2">
+            <Users size={14} className="text-blue-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold text-white">Referrals <span className="text-[10px] text-gray-400 font-normal">• 500 SXTON/friend</span></div>
             </div>
             {referralInfo && (
-              <div className="text-right">
-                <div className="text-sm font-bold text-blue-400">{referralInfo.referral_count}</div>
-                <div className="text-[10px] text-gray-500">invited</div>
+              <div className="text-right flex-shrink-0">
+                <span className="text-xs font-bold text-blue-400">{referralInfo.referral_count}</span>
+                <span className="text-[10px] text-gray-500 ml-1">invited</span>
               </div>
             )}
           </div>
           {referralInfo && (
-            <>
-              <div className="flex items-center gap-1.5 bg-white/5 rounded-lg p-2 border border-white/10">
-                <span className="text-[10px] text-gray-400 truncate flex-1 font-mono">
-                  {referralInfo.referral_link}
-                </span>
-                <button
-                  onClick={handleCopyReferral}
-                  className="p-1.5 hover:bg-white/10 rounded transition flex-shrink-0"
-                >
-                  <Copy size={14} className="text-cyan-400" />
-                </button>
-                <button
-                  onClick={handleShareReferral}
-                  className="p-1.5 hover:bg-white/10 rounded transition flex-shrink-0"
-                >
-                  <Share2 size={14} className="text-blue-400" />
-                </button>
-              </div>
-              {referralInfo.total_earned > 0 && (
-                <div className="text-[10px] text-gray-400 mt-1.5 text-center">
-                  Total earned: <span className="text-purple-400 font-bold">{referralInfo.total_earned} SXTON</span>
-                </div>
-              )}
-            </>
+            <div className="flex items-center gap-1.5 bg-white/5 rounded-lg p-1.5 border border-white/10 mt-1.5">
+              <span className="text-[9px] text-gray-400 truncate flex-1 font-mono">
+                {referralInfo.referral_link}
+              </span>
+              <button
+                onClick={handleCopyReferral}
+                className="p-1 hover:bg-white/10 rounded transition flex-shrink-0"
+              >
+                <Copy size={12} className="text-cyan-400" />
+              </button>
+              <button
+                onClick={handleShareReferral}
+                className="p-1 hover:bg-white/10 rounded transition flex-shrink-0"
+              >
+                <Share2 size={12} className="text-blue-400" />
+              </button>
+            </div>
           )}
-          {loadingReferral && (
-            <div className="text-center text-gray-500 text-xs py-2">Loading...</div>
+          {referralInfo?.total_earned > 0 && (
+            <div className="text-[10px] text-gray-400 mt-1 text-center">
+              Earned: <span className="text-purple-400 font-bold">{referralInfo.total_earned} SXTON</span>
+            </div>
           )}
         </div>
       </div>

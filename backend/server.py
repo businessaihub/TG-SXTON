@@ -608,6 +608,17 @@ async def connect_wallet(user_id: str, wallet_address: str):
         raise HTTPException(status_code=404, detail="User not found")
     return {"success": True, "wallet_address": wallet_address}
 
+@api_router.post("/wallet/disconnect")
+async def disconnect_wallet(user_id: str):
+    """Disconnect wallet — clear wallet_address in DB"""
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"wallet_address": None}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True}
+
 @api_router.post("/wallet/mock-balance")
 async def mock_balance_update(user_id: str, ton: float = 0, stars: float = 0, points: float = 0):
     """Mock balance update for testing"""

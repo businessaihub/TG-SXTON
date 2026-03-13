@@ -816,7 +816,7 @@ const Marketplace = ({ user, language }) => {
                   onError={() => setImageErrors({...imageErrors, [pack.id]: true})}
                 />
                 {pack.rarity && (
-                  <Badge className={`absolute top-1 left-1 text-[10px] leading-tight px-1 py-0 ${getRarityColor(pack.rarity)} shadow-lg`}>
+                  <Badge className={`absolute top-1 left-1 text-[10px] leading-tight px-1 py-0 ${getRarityColor(pack.rarity)}`}>
                     {pack.rarity}
                   </Badge>
                 )}

@@ -351,46 +351,66 @@ const Marketplace = ({ user, language }) => {
       });
 
       setTimeout(() => window.location.reload(), 1500);
+    try {
+      let response;
+      if (paymentType === "TON" && wallet) {
+        // Real TON payment via TonConnect
+        const commentText = `pack:${pack.id}:${user.id}`;
+        const transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 600,
+          messages: [
+            {
+              address: process.env.REACT_APP_ADMIN_WALLET || "EQDrzVBj0qF2cBkuGyy0D-ChwQJpIcqLkf5_DvyXqgOTMwt8",
+              amount: String(Math.floor(pack.price * 1e9)),
+              payload: btoa(commentText),
+            },
+          ],
+        };
+        const result = await sendTransaction(transaction);
+        response = await axios.post(`${API}/buy/pack`, {
+          user_id: user.id,
+          pack_id: pack.id,
+          payment_type: "TON",
+          transaction_hash: result.boc || result,
+        });
+      } else {
+        // SXTON or STARS — internal balance purchase (no TonConnect needed)
+        response = await axios.post(`${API}/buy/pack`, {
+          user_id: user.id,
+          pack_id: pack.id,
+          payment_type: paymentType,
+        });
+      }
+
+      // Update user balance and stickers after SXTON/STARS purchase
+      if (response.data && response.data.success) {
+        toast.success(`✨ ${t.marketplace.purchased} ${pack.name}!`, {
+          style: {
+            background: "linear-gradient(to right, #10b981, #059669)",
+            color: "#fff",
+          },
+        });
+
+        // Fetch updated user info (balance)
+        const userRes = await axios.get(`${API}/user/${user.id}`);
+        setUser(userRes.data);
+
+        // Fetch updated stickers
+        const stickersRes = await axios.get(`${API}/user/${user.id}/stickers`);
+        if (stickersRes.data) {
+          setUserStickers(stickersRes.data);
+        }
+
+        setBuyingPackId(null);
+        setShowPackDetails(false);
+      } else {
+        toast.error(t.marketplace.purchaseFailed || "Purchase failed");
+      }
     } catch (error) {
-      console.error("Purchase error:", error);
-      const errorMessage =
-        error.response?.data?.detail ||
-        error.message ||
-        t.marketplace.purchaseError;
-      toast.error(errorMessage, {
-        style: {
-          background: "linear-gradient(to right, #ef4444, #dc2626)",
-          color: "#fff",
-        },
-      });
-    } finally {
       setBuyingPackId(null);
+      setShowPackDetails(false);
+      toast.error(error.response?.data?.detail || t.marketplace.purchaseFailed || "Purchase failed");
     }
-  };
-
-  const getRarityColor = (rarity) => {
-    switch (rarity) {
-      case "legendary": return "bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500";
-      case "epic": return "bg-gradient-to-r from-purple-500 via-pink-500 to-fuchsia-500";
-      case "rare": return "bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500";
-      default: return "bg-gradient-to-r from-gray-500 to-slate-600";
-    }
-  };
-
-  const getPriceColor = (priceType) => {
-    switch (priceType) {
-      case "STARS": return "bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 bg-clip-text text-transparent";
-      case "SXTON": return "bg-gradient-to-r from-purple-500 via-pink-500 to-fuchsia-500 bg-clip-text text-transparent";
-      case "TON": return "bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent";
-      default: return "bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent";
-    }
-  };
-
-  // Live pricing rates (you can update these dynamically from API)
-  const PRICE_RATES = {
-    TON: 5.2,      // 1 TON = $5.2 USD
-    STARS: 0.02,   // 1 STAR = $0.02 USD
-    SXTON: 0.15    // 1 SXTON = $0.15 USD
   };
 
   const convertPrice = (price, priceType, toCurrency = "USD") => {

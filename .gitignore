@@ -97,8 +97,7 @@ android-sdk/ -e
 # Environment files
 *.env
 *.env.*
--e 
-# Environment files
-*.env
-*.env.*
 .env*.local
+
+# Un-ignore backend data file
+!backend/data/data_store.json

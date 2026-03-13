@@ -298,39 +298,50 @@ const Marketplace = ({ user, language }) => {
       return;
     }
 
-    // Check if wallet is connected
-    if (!wallet) {
-      toast.info("🔗 Connecting TON wallet...");
-      await connectWallet();
-      return;
+    const paymentType = pack.price_type || "TON";
+
+    // Only require TonConnect wallet for real TON payments
+    if (paymentType === "TON") {
+      if (!wallet) {
+        toast.info("🔗 Connecting TON wallet...");
+        await connectWallet();
+        return;
+      }
     }
 
     setBuyingPackId(pack.id);
 
     try {
-      // Create transaction payload
-      const commentText = `pack:${pack.id}:${user.id}`;
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
-        messages: [
-          {
-            address: process.env.REACT_APP_ADMIN_WALLET || "EQDrzVBj0qF2cBkuGyy0D-ChwQJpIcqLkf5_DvyXqgOTMwt8", // Admin wallet address
-            amount: String(Math.floor(pack.price * 1e9)), // Convert TON to nanoTON
-            payload: btoa(commentText), // Encode as base64
-          },
-        ],
-      };
+      if (paymentType === "TON" && wallet) {
+        // Real TON payment via TonConnect
+        const commentText = `pack:${pack.id}:${user.id}`;
+        const transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 600,
+          messages: [
+            {
+              address: process.env.REACT_APP_ADMIN_WALLET || "EQDrzVBj0qF2cBkuGyy0D-ChwQJpIcqLkf5_DvyXqgOTMwt8",
+              amount: String(Math.floor(pack.price * 1e9)),
+              payload: btoa(commentText),
+            },
+          ],
+        };
 
-      // Send transaction through TonConnect
-      const result = await sendTransaction(transaction);
-      
-      // Notify backend about completed transaction
-      await axios.post(`${API}/buy/pack`, {
-        user_id: user.id,
-        pack_id: pack.id,
-        payment_type: "TON",
-        transaction_hash: result.boc || result, // Transaction hash from blockchain
-      });
+        const result = await sendTransaction(transaction);
+
+        await axios.post(`${API}/buy/pack`, {
+          user_id: user.id,
+          pack_id: pack.id,
+          payment_type: "TON",
+          transaction_hash: result.boc || result,
+        });
+      } else {
+        // SXTON or STARS — internal balance purchase (no TonConnect needed)
+        await axios.post(`${API}/buy/pack`, {
+          user_id: user.id,
+          pack_id: pack.id,
+          payment_type: paymentType,
+        });
+      }
 
       toast.success(`✨ ${t.marketplace.purchased} ${pack.name}!`, {
         style: {
@@ -339,7 +350,6 @@ const Marketplace = ({ user, language }) => {
         },
       });
 
-      // Reload to update inventory
       setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
       console.error("Purchase error:", error);

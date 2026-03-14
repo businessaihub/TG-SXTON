@@ -373,19 +373,15 @@ const Marketplace = ({ user, language }) => {
           ],
         };
         const result = await sendTransaction(transaction);
-        response = await axios.post(`${API}/buy/pack`, {
-          user_id: user.id,
-          pack_id: pack.id,
-          payment_type: "TON",
-          transaction_hash: result.boc || result,
-        });
+        const txHash = result.boc || result;
+        response = await axios.post(
+          `${API}/buy/pack?user_id=${encodeURIComponent(user.id)}&pack_id=${encodeURIComponent(pack.id)}&payment_type=TON&transaction_hash=${encodeURIComponent(txHash)}`
+        );
       } else {
         // SXTON or STARS — internal balance purchase (no TonConnect needed)
-        response = await axios.post(`${API}/buy/pack`, {
-          user_id: user.id,
-          pack_id: pack.id,
-          payment_type: paymentType,
-        });
+        response = await axios.post(
+          `${API}/buy/pack?user_id=${encodeURIComponent(user.id)}&pack_id=${encodeURIComponent(pack.id)}&payment_type=${encodeURIComponent(paymentType)}`
+        );
       }
 
       // Update user balance and stickers after SXTON/STARS purchase
@@ -406,6 +402,7 @@ const Marketplace = ({ user, language }) => {
         setBuyingPackId(null);
         setShowPackDetails(false);
       } else {
+        setBuyingPackId(null);
         toast.error(t.marketplace.purchaseFailed || "Purchase failed");
       }
     } catch (error) {

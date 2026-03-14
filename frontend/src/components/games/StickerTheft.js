@@ -86,12 +86,10 @@ const StickerTheft = ({ user, language }) => {
       const cooldownRes = await axios.get(`${API}/game/theft/cooldown-check/${user.id}`);
       setCooldownInfo(cooldownRes.data);
 
-      // Get other users (mock - in production, get from API)
-      setTargetUsers([
-        { id: "user_1", username: "Player1", avatar: "👤" },
-        { id: "user_2", username: "Player2", avatar: "👤" },
-        { id: "user_3", username: "Player3", avatar: "👤" },
-      ]);
+      // Get other users from API
+      const usersRes = await axios.get(`${API}/users/list?limit=10`).catch(() => ({ data: [] }));
+      const others = (usersRes.data || []).filter(u => u.telegram_id !== user.id).slice(0, 5);
+      setTargetUsers(others.map(u => ({ id: u.telegram_id, username: u.username || u.telegram_id, avatar: "👤" })));
 
     } catch (err) {
       console.error("Error loading game state:", err);
@@ -120,10 +118,7 @@ const StickerTheft = ({ user, language }) => {
     try {
       setAttempting(true);
 
-      const response = await axios.post(`${API}/game/theft/attempt`, {
-        attacker_id: user.id,
-        target_user_id: selectedTarget.id,
-      });
+      const response = await axios.post(`${API}/game/theft/attempt?attacker_id=${user.id}&target_user_id=${selectedTarget.id}`);
 
       setLastResult(response.data);
       setView("result");

@@ -57,12 +57,10 @@ const BombSticker = ({ user, language }) => {
       const res = await axios.get(`${API}/game/bomb/status/${user.id}`);
       setBombStatus(res.data);
 
-      // Mock other users
-      setOtherUsers([
-        { id: "user_1", username: "Player1" },
-        { id: "user_2", username: "Player2" },
-        { id: "user_3", username: "Player3" },
-      ]);
+      // Load real users from API
+      const usersRes = await axios.get(`${API}/users/list?limit=10`).catch(() => ({ data: [] }));
+      const others = (usersRes.data || []).filter(u => u.telegram_id !== user.id).slice(0, 5);
+      setOtherUsers(others.map(u => ({ id: u.telegram_id, username: u.username || u.telegram_id })));
     } catch (err) {
       console.error("Error loading bomb status:", err);
     } finally {
@@ -78,10 +76,7 @@ const BombSticker = ({ user, language }) => {
 
     try {
       setPassing(true);
-      const res = await axios.post(`${API}/game/bomb/pass`, {
-        from_user: user.id,
-        to_user: selectedTarget.id,
-      });
+      const res = await axios.post(`${API}/game/bomb/pass?from_user=${user.id}&to_user=${selectedTarget.id}`);
 
       toast.success(res.data.message);
       setSelectedTarget(null);

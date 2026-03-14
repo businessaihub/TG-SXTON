@@ -76,10 +76,7 @@ const Raid = ({ user, language }) => {
   const handleCreateRaid = async () => {
     try {
       setCreatingRaid(true);
-      const res = await axios.post(`${API}/game/raid/create`, {
-        creator_id: user.id,
-        entry_cost: entryCost,
-      });
+      const res = await axios.post(`${API}/game/raid/create?creator_id=${user.id}&entry_cost=${entryCost}`);
       toast.success(t.created);
       setShowCreate(false);
       await loadRaids();
@@ -92,10 +89,7 @@ const Raid = ({ user, language }) => {
 
   const handleJoinRaid = async (raidId) => {
     try {
-      await axios.post(`${API}/game/raid/join`, {
-        user_id: user.id,
-        raid_id: raidId,
-      });
+      await axios.post(`${API}/game/raid/join?user_id=${user.id}&raid_id=${raidId}`);
       toast.success(t.joined);
       await loadRaids();
     } catch (err) {
@@ -105,9 +99,7 @@ const Raid = ({ user, language }) => {
 
   const handleFinalizeRaid = async (raidId) => {
     try {
-      const res = await axios.post(`${API}/game/raid/finalize`, {
-        raid_id: raidId,
-      });
+      const res = await axios.post(`${API}/game/raid/finalize?raid_id=${raidId}`);
       if (res.data.winner_id === user.id) {
         toast.success(t.winner);
       } else {

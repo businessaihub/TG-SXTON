@@ -48,11 +48,9 @@ const GuessingGame = ({ user, language }) => {
       setSubmitting(true);
       setError(null);
 
-      const response = await axios.post(`${API}/game/guess-price/submit`, {
-        user_id: user.id,
-        sticker_id: currentSticker.sticker_id,
-        guessed_price: parseFloat(guessedPrice),
-      });
+      const response = await axios.post(
+        `${API}/game/guess-price/submit?user_id=${user.id}&sticker_id=${currentSticker.sticker_id}&guessed_price=${parseFloat(guessedPrice)}`
+      );
 
       setResult(response.data);
       loadGameHistory();

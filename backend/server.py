@@ -1372,8 +1372,323 @@ async def update_game_settings(settings: dict, authorization: Optional[str] = He
     
     return {"success": True, "message": "Game settings updated"}
 
+# ============ GUESSING GAME ============
+@api_router.get("/game/guess-price/sticker")
+async def guess_price_get_sticker(user_id: str):
+    """Return a random sticker for the user to guess its price."""
+    sticker = await db.stickers.aggregate([{"$sample": {"size": 1}}]).to_list(1)
+    if not sticker:
+        raise HTTPException(status_code=404, detail="No stickers available")
+    s = sticker[0]
+    pack = await db.sticker_packs.find_one({"id": s.get("pack_id")}, {"_id": 0})
+    rarity = s.get("rarity", "Common")
+    rarity_prices = {"Common": 0.5, "Uncommon": 1.0, "Rare": 2.5, "Epic": 5.0, "Legendary": 15.0}
+    actual_price = rarity_prices.get(rarity, 1.0) * (1 + random.uniform(-0.3, 0.3))
+    session_id = str(uuid.uuid4())
+    await db.guess_sessions.update_one(
+        {"session_id": session_id},
+        {"$set": {
+            "session_id": session_id,
+            "user_id": user_id,
+            "sticker_id": s.get("id"),
+            "actual_price": round(actual_price, 2),
+            "rarity": rarity,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    return {
+        "sticker_id": s.get("id"),
+        "image_url": s.get("image_url"),
+        "pack_name": pack.get("name") if pack else "Unknown",
+        "rarity": rarity,
+        "session_id": session_id
+    }
+
+@api_router.post("/game/guess-price/submit")
+async def guess_price_submit(user_id: str, sticker_id: str, guessed_price: float):
+    """Submit a price guess and get accuracy result."""
+    session = await db.guess_sessions.find_one({"user_id": user_id, "sticker_id": sticker_id})
+    if not session:
+        raise HTTPException(status_code=404, detail="No active guessing session")
+    actual = session["actual_price"]
+    diff = abs(guessed_price - actual)
+    accuracy = max(0, 100 - (diff / max(actual, 0.01)) * 100)
+    accuracy = min(100, accuracy)
+    if accuracy >= 90:
+        grade = "S"
+        reward = 50
+    elif accuracy >= 75:
+        grade = "A"
+        reward = 30
+    elif accuracy >= 50:
+        grade = "B"
+        reward = 15
+    elif accuracy >= 25:
+        grade = "C"
+        reward = 5
+    else:
+        grade = "F"
+        reward = 0
+    await db.users.update_one({"telegram_id": user_id}, {"$inc": {"sxton_points": reward}})
+    await db.guess_history.insert_one({
+        "user_id": user_id,
+        "sticker_id": sticker_id,
+        "guessed_price": guessed_price,
+        "actual_price": actual,
+        "accuracy_percent": round(accuracy, 1),
+        "accuracy_grade": grade,
+        "sxton_reward": reward,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    await db.guess_sessions.delete_one({"_id": session["_id"]})
+    return {
+        "actual_price": actual,
+        "guessed_price": guessed_price,
+        "accuracy_percent": round(accuracy, 1),
+        "accuracy_grade": grade,
+        "sxton_reward": reward,
+        "message": f"Grade {grade}! +{reward} SXTON"
+    }
+
+@api_router.get("/user/{user_id}/game/guess-price/history")
+async def guess_price_history(user_id: str, limit: int = 10):
+    """Return user's guessing game history."""
+    games = await db.guess_history.find(
+        {"user_id": user_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(limit)
+    return {"games": games}
+
+# ============ DAILY SPIN WHEEL ============
+@api_router.get("/game/daily-spin/check")
+async def daily_spin_check(user_id: str):
+    """Check if user can spin today."""
+    user = await db.users.find_one({"telegram_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    last_spin = user.get("last_daily_spin")
+    if not last_spin:
+        return {"can_spin": True, "next_spin_time": None}
+    last_dt = datetime.fromisoformat(last_spin)
+    next_spin = last_dt + timedelta(hours=24)
+    now = datetime.now(timezone.utc)
+    return {"can_spin": now >= next_spin, "next_spin_time": next_spin.isoformat()}
+
+@api_router.post("/game/daily-spin/spin")
+async def daily_spin_spin(user_id: str):
+    """Perform the daily spin and award a reward."""
+    user = await db.users.find_one({"telegram_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    last_spin = user.get("last_daily_spin")
+    now = datetime.now(timezone.utc)
+    if last_spin:
+        last_dt = datetime.fromisoformat(last_spin)
+        if now < last_dt + timedelta(hours=24):
+            next_spin = last_dt + timedelta(hours=24)
+            raise HTTPException(status_code=400, detail=f"Next spin at {next_spin.isoformat()}")
+    segments = [
+        {"label": "10 SXTON", "type": "sxton", "value": 10},
+        {"label": "25 SXTON", "type": "sxton", "value": 25},
+        {"label": "50 SXTON", "type": "sxton", "value": 50},
+        {"label": "100 SXTON", "type": "sxton", "value": 100},
+        {"label": "0.01 TON", "type": "ton", "value": 0.01},
+        {"label": "Nothing", "type": "nothing", "value": 0},
+        {"label": "Random Sticker", "type": "sticker", "value": 1},
+        {"label": "2x Next Spin", "type": "multiplier", "value": 2},
+    ]
+    reward = random.choice(segments)
+    if reward["type"] == "sxton":
+        await db.users.update_one({"telegram_id": user_id}, {"$inc": {"sxton_points": reward["value"]}})
+    elif reward["type"] == "ton":
+        await db.users.update_one({"telegram_id": user_id}, {"$inc": {"ton_balance": reward["value"]}})
+    elif reward["type"] == "sticker":
+        rarity = random.choices(["Common", "Uncommon", "Rare"], weights=[70, 25, 5])[0]
+        await db.stickers.insert_one({
+            "id": str(uuid.uuid4()), "owner_id": user_id, "rarity": rarity,
+            "source": "daily_spin", "created_at": now.isoformat()
+        })
+        reward["label"] = f"{rarity} Sticker"
+    next_spin = now + timedelta(hours=24)
+    await db.users.update_one({"telegram_id": user_id}, {"$set": {"last_daily_spin": now.isoformat()}})
+    await db.spin_history.insert_one({
+        "user_id": user_id, "reward": reward, "spun_at": now.isoformat()
+    })
+    return {"reward": reward, "next_spin_time": next_spin.isoformat()}
+
+@api_router.get("/user/{user_id}/game/daily-spin/history")
+async def daily_spin_history(user_id: str, limit: int = 10):
+    """Return user's spin history."""
+    spins = await db.spin_history.find(
+        {"user_id": user_id}, {"_id": 0}
+    ).sort("spun_at", -1).to_list(limit)
+    return spins
+
+# ============ CRAFT GAME ============
+@api_router.get("/game/craft/available")
+async def craft_available(user_id: str):
+    """Return user's stickers grouped by rarity for crafting."""
+    stickers = await db.stickers.find({"owner_id": user_id}, {"_id": 0}).to_list(None)
+    grouped = {"common": [], "uncommon": [], "rare": [], "epic": [], "legendary": []}
+    for s in stickers:
+        r = (s.get("rarity") or "Common").lower()
+        if r in grouped:
+            pack = await db.sticker_packs.find_one({"id": s.get("pack_id")}, {"_id": 0})
+            grouped[r].append({
+                "id": s.get("id"),
+                "pack_name": pack.get("name") if pack else "Unknown",
+                "rarity": s.get("rarity", "Common"),
+                "image_url": s.get("image_url"),
+                "sticker_number": s.get("sticker_number")
+            })
+    return grouped
+
+@api_router.post("/game/craft/combine")
+async def craft_combine(user_id: str, sticker_ids: str):
+    """Combine 2-3 stickers of same rarity into 1 higher rarity sticker."""
+    ids = [sid.strip() for sid in sticker_ids.split(",")]
+    if len(ids) < 2 or len(ids) > 3:
+        raise HTTPException(status_code=400, detail="Need 2-3 stickers to craft")
+    stickers = []
+    for sid in ids:
+        s = await db.stickers.find_one({"id": sid, "owner_id": user_id})
+        if not s:
+            raise HTTPException(status_code=404, detail=f"Sticker {sid} not found or not owned")
+        stickers.append(s)
+    rarities = set(s.get("rarity", "Common").lower() for s in stickers)
+    if len(rarities) != 1:
+        raise HTTPException(status_code=400, detail="All stickers must be same rarity")
+    current_rarity = rarities.pop()
+    rarity_order = ["common", "uncommon", "rare", "epic", "legendary"]
+    idx = rarity_order.index(current_rarity) if current_rarity in rarity_order else 0
+    if idx >= len(rarity_order) - 1:
+        raise HTTPException(status_code=400, detail="Cannot craft above legendary")
+    next_rarity = rarity_order[idx + 1].capitalize()
+    for s in stickers:
+        await db.stickers.delete_one({"_id": s["_id"]})
+    new_sticker_id = str(uuid.uuid4())
+    new_sticker = {
+        "id": new_sticker_id, "owner_id": user_id, "rarity": next_rarity,
+        "source": "craft", "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.stickers.insert_one(new_sticker)
+    sxton_reward = {"Uncommon": 10, "Rare": 25, "Epic": 50, "Legendary": 100}.get(next_rarity, 10)
+    await db.users.update_one({"telegram_id": user_id}, {"$inc": {"sxton_points": sxton_reward}})
+    await db.craft_history.insert_one({
+        "user_id": user_id, "input_ids": ids, "input_rarity": current_rarity,
+        "result_rarity": next_rarity, "result_sticker_id": new_sticker_id,
+        "sxton_reward": sxton_reward, "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    return {
+        "success": True, "new_sticker": {"id": new_sticker_id, "rarity": next_rarity},
+        "sxton_reward": sxton_reward, "message": f"Crafted {next_rarity} sticker! +{sxton_reward} SXTON"
+    }
+
+@api_router.get("/user/{user_id}/game/craft/history")
+async def craft_history(user_id: str, limit: int = 10):
+    """Return user's craft history with stats."""
+    crafts = await db.craft_history.find(
+        {"user_id": user_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(limit)
+    total = await db.craft_history.count_documents({"user_id": user_id})
+    return {"crafts": crafts, "stats": {"total_crafts": total}}
+
+# ============ STICKER BATTLE ============
+@api_router.get("/game/battle/rooms")
+async def battle_list_rooms(user_id: str):
+    """List open battle rooms."""
+    rooms = await db.battle_rooms.find(
+        {"status": "waiting"}, {"_id": 0}
+    ).to_list(20)
+    return {"rooms": rooms}
+
+@api_router.post("/game/battle/create-room")
+async def battle_create_room(user_id: str, sticker_id: str):
+    """Create a new battle room with a sticker."""
+    sticker = await db.stickers.find_one({"id": sticker_id, "owner_id": user_id})
+    if not sticker:
+        raise HTTPException(status_code=404, detail="Sticker not found or not owned")
+    room_id = str(uuid.uuid4())
+    room = {
+        "room_id": room_id,
+        "creator_user_id": user_id,
+        "creator_sticker_id": sticker_id,
+        "sticker_rarity": sticker.get("rarity", "Common"),
+        "sticker_value": {"Common": 0.5, "Uncommon": 1.0, "Rare": 2.5, "Epic": 5.0, "Legendary": 15.0}.get(sticker.get("rarity", "Common"), 1.0),
+        "status": "waiting",
+        "opponent_user_id": None,
+        "opponent_sticker_id": None,
+        "winner_id": None,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.battle_rooms.insert_one(room)
+    return room
+
+@api_router.post("/game/battle/join-room")
+async def battle_join_room(user_id: str, room_id: str, sticker_id: str):
+    """Join an existing battle room and auto-resolve."""
+    room = await db.battle_rooms.find_one({"room_id": room_id, "status": "waiting"})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found or already started")
+    if room["creator_user_id"] == user_id:
+        raise HTTPException(status_code=400, detail="Cannot join your own room")
+    sticker = await db.stickers.find_one({"id": sticker_id, "owner_id": user_id})
+    if not sticker:
+        raise HTTPException(status_code=404, detail="Sticker not found or not owned")
+    rarity_power = {"common": 1, "uncommon": 2, "rare": 3, "epic": 4, "legendary": 5}
+    creator_power = rarity_power.get(room.get("sticker_rarity", "common").lower(), 1) + random.random() * 2
+    joiner_power = rarity_power.get(sticker.get("rarity", "Common").lower(), 1) + random.random() * 2
+    winner_id = room["creator_user_id"] if creator_power >= joiner_power else user_id
+    loser_id = user_id if winner_id == room["creator_user_id"] else room["creator_user_id"]
+    loser_sticker = sticker_id if winner_id == room["creator_user_id"] else room["creator_sticker_id"]
+    await db.stickers.update_one({"id": loser_sticker}, {"$set": {"owner_id": winner_id}})
+    await db.battle_rooms.update_one({"room_id": room_id}, {"$set": {
+        "status": "finished", "opponent_user_id": user_id, "opponent_sticker_id": sticker_id,
+        "winner_id": winner_id, "finished_at": datetime.now(timezone.utc).isoformat()
+    }})
+    sxton_reward = 20
+    await db.users.update_one({"telegram_id": winner_id}, {"$inc": {"sxton_points": sxton_reward}})
+    updated_room = await db.battle_rooms.find_one({"room_id": room_id}, {"_id": 0})
+    return updated_room
+
+@api_router.get("/game/battle/room/{room_id}")
+async def battle_get_room(room_id: str):
+    """Get current state of a battle room."""
+    room = await db.battle_rooms.find_one({"room_id": room_id}, {"_id": 0})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    return room
+
+@api_router.post("/game/battle/resolve")
+async def battle_resolve(user_id: str, room_id: str, winner_id: str):
+    """Manually resolve a battle (admin/creator only)."""
+    room = await db.battle_rooms.find_one({"room_id": room_id})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    await db.battle_rooms.update_one({"room_id": room_id}, {"$set": {
+        "status": "finished", "winner_id": winner_id,
+        "finished_at": datetime.now(timezone.utc).isoformat()
+    }})
+    return {"success": True, "message": f"Winner: {winner_id}"}
+
+@api_router.get("/game/battle/history/{user_id}")
+async def battle_history(user_id: str, limit: int = 10):
+    """Return user's battle history."""
+    battles = await db.battle_rooms.find(
+        {"$or": [{"creator_user_id": user_id}, {"opponent_user_id": user_id}]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(limit)
+    return {"battles": battles}
+
+# ============ USERS LIST (for games) ============
+@api_router.get("/users/list")
+async def list_users(limit: int = 10):
+    """Return a list of users (limited info for game targeting)."""
+    users = await db.users.find({}, {"_id": 0, "telegram_id": 1, "username": 1}).to_list(limit)
+    return users
+
 # ============ STICKER THEFT GAME ============
-@api_router.post("/game/theft/cooldown-check")
+@api_router.get("/game/theft/cooldown-check/{user_id}")
 async def check_theft_cooldown(user_id: str):
     user = await db.users.find_one({"telegram_id": user_id})
     if not user:
@@ -1381,16 +1696,16 @@ async def check_theft_cooldown(user_id: str):
     
     last_theft = user.get("last_theft_time")
     if not last_theft:
-        return {"has_cooldown": False, "remaining_hours": 0}
+        return {"can_attempt": True, "cooldown_remaining": 0}
     
     elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(last_theft)).total_seconds() / 3600
     remaining = max(0, 6 - elapsed)
-    return {"has_cooldown": remaining > 0, "remaining_hours": remaining}
+    return {"can_attempt": remaining <= 0, "cooldown_remaining": round(remaining, 1)}
 
 @api_router.post("/game/theft/attempt")
-async def attempt_theft(user_id: str, target_id: str):
-    user = await db.users.find_one({"telegram_id": user_id})
-    target = await db.users.find_one({"telegram_id": target_id})
+async def attempt_theft(attacker_id: str, target_user_id: str):
+    user = await db.users.find_one({"telegram_id": attacker_id})
+    target = await db.users.find_one({"telegram_id": target_user_id})
     if not user or not target:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -1398,29 +1713,50 @@ async def attempt_theft(user_id: str, target_id: str):
     if last_theft:
         elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(last_theft)).total_seconds() / 3600
         if elapsed < 6:
-            return {"success": False, "message": f"Cooldown active for {6-elapsed:.1f} hours"}
+            raise HTTPException(status_code=400, detail=f"Cooldown active for {6-elapsed:.1f} hours")
     
     balance = user.get("ton_balance", 0)
     if balance < 0.2:
-        return {"success": False, "message": "Insufficient balance (0.2 TON required)"}
+        raise HTTPException(status_code=400, detail="Insufficient balance (0.2 TON required)")
     
     rand = random.random()
+    stolen_sticker = None
+    lost_sticker = None
     if rand < 0.7:
-        result = "fail"
-        stolen = None
+        outcome = "fail"
+        message = "Theft failed! Nothing stolen."
     elif rand < 0.95:
-        result = "common"
-        stolen = "Common Sticker"
+        outcome = "success_common"
+        target_stickers = await db.stickers.find({"owner_id": target_user_id}).to_list(100)
+        common_stickers = [s for s in target_stickers if s.get("rarity", "").lower() == "common"]
+        if common_stickers:
+            picked = random.choice(common_stickers)
+            await db.stickers.update_one({"_id": picked["_id"]}, {"$set": {"owner_id": attacker_id}})
+            stolen_sticker = {"rarity": picked.get("rarity"), "image_url": picked.get("image_url"), "sticker_number": picked.get("sticker_number")}
+        message = "You stole a Common sticker!"
     else:
-        result = "rare"
-        stolen = "Rare Sticker"
+        outcome = "success_rare"
+        target_stickers = await db.stickers.find({"owner_id": target_user_id}).to_list(100)
+        rare_stickers = [s for s in target_stickers if s.get("rarity", "").lower() in ("rare", "epic", "legendary")]
+        if rare_stickers:
+            picked = random.choice(rare_stickers)
+            await db.stickers.update_one({"_id": picked["_id"]}, {"$set": {"owner_id": attacker_id}})
+            stolen_sticker = {"rarity": picked.get("rarity"), "image_url": picked.get("image_url"), "sticker_number": picked.get("sticker_number")}
+        message = "You stole a Rare+ sticker!"
     
-    await db.users.update_one({"telegram_id": user_id}, {
+    await db.users.update_one({"telegram_id": attacker_id}, {
         "$set": {"last_theft_time": datetime.now(timezone.utc).isoformat()},
-        "$inc": {"ton_balance": -0.2}
+        "$inc": {"ton_balance": -0.2, "theft_count": 1}
     })
     
-    return {"success": result != "fail", "result": result, "stolen_sticker": stolen}
+    return {"outcome": outcome, "message": message, "cost_deducted": 0.2, "stolen_sticker": stolen_sticker, "lost_sticker": lost_sticker}
+
+@api_router.get("/user/{user_id}/game-balance")
+async def get_game_balance(user_id: str):
+    user = await db.users.find_one({"telegram_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"balance": user.get("ton_balance", 0)}
 
 @api_router.get("/game/theft/history")
 async def get_theft_history(user_id: str):
@@ -1485,7 +1821,7 @@ async def create_raid(creator_id: str, entry_cost: float = 0.1):
 
 @api_router.get("/game/raid/list")
 async def list_raids():
-    raids = await db.raids.find({"status": "active"}).to_list(100)
+    raids = await db.raids.find({"status": "active"}, {"_id": 0}).to_list(100)
     return {"raids": raids or []}
 
 @api_router.post("/game/raid/join")
@@ -1508,13 +1844,17 @@ async def finalize_raid(raid_id: str):
     if not raid:
         return {"success": False}
     
-    winner_id = random.choice(raid.get("participants", [None]))[0] if raid.get("participants") else None
+    participants = raid.get("participants", [])
+    winner_id = random.choice(participants) if participants else None
     await db.raids.update_one({"id": raid_id}, {
         "$set": {"status": "finished", "winner_id": winner_id}
     })
     
     if winner_id:
-        await db.stickers.insert_one({"user_id": winner_id, "rarity": "Epic"})
+        await db.stickers.insert_one({
+            "id": str(uuid.uuid4()), "owner_id": winner_id, "rarity": "Epic",
+            "source": "raid", "created_at": datetime.now(timezone.utc).isoformat()
+        })
     
     return {"success": True, "winner_id": winner_id}
 

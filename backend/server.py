@@ -710,7 +710,12 @@ async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON", quanti
         raise HTTPException(status_code=400, detail="Quantity must be >= 1")
 
     # Calculate total price
-    total_price = pack.get("price", 0) * qty
+    # If quantity was explicitly provided, price is per-sticker * qty
+    # If buying the whole pack (no quantity), price is the pack price as-is
+    if quantity is not None:
+        total_price = pack.get("price", 0) * qty
+    else:
+        total_price = pack.get("price", 0)
     
     # If transaction_hash is provided, verify it's from real TON payment
     if transaction_hash and payment_type == "TON":

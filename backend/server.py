@@ -2531,7 +2531,7 @@ async def admin_analytics_pack_trends():
     packs_list = []
     total_revenue = 0
     
-    async for p in db.packs.find():
+    async for p in db.sticker_packs.find():
         p.pop("_id", None)
         buyers = p.get("buyers", 0) or 0
         price = p.get("price", 0) or 0
@@ -2559,7 +2559,7 @@ async def admin_analytics_pack_trends():
 async def admin_analytics_revenue_trends():
     daily = {}
     
-    async for a in db.activity.find({"action": {"$in": ["purchase", "buy"]}}).sort("created_at", -1).limit(5000):
+    async for a in db.activity.find({"action": {"$in": ["purchase", "buy", "bought"]}}).sort("created_at", -1).limit(5000):
         created = a.get("created_at", "")
         price = a.get("price", 0) or 0
         try:

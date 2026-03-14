@@ -32,10 +32,10 @@ const getRarityColor = (rarity) => {
 
 const getPriceColor = (priceType) => {
   switch (priceType) {
-    case 'TON': return 'text-cyan-400';
-    case 'SXTON': return 'text-yellow-400';
-    case 'STARS': return 'text-purple-400';
-    default: return 'text-white';
+    case "STARS": return "bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 bg-clip-text text-transparent";
+    case "SXTON": return "bg-gradient-to-r from-purple-500 via-pink-500 to-fuchsia-500 bg-clip-text text-transparent";
+    case "TON": return "bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent";
+    default: return "bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent";
   }
 };
 

@@ -375,12 +375,12 @@ const Marketplace = ({ user, language }) => {
         const result = await sendTransaction(transaction);
         const txHash = result.boc || result;
         response = await axios.post(
-          `${API}/buy/pack?user_id=${encodeURIComponent(user.id)}&pack_id=${encodeURIComponent(pack.id)}&payment_type=TON&transaction_hash=${encodeURIComponent(txHash)}`
+          `${API}/buy/pack?user_id=${encodeURIComponent(user.id)}&pack_id=${encodeURIComponent(pack.id)}&payment_type=TON&quantity=1&transaction_hash=${encodeURIComponent(txHash)}`
         );
       } else {
         // SXTON or STARS — internal balance purchase (no TonConnect needed)
         response = await axios.post(
-          `${API}/buy/pack?user_id=${encodeURIComponent(user.id)}&pack_id=${encodeURIComponent(pack.id)}&payment_type=${encodeURIComponent(paymentType)}`
+          `${API}/buy/pack?user_id=${encodeURIComponent(user.id)}&pack_id=${encodeURIComponent(pack.id)}&payment_type=${encodeURIComponent(paymentType)}&quantity=1`
         );
       }
 

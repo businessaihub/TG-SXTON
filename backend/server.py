@@ -703,19 +703,13 @@ async def buy_pack(user_id: str, pack_id: str, payment_type: str = "TON", quanti
                 detail=f"Must subscribe to channel first: {pack.get('required_channel_link', 'Required channel')}"
             )
     
-    # Determine quantity to buy (default: entire pack)
-    total_in_pack = pack.get("sticker_count", 0)
-    qty = quantity if quantity is not None else total_in_pack
+    # Determine quantity to buy (default: 1 sticker)
+    qty = quantity if quantity is not None else 1
     if qty <= 0:
         raise HTTPException(status_code=400, detail="Quantity must be >= 1")
 
-    # Calculate total price
-    # If quantity was explicitly provided, price is per-sticker * qty
-    # If buying the whole pack (no quantity), price is the pack price as-is
-    if quantity is not None:
-        total_price = pack.get("price", 0) * qty
-    else:
-        total_price = pack.get("price", 0)
+    # Price is per-sticker, total = price * qty
+    total_price = pack.get("price", 0) * qty
     
     # If transaction_hash is provided, verify it's from real TON payment
     if transaction_hash and payment_type == "TON":

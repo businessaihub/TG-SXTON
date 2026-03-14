@@ -2230,6 +2230,7 @@ async def validate_promo_code(code: str, user_id: str = None):
         })
 
     promo_type = promo.get("promoType", "discount")
+    sticker_awarded = None
 
     # Apply promo effect to user
     if user_id:
@@ -2248,6 +2249,33 @@ async def validate_promo_code(code: str, user_id: str = None):
                     {"id": user_id},
                     {"$inc": {"ton_balance": discount}}
                 )
+        elif promo_type == "guaranteed_sticker":
+            pack_id = promo.get("packId", "")
+            sticker_rarity = promo.get("stickerRarity", "common")
+            if pack_id:
+                # Find an available sticker of the specified rarity in this pack
+                sticker = await db.stickers.find_one({
+                    "pack_id": pack_id,
+                    "owner_id": None,
+                    "rarity": {"$regex": f"^{sticker_rarity}$", "$options": "i"}
+                })
+                if not sticker:
+                    # Fallback: any available sticker from this pack
+                    sticker = await db.stickers.find_one({
+                        "pack_id": pack_id,
+                        "owner_id": None
+                    })
+                if sticker:
+                    await db.stickers.update_one(
+                        {"id": sticker["id"]},
+                        {"$set": {"owner_id": user_id}}
+                    )
+                    sticker_awarded = {
+                        "sticker_id": sticker["id"],
+                        "rarity": sticker.get("rarity", "Common"),
+                        "sticker_number": sticker.get("sticker_number"),
+                        "image_url": sticker.get("image_url", "")
+                    }
 
     return {
         "success": True,
@@ -2257,7 +2285,26 @@ async def validate_promo_code(code: str, user_id: str = None):
         "sxtonAmount": promo.get("sxtonAmount", 0),
         "stickerRarity": promo.get("stickerRarity", "common"),
         "packId": promo.get("packId", ""),
+        "stickerAwarded": sticker_awarded,
     }
+
+
+@api_router.put("/admin/promo-codes/{promo_id}", dependencies=[Depends(verify_admin)])
+async def admin_update_promo_code(promo_id: str, body: dict):
+    result = await db.promo_codes.update_one(
+        {"id": promo_id},
+        {"$set": body}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Promo code not found")
+    return {"success": True}
+
+@api_router.delete("/admin/promo-codes/{promo_id}", dependencies=[Depends(verify_admin)])
+async def admin_delete_promo_code(promo_id: str):
+    result = await db.promo_codes.delete_one({"id": promo_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Promo code not found")
+    return {"success": True}
 
 
 # ============ ADMIN: WITHDRAWAL APPROVALS ============

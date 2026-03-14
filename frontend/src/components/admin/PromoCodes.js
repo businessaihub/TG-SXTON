@@ -155,15 +155,35 @@ const PromoCodes = ({ adminToken }) => {
     toast.success("Code copied!");
   };
 
-  const handleToggle = (id) => {
-    setPromoCodes(promoCodes.map(p =>
-      p.id === id ? { ...p, isActive: !p.isActive } : p
-    ));
+  const handleToggle = async (id) => {
+    const promo = promoCodes.find(p => p.id === id);
+    if (!promo) return;
+    try {
+      await axios.put(`${API}/admin/promo-codes/${id}`, 
+        { isActive: !promo.isActive },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      setPromoCodes(promoCodes.map(p =>
+        p.id === id ? { ...p, isActive: !p.isActive } : p
+      ));
+      toast.success(promo.isActive ? "Promo code deactivated" : "Promo code activated");
+    } catch (error) {
+      console.error("Error toggling promo code:", error);
+      toast.error("Failed to update promo code");
+    }
   };
 
-  const handleDelete = (id) => {
-    setPromoCodes(promoCodes.filter(p => p.id !== id));
-    toast.success("Promo code deleted");
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API}/admin/promo-codes/${id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      setPromoCodes(promoCodes.filter(p => p.id !== id));
+      toast.success("Promo code deleted");
+    } catch (error) {
+      console.error("Error deleting promo code:", error);
+      toast.error("Failed to delete promo code");
+    }
   };
 
   return (

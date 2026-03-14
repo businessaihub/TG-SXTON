@@ -2157,10 +2157,7 @@ async def simulate_activity(count: int = 10):
 # ============ ADMIN: PACKS LIST ============
 @api_router.get("/admin/packs", dependencies=[Depends(verify_admin)])
 async def admin_get_packs():
-    packs = []
-    async for p in db.packs.find():
-        p.pop("_id", None)
-        packs.append(p)
+    packs = await db.sticker_packs.find({}, {"_id": 0}).to_list(1000)
     return packs
 
 

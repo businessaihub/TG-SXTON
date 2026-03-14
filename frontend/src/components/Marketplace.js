@@ -13,6 +13,32 @@ import { useTonConnect } from "../context/TonConnectContext";
 
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23667eea'/%3E%3Ctext x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' fill='white' font-weight='bold'%3ESticker Pack%3C/text%3E%3Ctext x='50%' y='65%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%23ddd'%3ENo Image%3C/text%3E%3C/svg%3E";
 
+const PRICE_RATES = {
+  TON: 3.5,
+  SXTON: 0.01,
+  STARS: 0.02,
+  USD: 1,
+};
+
+const getRarityColor = (rarity) => {
+  switch (rarity?.toLowerCase()) {
+    case 'legendary': return 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white';
+    case 'epic': return 'bg-gradient-to-r from-purple-500 to-pink-500 text-white';
+    case 'rare': return 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white';
+    case 'uncommon': return 'bg-green-500/80 text-white';
+    default: return 'bg-gray-500/80 text-white';
+  }
+};
+
+const getPriceColor = (priceType) => {
+  switch (priceType) {
+    case 'TON': return 'text-cyan-400';
+    case 'SXTON': return 'text-yellow-400';
+    case 'STARS': return 'text-purple-400';
+    default: return 'text-white';
+  }
+};
+
 const Marketplace = ({ user, language }) => {
   const { wallet, connectWallet, sendTransaction, isConnecting } = useTonConnect();
   const [packs, setPacks] = useState([]);
@@ -36,6 +62,7 @@ const Marketplace = ({ user, language }) => {
   const [packPopularity, setPackPopularity] = useState({});
   const [nftCollections, setNftCollections] = useState(null);
   const [loadingNftCollections, setLoadingNftCollections] = useState(false);
+  const [criticalError, setCriticalError] = useState(null);
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const featuredTimerRef = useRef(null);
   const touchStartRef = useRef(0);
@@ -369,70 +396,6 @@ const Marketplace = ({ user, language }) => {
             color: "#fff",
           },
         });
-
-        // Fetch updated user info (balance)
-        const userRes = await axios.get(`${API}/user/${user.id}`);
-        setUser(userRes.data);
-
-        // Fetch updated stickers
-        const stickersRes = await axios.get(`${API}/user/${user.id}/stickers`);
-        if (stickersRes.data) {
-          setUserStickers(stickersRes.data);
-        }
-
-        setBuyingPackId(null);
-        setShowPackDetails(false);
-      } else {
-        toast.error(t.marketplace.purchaseFailed || "Purchase failed");
-      }
-    } catch (error) {
-      setBuyingPackId(null);
-      setShowPackDetails(false);
-      toast.error(error.response?.data?.detail || t.marketplace.purchaseFailed || "Purchase failed");
-    }
-    try {
-      let response;
-      if (paymentType === "TON" && wallet) {
-        // Real TON payment via TonConnect
-        const commentText = `pack:${pack.id}:${user.id}`;
-        const transaction = {
-          validUntil: Math.floor(Date.now() / 1000) + 600,
-          messages: [
-            {
-              address: process.env.REACT_APP_ADMIN_WALLET || "EQDrzVBj0qF2cBkuGyy0D-ChwQJpIcqLkf5_DvyXqgOTMwt8",
-              amount: String(Math.floor(pack.price * 1e9)),
-              payload: btoa(commentText),
-            },
-          ],
-        };
-        const result = await sendTransaction(transaction);
-        response = await axios.post(`${API}/buy/pack`, {
-          user_id: user.id,
-          pack_id: pack.id,
-          payment_type: "TON",
-          transaction_hash: result.boc || result,
-        });
-      } else {
-        // SXTON or STARS — internal balance purchase (no TonConnect needed)
-        response = await axios.post(`${API}/buy/pack`, {
-          user_id: user.id,
-          pack_id: pack.id,
-          payment_type: paymentType,
-        });
-      }
-
-      // Update user balance and stickers after SXTON/STARS purchase
-      if (response.data && response.data.success) {
-        toast.success(`✨ ${t.marketplace.purchased} ${pack.name}!`, {
-          style: {
-            background: "linear-gradient(to right, #10b981, #059669)",
-            color: "#fff",
-          },
-        });
-
-        // Fetch updated user info (balance)
-        const userRes = await axios.get(`${API}/user/${user.id}`);
-        setUser(userRes.data);
 
         // Fetch updated stickers
         const stickersRes = await axios.get(`${API}/user/${user.id}/stickers`);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { API } from "../App";
-import { Zap, Trophy, Clock, TrendingUp, Plus, Sparkles, ChevronLeft } from "lucide-react";
+import { Zap, Trophy, Clock, TrendingUp, Sparkles, ChevronLeft } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
@@ -19,37 +19,7 @@ const Game = ({ user, language }) => {
   const [holdStatus, setHoldStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [creatingTestData, setCreatingTestData] = useState(false);
   const [activeGame, setActiveGame] = useState(null); // 'price', 'spin', 'battle', 'craft', 'theft', 'bomb', 'raid', 'puzzle'
-
-  const createTestStickers = async () => {
-    if (!user || !user.id) return;
-    
-    try {
-      setCreatingTestData(true);
-      setError(null);
-      console.log("Creating test stickers for user:", user.id);
-      const response = await axios.post(`${API}/test/create-stickers?user_id=${user.id}`);
-      console.log("Test stickers created:", response.data);
-      
-      // Wait a moment then refresh hold status
-      setTimeout(async () => {
-        try {
-          const holdResponse = await axios.get(`${API}/user/${user.id}/packs/hold-status`);
-          console.log("Updated hold status:", holdResponse.data);
-          setHoldStatus(holdResponse.data);
-        } catch (refreshErr) {
-          console.error("Error refreshing hold status:", refreshErr);
-        }
-      }, 500);
-    } catch (err) {
-      console.error("Error creating test stickers:", err);
-      const errorMsg = err.response?.data?.detail || err.message || "Failed to create test stickers";
-      setError(errorMsg);
-    } finally {
-      setCreatingTestData(false);
-    }
-  };
 
   useEffect(() => {
     const fetchHoldStatus = async () => {
@@ -137,21 +107,10 @@ const Game = ({ user, language }) => {
                   </p>
                   <p className="text-gray-500 text-sm">
                     {language === 'ru'
-                      ? 'Купите стикеры, чтобы начать получать бонус'
-                      : 'Buy stickers to start earning boost'}
+                      ? 'Купите стикеры на маркете, чтобы начать получать бонус'
+                      : 'Buy stickers on Market to start earning boost'}
                   </p>
                 </Card>
-                
-                <Button
-                  onClick={createTestStickers}
-                  disabled={creatingTestData}
-                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
-                >
-                  <Plus size={16} className="mr-2" />
-                  {creatingTestData
-                    ? language === 'ru' ? 'Создание...' : 'Creating...'
-                    : language === 'ru' ? 'Создать тестовые стикеры' : 'Create Test Stickers'}
-                </Button>
               </div>
             ) : (
               <div className="space-y-4">

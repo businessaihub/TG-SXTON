@@ -1155,6 +1155,85 @@ async def get_user_stickers(user_id: str):
     result.sort(key=lambda x: (x.get("pack_name") or "", x.get("sticker_number") or 0))
     return result
 
+@api_router.get("/user/{user_id}/packs/hold-status")
+async def get_user_hold_status(user_id: str):
+    """Return user's stickers grouped by pack with hold boost info."""
+    settings = await db.settings.find_one({"type": "hold_settings"})
+    hold_threshold = 30
+    resale_multiplier = 1.05
+    if settings:
+        hold_threshold = settings.get("hold_threshold_days", 30)
+        resale_multiplier = settings.get("resale_multiplier", 1.05)
+
+    stickers = await db.stickers.find({"owner_id": user_id}, {"_id": 0}).to_list(None)
+    if not stickers:
+        return {
+            "hold_threshold": hold_threshold,
+            "resale_multiplier": resale_multiplier,
+            "summary": {"total_active_holders": 0, "verified_count": 0},
+            "packs": []
+        }
+
+    now = datetime.now(timezone.utc)
+    packs_map = {}
+    verified_count = 0
+
+    for s in stickers:
+        pack_id = s.get("pack_id", "unknown")
+        if pack_id not in packs_map:
+            pack = await db.sticker_packs.find_one({"id": pack_id}, {"_id": 0})
+            packs_map[pack_id] = {
+                "pack_id": pack_id,
+                "pack_name": pack.get("name") if pack else "Unknown Pack",
+                "stickers": [],
+                "hold_days": 0,
+                "is_verified": False,
+                "boost_multiplier": 1.0
+            }
+
+        # Calculate hold days from purchase time (created_at or hold_start)
+        hold_start = s.get("hold_start") or s.get("purchased_at") or s.get("created_at")
+        days_held = 0
+        if hold_start:
+            try:
+                start_dt = datetime.fromisoformat(hold_start.replace("Z", "+00:00"))
+                days_held = (now - start_dt).days
+            except Exception:
+                pass
+
+        is_verified = days_held >= hold_threshold
+        if is_verified:
+            verified_count += 1
+
+        packs_map[pack_id]["stickers"].append({
+            "id": s.get("id"),
+            "sticker_number": s.get("sticker_number") or s.get("position"),
+            "rarity": s.get("rarity", "Common"),
+            "image_url": s.get("image_url", ""),
+            "days_held": days_held,
+            "is_verified": is_verified
+        })
+
+    # Calculate per-pack stats
+    packs_list = []
+    for p in packs_map.values():
+        if p["stickers"]:
+            max_days = max(st["days_held"] for st in p["stickers"])
+            p["hold_days"] = max_days
+            p["is_verified"] = max_days >= hold_threshold
+            p["boost_multiplier"] = resale_multiplier if p["is_verified"] else 1.0
+        packs_list.append(p)
+
+    return {
+        "hold_threshold": hold_threshold,
+        "resale_multiplier": resale_multiplier,
+        "summary": {
+            "total_active_holders": len(stickers),
+            "verified_count": verified_count
+        },
+        "packs": packs_list
+    }
+
 # ============ GIVEAWAYS ============
 
 @api_router.post("/giveaway/create")

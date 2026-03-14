@@ -2384,6 +2384,71 @@ async def admin_hold_monitoring():
 
 
 # ============ ADMIN: MODERATION / LOCALIZATION ============
+# ============ ADMIN: REPORTS ============
+@api_router.get("/admin/reports", dependencies=[Depends(verify_admin)])
+async def admin_get_reports():
+    reports = []
+    async for r in db.reports.find().sort("reportedAt", -1):
+        r.pop("_id", None)
+        reports.append(r)
+    return reports
+
+@api_router.put("/admin/reports/{report_id}", dependencies=[Depends(verify_admin)])
+async def admin_update_report(report_id: str, body: dict):
+    result = await db.reports.update_one({"id": report_id}, {"$set": body})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return {"success": True}
+
+
+# ============ ADMIN: BANNED USERS ============
+@api_router.get("/admin/banned-users", dependencies=[Depends(verify_admin)])
+async def admin_get_banned_users():
+    bans = []
+    async for b in db.banned_users.find().sort("bannedAt", -1):
+        b.pop("_id", None)
+        bans.append(b)
+    return bans
+
+@api_router.post("/admin/ban-user", dependencies=[Depends(verify_admin)])
+async def admin_ban_user(body: dict):
+    user_id = body.get("userId", "")
+    reason = body.get("reason", "")
+    days = body.get("days", 7)
+    if not user_id or not reason:
+        raise HTTPException(status_code=400, detail="userId and reason are required")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    username = user.get("username", f"User_{user_id[-4:]}") if user else f"User_{user_id[-4:]}"
+    
+    ban_doc = {
+        "id": str(uuid.uuid4()),
+        "userId": user_id,
+        "username": username,
+        "reason": reason,
+        "bannedAt": datetime.now(timezone.utc).isoformat(),
+        "expiresAt": (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+    }
+    await db.banned_users.insert_one(ban_doc)
+    
+    # Mark user as banned
+    await db.users.update_one({"id": user_id}, {"$set": {"is_banned": True, "ban_reason": reason}})
+    
+    ban_doc.pop("_id", None)
+    return ban_doc
+
+@api_router.delete("/admin/banned-users/{ban_id}", dependencies=[Depends(verify_admin)])
+async def admin_unban_user(ban_id: str):
+    ban = await db.banned_users.find_one({"id": ban_id})
+    if not ban:
+        raise HTTPException(status_code=404, detail="Ban record not found")
+    
+    # Unmark user
+    await db.users.update_one({"id": ban["userId"]}, {"$set": {"is_banned": False}, "$unset": {"ban_reason": ""}})
+    await db.banned_users.delete_one({"id": ban_id})
+    return {"success": True}
+
+
 @api_router.get("/admin/localization-analytics", dependencies=[Depends(verify_admin)])
 async def admin_localization_analytics():
     pipeline = [

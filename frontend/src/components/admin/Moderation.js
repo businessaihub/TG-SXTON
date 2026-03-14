@@ -9,51 +9,11 @@ import { API } from "../../App";
 
 const Moderation = ({ adminToken }) => {
   const [activeTab, setActiveTab] = useState("reports");
-  const [reports, setReports] = useState([
-    {
-      id: "report_1",
-      userId: "user_123",
-      username: "suspiciousTrader",
-      reason: "Spam/Scam",
-      status: "pending",
-      reportedAt: new Date(Date.now() - 3600000).toISOString(),
-      description: "Sending repeated marketplace spam messages"
-    },
-    {
-      id: "report_2",
-      userId: "user_456",
-      username: "toxicPlayer",
-      reason: "Harassment",
-      status: "under_review",
-      reportedAt: new Date(Date.now() - 7200000).toISOString(),
-      description: "Abusive language in chat"
-    }
-  ]);
+  const [reports, setReports] = useState([]);
 
-  const [bannedUsers, setBannedUsers] = useState([
-    {
-      id: "ban_1",
-      userId: "user_789",
-      username: "bannedUser",
-      reason: "Multiple violations",
-      bannedAt: new Date(Date.now() - 86400000).toISOString(),
-      expiresAt: new Date(Date.now() + 2592000000).toISOString()
-    }
-  ]);
+  const [bannedUsers, setBannedUsers] = useState([]);
 
-  const [localizationData, setLocalizationData] = useState({
-    en: 45,
-    uk: 28,
-    tr: 12,
-    ru: 18,
-    zh: 8,
-    ar: 6,
-    ko: 4,
-    ja: 5,
-    de: 9,
-    fr: 7,
-    th: 3
-  });
+  const [localizationData, setLocalizationData] = useState({});
 
   const [showBanForm, setShowBanForm] = useState(false);
   const [banUserId, setBanUserId] = useState("");
@@ -74,57 +34,101 @@ const Moderation = ({ adminToken }) => {
         }
       } catch (error) {
         console.error("Error fetching localization data:", error);
-        toast.error("Failed to load localization analytics");
       } finally {
         setLoadingLocalization(false);
       }
     };
 
+    const fetchReports = async () => {
+      try {
+        const response = await axios.get(`${API}/admin/reports`, {
+          headers: { Authorization: `Bearer ${adminToken}` }
+        });
+        setReports(response.data || []);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      }
+    };
+
+    const fetchBannedUsers = async () => {
+      try {
+        const response = await axios.get(`${API}/admin/banned-users`, {
+          headers: { Authorization: `Bearer ${adminToken}` }
+        });
+        setBannedUsers(response.data || []);
+      } catch (error) {
+        console.error("Error fetching banned users:", error);
+      }
+    };
+
     fetchLocalizationData();
-    // Refresh data every 30 seconds
+    fetchReports();
+    fetchBannedUsers();
     const interval = setInterval(fetchLocalizationData, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleBanUser = () => {
+  const handleBanUser = async () => {
     if (!banUserId.trim() || !banReason.trim()) {
       toast.error("Fill all fields");
       return;
     }
-
-    const ban = {
-      id: `ban_${Date.now()}`,
-      userId: banUserId,
-      username: `User_${banUserId.slice(-4)}`,
-      reason: banReason,
-      bannedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + parseInt(banDays) * 86400000).toISOString()
-    };
-
-    setBannedUsers([ban, ...bannedUsers]);
-    setBanUserId("");
-    setBanReason("");
-    toast.success("User banned!");
-    setShowBanForm(false);
+    try {
+      const response = await axios.post(`${API}/admin/ban-user`, {
+        userId: banUserId,
+        reason: banReason,
+        days: parseInt(banDays)
+      }, { headers: { Authorization: `Bearer ${adminToken}` } });
+      if (response.data) {
+        setBannedUsers([response.data, ...bannedUsers]);
+      }
+      setBanUserId("");
+      setBanReason("");
+      toast.success("User banned!");
+      setShowBanForm(false);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to ban user");
+    }
   };
 
-  const handleReviewReport = (id) => {
-    setReports(reports.map(r =>
-      r.id === id ? { ...r, status: "under_review" } : r
-    ));
-    toast.success("Status updated to Under Review");
+  const handleReviewReport = async (id) => {
+    try {
+      await axios.put(`${API}/admin/reports/${id}`, { status: "under_review" }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      setReports(reports.map(r =>
+        r.id === id ? { ...r, status: "under_review" } : r
+      ));
+      toast.success("Status updated to Under Review");
+    } catch (error) {
+      toast.error("Failed to update report");
+    }
   };
 
-  const handleResolveReport = (id) => {
-    setReports(reports.map(r =>
-      r.id === id ? { ...r, status: "resolved" } : r
-    ));
-    toast.success("Report resolved");
+  const handleResolveReport = async (id) => {
+    try {
+      await axios.put(`${API}/admin/reports/${id}`, { status: "resolved" }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      setReports(reports.map(r =>
+        r.id === id ? { ...r, status: "resolved" } : r
+      ));
+      toast.success("Report resolved");
+    } catch (error) {
+      toast.error("Failed to resolve report");
+    }
   };
 
-  const handleUnban = (id) => {
-    setBannedUsers(bannedUsers.filter(b => b.id !== id));
-    toast.success("User unbanned");
+  const handleUnban = async (id) => {
+    try {
+      await axios.delete(`${API}/admin/banned-users/${id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      setBannedUsers(bannedUsers.filter(b => b.id !== id));
+      toast.success("User unbanned");
+    } catch (error) {
+      toast.error("Failed to unban user");
+    }
   };
 
   const getStatusColor = (status) => {

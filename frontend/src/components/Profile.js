@@ -646,50 +646,56 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                   <div>
                     <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5 mb-1">MY STICKERS ({stickers.length})</div>
                     {stickers.map((st) => (
-                      <div key={st.id} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-white/10">
-                        <div className="w-14 h-14 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
-                          {st.image_url && <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />}
+                      <div key={st.id} className={`rounded transition-colors ${sellStickerId === st.id ? "border border-green-500/30 bg-white/5" : "border border-transparent hover:border-white/10 hover:bg-white/5"}`}>
+                        <div className="flex items-center gap-2 p-2">
+                          <div className="w-14 h-14 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
+                            {st.image_url && <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold text-white truncate">{st.pack_name}</div>
+                            <div className="text-[10px] text-gray-400">#{st.sticker_number} • {st.rarity}</div>
+                          </div>
+                          {sellStickerId === st.id ? (
+                            <button
+                              onClick={() => { setSellStickerId(null); setSellPrice(""); }}
+                              className="p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0"
+                            >
+                              <X size={18} className="text-red-400" />
+                            </button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => setSellStickerId(st.id)}
+                              className="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 h-7 text-[10px] px-2 flex-shrink-0"
+                            >
+                              <DollarSign size={11} className="mr-0.5" />
+                              Sell
+                            </Button>
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold text-white truncate">{st.pack_name}</div>
-                          <div className="text-[10px] text-gray-400">#{st.sticker_number} • {st.rarity}</div>
-                        </div>
-                        {sellStickerId === st.id ? (
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                        {sellStickerId === st.id && (
+                          <div className="flex items-center gap-2 px-2 pb-2">
                             <input
                               type="number"
                               step="0.1"
                               min="1"
-                              placeholder="TON"
+                              inputMode="decimal"
+                              placeholder="Price in TON"
                               value={sellPrice}
                               onChange={(e) => setSellPrice(e.target.value)}
-                              className="w-16 bg-slate-700/80 border border-green-500/30 rounded px-1.5 py-1 text-[11px] text-white placeholder-gray-500 focus:outline-none focus:border-green-400"
+                              onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }}
+                              className="flex-1 bg-slate-700/80 border border-green-500/30 rounded px-2.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-green-400"
                               autoFocus
                             />
                             <Button
                               size="sm"
                               disabled={sellLoading}
                               onClick={handleListForSale}
-                              className="bg-green-500 hover:bg-green-600 text-white h-6 text-[10px] px-2"
+                              className="bg-green-500 hover:bg-green-600 text-white h-8 text-xs px-4"
                             >
-                              {sellLoading ? "..." : "✓"}
+                              {sellLoading ? "..." : "List for Sale"}
                             </Button>
-                            <button
-                              onClick={() => { setSellStickerId(null); setSellPrice(""); }}
-                              className="p-1 hover:bg-white/10 rounded"
-                            >
-                              <X size={12} className="text-gray-400" />
-                            </button>
                           </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => setSellStickerId(st.id)}
-                            className="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 h-7 text-[10px] px-2.5 flex-shrink-0"
-                          >
-                            <DollarSign size={11} className="mr-0.5" />
-                            Sell
-                          </Button>
                         )}
                       </div>
                     ))}

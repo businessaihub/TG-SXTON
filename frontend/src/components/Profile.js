@@ -55,6 +55,11 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   const tabBarRef = useRef(null);
   const [showGameBalanceInfo, setShowGameBalanceInfo] = useState(false);
   
+  // Sell modal
+  const [sellStickerId, setSellStickerId] = useState(null);
+  const [sellPrice, setSellPrice] = useState("");
+  const [sellLoading, setSellLoading] = useState(false);
+  
   // Promo Code
   const [promoCode, setPromoCode] = useState("");
   
@@ -68,6 +73,42 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   const [loadingReferral, setLoadingReferral] = useState(false);
   
   const t = translations[language] || translations.en;
+
+  const handleListForSale = async () => {
+    if (!sellStickerId || !sellPrice || parseFloat(sellPrice) <= 0) {
+      toast.error("Enter a valid price");
+      return;
+    }
+    setSellLoading(true);
+    try {
+      await axios.post(`${API}/sell/sticker?sticker_id=${sellStickerId}&price=${parseFloat(sellPrice)}`);
+      toast.success("Sticker listed for sale!");
+      setSellStickerId(null);
+      setSellPrice("");
+      // Refresh stickers
+      const res = await axios.get(`${API}/user/${user.id}/stickers`);
+      setStickers(res.data || []);
+      const listedRes = await axios.get(`${API}/user/${user.id}/listed-stickers`);
+      setListedStickers(listedRes.data || []);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to list sticker");
+    } finally {
+      setSellLoading(false);
+    }
+  };
+
+  const handleUnlist = async (stickerId) => {
+    try {
+      await axios.post(`${API}/unlist/sticker?sticker_id=${stickerId}`);
+      toast.success("Sticker removed from sale");
+      const res = await axios.get(`${API}/user/${user.id}/stickers`);
+      setStickers(res.data || []);
+      const listedRes = await axios.get(`${API}/user/${user.id}/listed-stickers`);
+      setListedStickers(listedRes.data || []);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to unlist");
+    }
+  };
 
   const handleTabSwitch = useCallback((newTab) => {
     if (newTab === activeProfileTab || isAnimating) return;
@@ -613,6 +654,43 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                           <div className="text-xs font-semibold text-white truncate">{st.pack_name}</div>
                           <div className="text-[10px] text-gray-400">#{st.sticker_number} • {st.rarity}</div>
                         </div>
+                        {sellStickerId === st.id ? (
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="1"
+                              placeholder="TON"
+                              value={sellPrice}
+                              onChange={(e) => setSellPrice(e.target.value)}
+                              className="w-16 bg-slate-700/80 border border-green-500/30 rounded px-1.5 py-1 text-[11px] text-white placeholder-gray-500 focus:outline-none focus:border-green-400"
+                              autoFocus
+                            />
+                            <Button
+                              size="sm"
+                              disabled={sellLoading}
+                              onClick={handleListForSale}
+                              className="bg-green-500 hover:bg-green-600 text-white h-6 text-[10px] px-2"
+                            >
+                              {sellLoading ? "..." : "✓"}
+                            </Button>
+                            <button
+                              onClick={() => { setSellStickerId(null); setSellPrice(""); }}
+                              className="p-1 hover:bg-white/10 rounded"
+                            >
+                              <X size={12} className="text-gray-400" />
+                            </button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => setSellStickerId(st.id)}
+                            className="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 h-7 text-[10px] px-2.5 flex-shrink-0"
+                          >
+                            <DollarSign size={11} className="mr-0.5" />
+                            Sell
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -643,7 +721,16 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                           <div className="text-xs font-semibold text-white truncate">{st.pack_name}</div>
                           <div className="text-[10px] text-gray-400">#{st.sticker_number} • {st.rarity}</div>
                         </div>
-                        <div className="text-xs font-bold text-green-400 flex-shrink-0">{st.price?.toFixed(2)} TON</div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <div className="text-xs font-bold text-green-400">{st.price?.toFixed(2)} TON</div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleUnlist(st.id)}
+                            className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 h-6 text-[10px] px-2"
+                          >
+                            Unlist
+                          </Button>
+                        </div>
                       </div>
                     ))
                   )}

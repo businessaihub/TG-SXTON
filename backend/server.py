@@ -794,6 +794,17 @@ async def sell_sticker(sticker_id: str, price: float):
     
     return {"success": True, "message": "Sticker listed for sale"}
 
+@api_router.post("/unlist/sticker")
+async def unlist_sticker(sticker_id: str):
+    """Remove a sticker from sale"""
+    result = await db.stickers.update_one(
+        {"id": sticker_id, "is_listed": True},
+        {"$set": {"is_listed": False, "price": 0}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Listed sticker not found")
+    return {"success": True, "message": "Sticker removed from sale"}
+
 @api_router.post("/burn/sticker")
 async def burn_sticker(user_id: str, sticker_id: str):
     """Burn a sticker for SXTON points"""

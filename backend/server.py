@@ -784,6 +784,10 @@ async def sell_sticker(sticker_id: str, price: float):
     if price < settings["min_sale_price"]:
         raise HTTPException(status_code=400, detail=f"Minimum sale price is {settings['min_sale_price']} TON")
     
+    sticker = await db.stickers.find_one({"id": sticker_id}, {"_id": 0})
+    if not sticker:
+        raise HTTPException(status_code=404, detail="Sticker not found")
+    
     result = await db.stickers.update_one(
         {"id": sticker_id},
         {"$set": {"is_listed": True, "price": price}}
@@ -791,6 +795,16 @@ async def sell_sticker(sticker_id: str, price: float):
     
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Sticker not found")
+    
+    # Log activity
+    pack = await db.sticker_packs.find_one({"id": sticker.get("pack_id")}, {"_id": 0})
+    activity = Activity(
+        pack_name=pack.get("name", "Unknown") if pack else "Unknown",
+        action="listed",
+        price=price,
+        price_type="TON"
+    )
+    await db.activity.insert_one(activity.model_dump())
     
     return {"success": True, "message": "Sticker listed for sale"}
 
@@ -804,6 +818,87 @@ async def unlist_sticker(sticker_id: str):
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Listed sticker not found")
     return {"success": True, "message": "Sticker removed from sale"}
+
+@api_router.get("/marketplace/listings")
+async def get_marketplace_listings():
+    """Get all stickers listed for sale by users (for the marketplace resale section)."""
+    stickers = await db.stickers.find({"is_listed": True}, {"_id": 0}).to_list(200)
+    result = []
+    for s in stickers:
+        pack = await db.sticker_packs.find_one({"id": s.get("pack_id")}, {"_id": 0})
+        owner = await db.users.find_one({"id": s.get("owner_id")}, {"_id": 0})
+        result.append({
+            "id": s.get("id"),
+            "pack_id": s.get("pack_id"),
+            "pack_name": pack.get("name") if pack else None,
+            "sticker_number": s.get("sticker_number") or s.get("position"),
+            "rarity": s.get("rarity", "Common"),
+            "image_url": s.get("image_url"),
+            "price": s.get("price", 0),
+            "owner_id": s.get("owner_id"),
+            "seller_name": owner.get("username", "Anonymous") if owner else "Anonymous"
+        })
+    result.sort(key=lambda x: x.get("price", 0))
+    return result
+
+@api_router.post("/buy/sticker")
+async def buy_sticker(sticker_id: str, buyer_id: str):
+    """Buy a sticker listed for sale by another user."""
+    sticker = await db.stickers.find_one({"id": sticker_id, "is_listed": True}, {"_id": 0})
+    if not sticker:
+        raise HTTPException(status_code=404, detail="Sticker not found or not for sale")
+    
+    if sticker.get("owner_id") == buyer_id:
+        raise HTTPException(status_code=400, detail="Cannot buy your own sticker")
+    
+    buyer = await db.users.find_one({"id": buyer_id}, {"_id": 0})
+    if not buyer:
+        raise HTTPException(status_code=404, detail="Buyer not found")
+    
+    price = sticker.get("price", 0)
+    if (buyer.get("ton_balance", 0) or 0) < price:
+        raise HTTPException(status_code=400, detail="Insufficient TON balance")
+    
+    seller_id = sticker.get("owner_id")
+    settings = await db.settings.find_one({"id": "global_settings"}, {"_id": 0}) or Settings().model_dump()
+    commission_rate = settings.get("commission_rate", 2.5)
+    commission = price * (commission_rate / 100)
+    seller_receives = price - commission
+    
+    # Deduct from buyer
+    await db.users.update_one({"id": buyer_id}, {"$inc": {"ton_balance": -price}})
+    # Pay seller
+    await db.users.update_one({"id": seller_id}, {"$inc": {"ton_balance": seller_receives}})
+    # Transfer sticker ownership
+    await db.stickers.update_one(
+        {"id": sticker_id},
+        {"$set": {"owner_id": buyer_id, "is_listed": False, "price": 0}}
+    )
+    
+    # Log transaction
+    pack = await db.sticker_packs.find_one({"id": sticker.get("pack_id")}, {"_id": 0})
+    pack_name = pack.get("name", "Unknown") if pack else "Unknown"
+    
+    tx = Transaction(
+        from_user_id=buyer_id,
+        to_user_id=seller_id,
+        sticker_id=sticker_id,
+        amount=price,
+        currency="TON",
+        transaction_type="resale"
+    )
+    await db.transactions.insert_one(tx.model_dump())
+    
+    # Log activity
+    activity = Activity(
+        pack_name=pack_name,
+        action="sold",
+        price=price,
+        price_type="TON"
+    )
+    await db.activity.insert_one(activity.model_dump())
+    
+    return {"success": True, "message": f"Sticker purchased for {price} TON", "seller_received": seller_receives}
 
 @api_router.post("/burn/sticker")
 async def burn_sticker(user_id: str, sticker_id: str):
@@ -1147,12 +1242,11 @@ async def get_hot_collections():
 
 @api_router.get("/user/{user_id}/stickers")
 async def get_user_stickers(user_id: str):
-    """Return stickers owned by a user with rarity and pack info."""
-    stickers = await db.stickers.find({"owner_id": user_id}, {"_id": 0}).to_list(None)
+    """Return stickers owned by a user (excluding listed for sale)."""
+    stickers = await db.stickers.find({"owner_id": user_id, "is_listed": {"$ne": True}}, {"_id": 0}).to_list(None)
     result = []
     for s in stickers:
         pack = await db.sticker_packs.find_one({"id": s.get("pack_id")}, {"_id": 0})
-        # Use stored rarity from sticker document
         rarity = s.get("rarity", "Common")
         result.append({
             "id": s.get("id"),
@@ -1162,7 +1256,26 @@ async def get_user_stickers(user_id: str):
             "rarity": rarity,
             "image_url": s.get("image_url")
         })
-    # sort by pack_name then sticker_number
+    result.sort(key=lambda x: (x.get("pack_name") or "", x.get("sticker_number") or 0))
+    return result
+
+@api_router.get("/user/{user_id}/listed-stickers")
+async def get_user_listed_stickers(user_id: str):
+    """Return stickers the user has listed for sale."""
+    stickers = await db.stickers.find({"owner_id": user_id, "is_listed": True}, {"_id": 0}).to_list(None)
+    result = []
+    for s in stickers:
+        pack = await db.sticker_packs.find_one({"id": s.get("pack_id")}, {"_id": 0})
+        rarity = s.get("rarity", "Common")
+        result.append({
+            "id": s.get("id"),
+            "pack_id": s.get("pack_id"),
+            "pack_name": pack.get("name") if pack else None,
+            "sticker_number": s.get("sticker_number") or s.get("position"),
+            "rarity": rarity,
+            "image_url": s.get("image_url"),
+            "price": s.get("price", 0)
+        })
     result.sort(key=lambda x: (x.get("pack_name") or "", x.get("sticker_number") or 0))
     return result
 

@@ -6,7 +6,7 @@ import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package, ChevronLeft, ChevronRight, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useTonConnect } from "../context/TonConnectContext";
@@ -64,6 +64,9 @@ const Marketplace = ({ user, language }) => {
   const [loadingNftCollections, setLoadingNftCollections] = useState(false);
   const [criticalError, setCriticalError] = useState(null);
   const [featuredIndex, setFeaturedIndex] = useState(0);
+  const [resaleListings, setResaleListings] = useState([]);
+  const [loadingResale, setLoadingResale] = useState(false);
+  const [buyingStickerIds, setBuyingStickerIds] = useState({});
   const featuredTimerRef = useRef(null);
   const touchStartRef = useRef(0);
   const t = translations[language] || translations.en;
@@ -100,6 +103,7 @@ const Marketplace = ({ user, language }) => {
     fetchFeatured();
     fetchBanners();
     fetchActivityStats();
+    fetchResaleListings();
     
     // Update activity stats every 5 seconds
     const interval = setInterval(fetchActivityStats, 5000);
@@ -127,6 +131,33 @@ const Marketplace = ({ user, language }) => {
       fetchNftCollections();
     }
   }, [filter, user?.id]);
+
+  const fetchResaleListings = async () => {
+    setLoadingResale(true);
+    try {
+      const res = await axios.get(`${API}/marketplace/listings`);
+      setResaleListings(res.data || []);
+    } catch (e) {
+      console.error('Failed to fetch resale listings', e);
+    } finally {
+      setLoadingResale(false);
+    }
+  };
+
+  const handleBuySticker = async (sticker) => {
+    if (!user?.id) { toast.error("Please login first"); return; }
+    if (sticker.owner_id === user.id) { toast.error("Can't buy your own sticker"); return; }
+    setBuyingStickerIds(prev => ({ ...prev, [sticker.id]: true }));
+    try {
+      const res = await axios.post(`${API}/buy/sticker?sticker_id=${sticker.id}&buyer_id=${user.id}`);
+      toast.success(res.data.message || "Sticker purchased!");
+      fetchResaleListings();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Purchase failed");
+    } finally {
+      setBuyingStickerIds(prev => ({ ...prev, [sticker.id]: false }));
+    }
+  };
 
   const fetchActivityStats = async () => {
     try {
@@ -859,6 +890,65 @@ const Marketplace = ({ user, language }) => {
           <div className="glass-card p-8 border border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-orange-500/10">
             <p className="text-yellow-400">{t.marketplace.noPacks}</p>
           </div>
+        </div>
+      )}
+
+      {/* ═══════ RESALE SECTION ═══════ */}
+      {filter === "all" && (
+        <div className="relative z-10 mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <DollarSign size={16} className="text-green-400" />
+            <h2 className="text-sm font-bold text-white" style={{ fontFamily: 'Space Grotesk' }}>User Listings</h2>
+            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">
+              {resaleListings.length} for sale
+            </Badge>
+          </div>
+          {loadingResale ? (
+            <div className="text-center py-4 text-gray-400 text-sm">Loading listings...</div>
+          ) : resaleListings.length === 0 ? (
+            <div className="glass-card p-4 text-center border border-white/10">
+              <p className="text-gray-400 text-sm">No stickers listed for sale yet</p>
+              <p className="text-[10px] text-gray-500 mt-1">List your stickers from Profile → Stickers tab</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {resaleListings.map((st) => (
+                <div key={st.id} className="glass-card border border-green-500/20 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg overflow-hidden hover:border-green-500/50 transition-colors">
+                  <div className="relative w-full aspect-square overflow-hidden bg-slate-700">
+                    {st.image_url ? (
+                      <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-500">
+                        <Package size={32} />
+                      </div>
+                    )}
+                    <Badge className={`absolute top-1 left-1 text-[8px] leading-tight px-1 py-0 ${getRarityColor(st.rarity)}`}>
+                      {st.rarity?.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div className="p-2">
+                    <div className="text-[11px] font-semibold text-white truncate">{st.pack_name}</div>
+                    <div className="text-[9px] text-gray-400">#{st.sticker_number} • by {st.seller_name}</div>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-xs font-bold text-green-400">{st.price?.toFixed(2)} TON</span>
+                      <Button
+                        size="sm"
+                        disabled={buyingStickerIds[st.id] || st.owner_id === user?.id}
+                        onClick={() => handleBuySticker(st)}
+                        className={`h-6 text-[10px] px-2 ${
+                          st.owner_id === user?.id
+                            ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                            : "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                        }`}
+                      >
+                        {buyingStickerIds[st.id] ? "..." : st.owner_id === user?.id ? "Yours" : "Buy"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

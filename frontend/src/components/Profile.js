@@ -634,7 +634,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
 
             {/* ═══════ STICKERS TAB ═══════ */}
             {activeProfileTab === "stickers" && (
-              <div className="space-y-1 max-h-[60vh] overflow-y-auto">
+              <div className="max-h-[60vh] overflow-y-auto">
                 {loadingStickers ? (
                   <div className="text-center py-8 text-gray-400 text-sm">Loading stickers...</div>
                 ) : stickers.length === 0 ? (
@@ -644,61 +644,90 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                   </div>
                 ) : (
                   <div>
-                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5 mb-1">MY STICKERS ({stickers.length})</div>
-                    {stickers.map((st) => (
-                      <div key={st.id} className={`rounded transition-colors ${sellStickerId === st.id ? "border border-green-500/30 bg-white/5" : "border border-transparent hover:border-white/10 hover:bg-white/5"}`}>
-                        <div className="flex items-center gap-2 p-2">
-                          <div className="w-14 h-14 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
-                            {st.image_url && <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />}
+                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5 mb-2">MY STICKERS ({stickers.length})</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {stickers.map((st) => (
+                        <div
+                          key={st.id}
+                          className={`rounded-lg overflow-hidden border transition-colors ${sellStickerId === st.id ? "border-green-500/50 ring-1 ring-green-500/30" : "border-white/10 hover:border-white/20"} bg-slate-800/50`}
+                        >
+                          <div className="relative w-full aspect-square overflow-hidden bg-slate-700">
+                            {st.image_url ? (
+                              <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-500">
+                                <Package size={24} />
+                              </div>
+                            )}
+                            <Badge className={`absolute top-1 left-1 text-[7px] leading-tight px-1 py-0 ${
+                              st.rarity === "Legendary" ? "bg-yellow-500/30 text-yellow-300 border-yellow-500/50" :
+                              st.rarity === "Epic" ? "bg-purple-500/30 text-purple-300 border-purple-500/50" :
+                              st.rarity === "Rare" ? "bg-blue-500/30 text-blue-300 border-blue-500/50" :
+                              "bg-gray-500/30 text-gray-300 border-gray-500/50"
+                            }`}>
+                              {st.rarity}
+                            </Badge>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold text-white truncate">{st.pack_name}</div>
-                            <div className="text-[10px] text-gray-400">#{st.sticker_number} • {st.rarity}</div>
+                          <div className="p-1.5">
+                            <div className="text-[10px] font-semibold text-white truncate">#{st.sticker_number}</div>
+                            <div className="text-[8px] text-gray-400 truncate">{st.pack_name}</div>
+                            {sellStickerId === st.id ? (
+                              <button
+                                onClick={() => { setSellStickerId(null); setSellPrice(""); }}
+                                className="w-full mt-1 text-[9px] text-red-400 font-medium"
+                              >
+                                ✕ Cancel
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setSellStickerId(st.id)}
+                                className="w-full mt-1 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 text-[9px] font-medium hover:bg-green-500/30 transition"
+                              >
+                                Sell
+                              </button>
+                            )}
                           </div>
-                          {sellStickerId === st.id ? (
-                            <button
-                              onClick={() => { setSellStickerId(null); setSellPrice(""); }}
-                              className="p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0"
-                            >
-                              <X size={18} className="text-red-400" />
-                            </button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              onClick={() => setSellStickerId(st.id)}
-                              className="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 h-7 text-[10px] px-2 flex-shrink-0"
-                            >
-                              <DollarSign size={11} className="mr-0.5" />
-                              Sell
-                            </Button>
-                          )}
                         </div>
-                        {sellStickerId === st.id && (
-                          <div className="flex items-center gap-2 px-2 pb-2">
-                            <input
-                              type="number"
-                              step="0.1"
-                              min="1"
-                              inputMode="decimal"
-                              placeholder="Price in TON"
-                              value={sellPrice}
-                              onChange={(e) => setSellPrice(e.target.value)}
-                              onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }}
-                              className="flex-1 bg-slate-700/80 border border-green-500/30 rounded px-2.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-green-400"
-                              autoFocus
-                            />
-                            <Button
-                              size="sm"
-                              disabled={sellLoading}
-                              onClick={handleListForSale}
-                              className="bg-green-500 hover:bg-green-600 text-white h-8 text-xs px-4"
-                            >
-                              {sellLoading ? "..." : "List for Sale"}
-                            </Button>
-                          </div>
-                        )}
+                      ))}
+                    </div>
+
+                    {/* Sell Form - Fixed Bottom Sheet */}
+                    {sellStickerId && (
+                      <div className="fixed inset-x-0 bottom-0 z-[9999] bg-gradient-to-t from-slate-900 via-slate-900 to-slate-900/95 border-t border-green-500/30 p-4 pb-6 backdrop-blur-lg" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs text-white font-semibold">
+                            List sticker #{stickers.find(s => s.id === sellStickerId)?.sticker_number} for sale
+                          </span>
+                          <button
+                            onClick={() => { setSellStickerId(null); setSellPrice(""); }}
+                            className="p-1.5 hover:bg-white/10 rounded-lg transition"
+                          >
+                            <X size={18} className="text-red-400" />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="1"
+                            inputMode="decimal"
+                            placeholder="Price in TON"
+                            value={sellPrice}
+                            onChange={(e) => setSellPrice(e.target.value)}
+                            className="flex-1 bg-slate-700/80 border border-green-500/30 rounded px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-green-400"
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            disabled={sellLoading}
+                            onClick={handleListForSale}
+                            className="bg-green-500 hover:bg-green-600 text-white h-10 text-xs px-5"
+                          >
+                            {sellLoading ? "..." : "List"}
+                          </Button>
+                        </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>

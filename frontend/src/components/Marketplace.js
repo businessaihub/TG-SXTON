@@ -103,7 +103,6 @@ const Marketplace = ({ user, language }) => {
     fetchFeatured();
     fetchBanners();
     fetchActivityStats();
-    fetchResaleListings();
     
     // Update activity stats every 5 seconds
     const interval = setInterval(fetchActivityStats, 5000);
@@ -131,6 +130,11 @@ const Marketplace = ({ user, language }) => {
       fetchNftCollections();
     }
   }, [filter, user?.id]);
+
+  // Fetch resale listings once on mount, independently from filter
+  useEffect(() => {
+    fetchResaleListings();
+  }, []);
 
   const fetchResaleListings = async () => {
     setLoadingResale(true);

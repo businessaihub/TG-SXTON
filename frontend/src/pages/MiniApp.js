@@ -121,7 +121,7 @@ const MiniApp = ({ isAdmin }) => {
       case "marketplace":
         return <Marketplace user={user} language={language} />;
       case "activity":
-        return <Activity language={language} />;
+        return <Activity language={language} user={user} />;
       case "hot":
         return <Hot language={language} />;
       case "game":

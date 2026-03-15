@@ -440,6 +440,9 @@ class Activity(BaseModel):
     price_type: str = "TON"
     is_free: bool = False
     is_simulation: bool = False
+    image_url: Optional[str] = None
+    seller_name: Optional[str] = None
+    sticker_id: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class Transaction(BaseModel):
@@ -798,11 +801,15 @@ async def sell_sticker(sticker_id: str, price: float):
     
     # Log activity
     pack = await db.sticker_packs.find_one({"id": sticker.get("pack_id")}, {"_id": 0})
+    owner = await db.users.find_one({"id": sticker.get("owner_id")}, {"_id": 0})
     activity = Activity(
         pack_name=pack.get("name", "Unknown") if pack else "Unknown",
         action="listed",
         price=price,
-        price_type="TON"
+        price_type="TON",
+        image_url=sticker.get("image_url"),
+        seller_name=owner.get("username", "Anonymous") if owner else "Anonymous",
+        sticker_id=sticker_id
     )
     await db.activity.insert_one(activity.model_dump())
     
@@ -890,11 +897,15 @@ async def buy_sticker(sticker_id: str, buyer_id: str):
     await db.transactions.insert_one(tx.model_dump())
     
     # Log activity
+    seller = await db.users.find_one({"id": seller_id}, {"_id": 0})
     activity = Activity(
         pack_name=pack_name,
         action="sold",
         price=price,
-        price_type="TON"
+        price_type="TON",
+        image_url=sticker.get("image_url"),
+        seller_name=seller.get("username", "Anonymous") if seller else "Anonymous",
+        sticker_id=sticker_id
     )
     await db.activity.insert_one(activity.model_dump())
     

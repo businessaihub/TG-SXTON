@@ -3,17 +3,20 @@ import axios from "axios";
 import { API } from "../App";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Gift, TrendingUp, DollarSign, CheckCircle, Filter } from "lucide-react";
+import { Gift, TrendingUp, DollarSign, CheckCircle, Filter, Package } from "lucide-react";
 import { translations } from "../utils/translations";
+import { toast } from "sonner";
 
-const Activity = ({ language }) => {
+const Activity = ({ language, user }) => {
   const [activities, setActivities] = useState([]);
   const [packs, setPacks] = useState([]);
   const [filter, setFilter] = useState("all");
   const [collectionFilter, setCollectionFilter] = useState("all");
   const [timeFilter, setTimeFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [buyingIds, setBuyingIds] = useState({});
   const t = translations[language] || translations.en;
 
   useEffect(() => {
@@ -113,8 +116,22 @@ const Activity = ({ language }) => {
     return date.toLocaleDateString();
   };
 
+  const handleBuyFromActivity = async (activity) => {
+    if (!user?.id) { toast.error("Please login first"); return; }
+    if (!activity.sticker_id) { toast.error("Sticker info not available"); return; }
+    setBuyingIds(prev => ({ ...prev, [activity.id]: true }));
+    try {
+      const res = await axios.post(`${API}/buy/sticker?sticker_id=${activity.sticker_id}&buyer_id=${user.id}`);
+      toast.success(res.data.message || "Sticker purchased!");
+      fetchActivity();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Purchase failed");
+    } finally {
+      setBuyingIds(prev => ({ ...prev, [activity.id]: false }));
+    }
+  };
+
   const generatePseudonym = (activityId) => {
-    // Generate consistent pseudonym from activity ID
     const hash = activityId.split('').reduce((a, b) => {
       a = ((a << 5) - a) + b.charCodeAt(0);
       return a & a;
@@ -214,51 +231,66 @@ const Activity = ({ language }) => {
             <div
               key={activity.id}
               data-testid={`activity-item-${activity.id}`}
-              className="glass-card p-4 relative overflow-hidden hover:scale-[1.01] transition-all"
+              className="glass-card p-3 relative overflow-hidden hover:scale-[1.01] transition-all"
             >
               <div className="cosmic-particles"></div>
-              <div className="flex items-start gap-4 relative z-10">
-                <div className="flex-shrink-0 mt-1">
-                  {getActionIcon(activity.action)}
+              <div className="flex items-start gap-3 relative z-10">
+                {/* Sticker Image */}
+                <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
+                  {activity.image_url ? (
+                    <img src={activity.image_url} alt={activity.pack_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-500">
+                      <Package size={20} />
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-2">
-                    <span className="font-semibold text-white">{activity.pack_name}</span>
-                    <span className="text-gray-500">•</span>
-                    <span className={`${getActionColor(activity.action)} font-medium capitalize`}>
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    {getActionIcon(activity.action)}
+                    <span className="font-semibold text-white text-sm">{activity.pack_name}</span>
+                    <span className={`${getActionColor(activity.action)} font-medium capitalize text-xs`}>
                       {activity.action}
-                    </span>
-                    <span className="text-gray-500">•</span>
-                    <span className="text-sm text-gray-400">
-                      by <span className="text-purple-400 font-medium">{generatePseudonym(activity.id)}</span>
                     </span>
                   </div>
                   
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="text-[11px] text-gray-400 mb-1.5">
+                    by <span className="text-purple-400 font-medium">{activity.seller_name || generatePseudonym(activity.id)}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-wrap">
                     {activity.is_free ? (
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">
                         Free
                       </Badge>
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                          {typeof activity.price === 'number' ? activity.price.toFixed(2) : activity.price} {activity.price_type}
-                        </span>
-                      </div>
+                      <span className="text-sm font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                        {typeof activity.price === 'number' ? activity.price.toFixed(2) : activity.price} {activity.price_type}
+                      </span>
                     )}
                     {activity.is_simulation && (
-                      <Badge className="bg-purple-500/20 text-purple-400 text-xs border-purple-500/30">
+                      <Badge className="bg-purple-500/20 text-purple-400 text-[10px] border-purple-500/30">
                         Demo
                       </Badge>
                     )}
                   </div>
                 </div>
                 
-                <div className="flex-shrink-0 text-right">
-                  <div className="text-sm text-gray-400">
+                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                  <div className="text-[11px] text-gray-400">
                     {formatTimestamp(activity.created_at)}
                   </div>
+                  {activity.action === "listed" && activity.sticker_id && (
+                    <Button
+                      size="sm"
+                      disabled={buyingIds[activity.id]}
+                      onClick={() => handleBuyFromActivity(activity)}
+                      className="h-6 text-[10px] px-2.5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                    >
+                      {buyingIds[activity.id] ? "..." : "Buy"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

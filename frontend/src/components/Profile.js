@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import axios from "axios";
 import { API } from "../App";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Wallet, LogOut, Clock, Star, Shield, Package, TrendingUp, DollarSign, Bell, Globe, Gem, Gift, Users, Copy, Share2, Plus } from "lucide-react";
+import { Wallet, LogOut, Clock, Star, Shield, Package, TrendingUp, DollarSign, Bell, Globe, Gem, Gift, Users, Copy, Share2, Plus, Info, Gamepad2, X } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useEffect } from "react";
@@ -14,6 +14,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+
+const PROFILE_TABS = [
+  { id: "stickers", label: "Stickers", icon: Package, color: "cyan" },
+  { id: "listed", label: "Listed", icon: DollarSign, color: "green" },
+  { id: "rewards", label: "Rewards", icon: Gift, color: "amber" },
+  { id: "referrals", label: "Referrals", icon: Users, color: "blue" },
+];
 
 const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   const { wallet, connectWallet, disconnectWallet, isConnecting } = useTonConnect();
@@ -41,8 +48,12 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   const [loadingNftCollections, setLoadingNftCollections] = useState(false);
   const [activeNftTab, setActiveNftTab] = useState("available");
   
-  // Assets Tab (My Stickers vs My Collections)
-  const [activeAssetTab, setActiveAssetTab] = useState("stickers");
+  // Profile Tabs
+  const [activeProfileTab, setActiveProfileTab] = useState("stickers");
+  const [slideDirection, setSlideDirection] = useState("right");
+  const [isAnimating, setIsAnimating] = useState(false);
+  const tabBarRef = useRef(null);
+  const [showGameBalanceInfo, setShowGameBalanceInfo] = useState(false);
   
   // Promo Code
   const [promoCode, setPromoCode] = useState("");
@@ -57,6 +68,18 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   const [loadingReferral, setLoadingReferral] = useState(false);
   
   const t = translations[language] || translations.en;
+
+  const handleTabSwitch = useCallback((newTab) => {
+    if (newTab === activeProfileTab || isAnimating) return;
+    const oldIdx = PROFILE_TABS.findIndex(t => t.id === activeProfileTab);
+    const newIdx = PROFILE_TABS.findIndex(t => t.id === newTab);
+    setSlideDirection(newIdx > oldIdx ? "right" : "left");
+    setIsAnimating(true);
+    setTimeout(() => {
+      setActiveProfileTab(newTab);
+      setTimeout(() => setIsAnimating(false), 50);
+    }, 150);
+  }, [activeProfileTab, isAnimating]);
 
   useEffect(() => {
     const fetchStickers = async () => {
@@ -280,10 +303,12 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
     }
   }, [wallet]);
 
+  const activeTabIdx = PROFILE_TABS.findIndex(tab => tab.id === activeProfileTab);
+
   return (
     <div className="space-y-3 pt-1" data-testid="profile-container">
 
-      {/* ═══════ SECTION 1: Profile + Wallet + Balances ═══════ */}
+      {/* ═══════ SECTION 1: Profile + Wallet + Balances (always visible) ═══════ */}
       <div className="glass-card rounded-lg border border-white/10 overflow-hidden">
         {/* Row: Avatar + User Info + Language */}
         <div className="p-3 pb-2">
@@ -455,175 +480,34 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
           </div>
         </div>
 
-        {/* Promo Code */}
-        <div className="px-3 py-2 border-t border-white/10">
-          <div className="flex items-center gap-2">
-            <Gem size={14} className="text-purple-400 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Promo Code..."
-              value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-              className="flex-1 bg-slate-700/50 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-400/50 transition min-w-0"
-            />
-            <Button
-              size="sm"
-              onClick={async () => {
-                if (!promoCode.trim()) {
-                  toast.error("Enter a code");
-                  return;
-                }
-                try {
-                  const response = await axios.post(`${API}/promo-codes/validate?code=${promoCode}&user_id=${user?.id || ""}`);
-                  
-                  let message = "Code applied!";
-                  if (response.data.promoType === "discount") {
-                    message = `${response.data.discount}${response.data.discountType === "percent" ? "%" : " TON"} discount applied!`;
-                  } else if (response.data.promoType === "sxton_token") {
-                    message = `${response.data.sxtonAmount} SXTON tokens added to your balance!`;
-                  } else if (response.data.promoType === "guaranteed_sticker") {
-                    const rarity = response.data.stickerRarity.charAt(0).toUpperCase() + response.data.stickerRarity.slice(1);
-                    message = `${rarity} sticker reward granted!`;
-                  }
-                  
-                  // Refresh user data to show updated balance
-                  try {
-                    const userRes = await axios.get(`${API}/user/${user.id}`);
-                    setUser(userRes.data);
-                  } catch (e) {}
-                  
-                  toast.success(message);
-                  setPromoCode("");
-                } catch (error) {
-                  toast.error(error.response?.data?.detail || "Invalid code");
-                }
-              }}
-              className="bg-purple-500 hover:bg-purple-600 text-xs h-6 px-2 flex-shrink-0"
-            >
-              Apply
-            </Button>
-          </div>
-        </div>
-
-      {/* ═══════ DAILY REWARD (inside main card) ═══════ */}
+        {/* Game Balance + Top-Up */}
         <div className="px-3 py-2 border-t border-white/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Gift size={14} className="text-amber-400 flex-shrink-0" />
-              <div>
-                <div className="text-xs font-bold text-white">Daily Reward</div>
-                {dailyStatus && (
-                  <div className="text-[10px] text-gray-400">
-                    Streak: {dailyStatus.streak} • Day {dailyStatus.day_in_cycle}/7
-                  </div>
-                )}
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
+                <Gamepad2 size={16} className="text-white" />
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {dailyStatus && !dailyStatus.available && dailyStatus.remaining_seconds > 0 && (
-                <span className="text-[10px] text-gray-500">
-                  {Math.floor(dailyStatus.remaining_seconds / 3600)}h {Math.floor((dailyStatus.remaining_seconds % 3600) / 60)}m
-                </span>
-              )}
-              <Button
-                size="sm"
-                disabled={loadingDaily || claimingDaily || (dailyStatus && !dailyStatus.available)}
-                onClick={handleClaimDaily}
-                className={`h-6 text-[11px] px-2 ${
-                  dailyStatus?.available
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white btn-animated"
-                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {claimingDaily ? "..." : dailyStatus?.available ? `Claim ${dailyStatus?.next_reward || 50} SXTON` : "Claimed"}
-              </Button>
-            </div>
-          </div>
-          {/* Streak dots */}
-          {dailyStatus && (
-            <div className="flex gap-1 mt-1.5 justify-center">
-              {[1, 2, 3, 4, 5, 6, 7].map(day => (
-                <div
-                  key={day}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold border ${
-                    day <= (dailyStatus.streak % 7 || (dailyStatus.streak > 0 ? 7 : 0))
-                      ? "bg-amber-500/30 border-amber-500 text-amber-400"
-                      : day === ((dailyStatus.streak % 7) + 1) && dailyStatus.available
-                        ? "bg-amber-500/10 border-amber-500/50 text-amber-400 animate-pulse"
-                        : "bg-white/5 border-white/10 text-gray-600"
-                  }`}
-                >
-                  {day * 50}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1">
+                  <div className="text-xs font-bold text-white">Game Balance</div>
+                  <button
+                    onClick={() => setShowGameBalanceInfo(!showGameBalanceInfo)}
+                    className="p-0.5 hover:bg-white/10 rounded transition"
+                  >
+                    <Info size={12} className="text-gray-400 hover:text-cyan-400" />
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* ═══════ REFERRALS (inside main card) ═══════ */}
-        <div className="px-3 py-2 border-t border-white/10">
-          <div className="flex items-center gap-2">
-            <Users size={14} className="text-blue-400 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-bold text-white">Referrals <span className="text-[10px] text-gray-400 font-normal">• 500 SXTON/friend</span></div>
-            </div>
-            {referralInfo && (
-              <div className="text-right flex-shrink-0">
-                <span className="text-xs font-bold text-blue-400">{referralInfo.referral_count}</span>
-                <span className="text-[10px] text-gray-500 ml-1">invited</span>
-              </div>
-            )}
-          </div>
-          {referralInfo && (
-            <div className="flex items-center gap-1.5 bg-white/5 rounded-lg p-1.5 border border-white/10 mt-1.5">
-              <span className="text-[9px] text-gray-400 truncate flex-1 font-mono">
-                {referralInfo.referral_link}
-              </span>
-              <button
-                onClick={handleCopyReferral}
-                className="p-1 hover:bg-white/10 rounded transition flex-shrink-0"
-              >
-                <Copy size={12} className="text-cyan-400" />
-              </button>
-              <button
-                onClick={handleShareReferral}
-                className="p-1 hover:bg-white/10 rounded transition flex-shrink-0"
-              >
-                <Share2 size={12} className="text-blue-400" />
-              </button>
-            </div>
-          )}
-          {referralInfo?.total_earned > 0 && (
-            <div className="text-[10px] text-gray-400 mt-1 text-center">
-              Earned: <span className="text-purple-400 font-bold">{referralInfo.total_earned} SXTON</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ═══════ BALANCE TOP-UP ═══════ */}
-      <div className="glass-card rounded-lg border border-white/10 overflow-hidden">
-        <div className="px-3 py-2.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                <Plus size={16} className="text-white" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white">Top-Up Balance</div>
-                <div className="text-[10px] text-gray-400">Deposit TON to your account</div>
+                <div className="text-sm font-bold text-green-400">{user?.ton_balance?.toFixed(2) || "0.00"} TON</div>
               </div>
             </div>
             {(wallet || user?.wallet_address) ? (
               <Button
                 size="sm"
-                onClick={async () => {
-                  toast.info("Send TON to your connected wallet address to top up.");
-                }}
+                onClick={() => toast.info("Send TON to your connected wallet address to top up.")}
                 className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white h-7 text-xs px-3 btn-animated"
               >
-                <DollarSign size={12} className="mr-1" />
-                Deposit
+                <Plus size={12} className="mr-1" />
+                Top-Up
               </Button>
             ) : (
               <Button
@@ -632,70 +516,98 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                 className="bg-cyan-500 hover:bg-cyan-600 text-white h-7 text-xs px-3"
               >
                 <Wallet size={12} className="mr-1" />
-                Connect Wallet
+                Connect
               </Button>
             )}
           </div>
+          {/* Game Balance Info Popup */}
+          {showGameBalanceInfo && (
+            <div className="mt-2 p-3 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-lg relative">
+              <button
+                onClick={() => setShowGameBalanceInfo(false)}
+                className="absolute top-1.5 right-1.5 p-0.5 hover:bg-white/10 rounded"
+              >
+                <X size={12} className="text-gray-400" />
+              </button>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Gamepad2 size={14} className="text-cyan-400" />
+                <span className="text-xs font-bold text-cyan-400">What is Game Balance?</span>
+              </div>
+              <div className="space-y-1.5 text-[11px] text-gray-300">
+                <p>🎮 <span className="text-white font-medium">Game Balance</span> is your TON balance used across all mini-games:</p>
+                <div className="grid grid-cols-2 gap-1 pl-4">
+                  <span>• Sticker Theft (0.2 TON)</span>
+                  <span>• Raid Entry (0.1 TON)</span>
+                  <span>• Sticker Battle</span>
+                  <span>• Bomb Pass</span>
+                </div>
+                <p>💰 Top up by depositing TON via your connected wallet.</p>
+                <p>🏆 Win games to earn SXTON tokens and rare stickers!</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ═══════ SECTION 2: History + Assets (Tabbed) ═══════ */}
-      <div className="glass-card p-3 rounded-lg border border-white/10">
-        {/* Segmented Tabs */}
-        <div className="flex gap-1 mb-3 p-0.5 bg-white/5 rounded-lg border border-white/10 overflow-x-auto">
-          <button
-            onClick={() => setActiveAssetTab("stickers")}
-            className={`flex-1 px-2 py-1.5 rounded text-xs font-semibold transition-all whitespace-nowrap ${
-              activeAssetTab === "stickers"
-                ? "bg-cyan-500 text-white shadow-lg"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Package size={12} className="inline mr-1" />
-            Stickers
-          </button>
-          <button
-            onClick={() => setActiveAssetTab("collections")}
-            className={`flex-1 px-2 py-1.5 rounded text-xs font-semibold transition-all whitespace-nowrap ${
-              activeAssetTab === "collections"
-                ? "bg-blue-500 text-white shadow-lg"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Gem size={12} className="inline mr-1" />
-            Collections
-          </button>
-          <button
-            onClick={() => setActiveAssetTab("history")}
-            className={`flex-1 px-2 py-1.5 rounded text-xs font-semibold transition-all whitespace-nowrap ${
-              activeAssetTab === "history"
-                ? "bg-purple-500 text-white shadow-lg"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <TrendingUp size={12} className="inline mr-1" />
-            History
-          </button>
+      {/* ═══════ ANIMATED TAB BAR ═══════ */}
+      <div className="glass-card rounded-lg border border-white/10 overflow-hidden">
+        <div
+          ref={tabBarRef}
+          className="flex gap-0.5 px-1.5 py-1.5 overflow-x-auto scrollbar-hide relative"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          {PROFILE_TABS.map((tab, idx) => {
+            const Icon = tab.icon;
+            const isActive = activeProfileTab === tab.id;
+            const colorMap = {
+              cyan: { active: "bg-cyan-500 text-white shadow-lg shadow-cyan-500/30", inactive: "text-gray-400" },
+              green: { active: "bg-green-500 text-white shadow-lg shadow-green-500/30", inactive: "text-gray-400" },
+              amber: { active: "bg-amber-500 text-white shadow-lg shadow-amber-500/30", inactive: "text-gray-400" },
+              blue: { active: "bg-blue-500 text-white shadow-lg shadow-blue-500/30", inactive: "text-gray-400" },
+            };
+            const colors = colorMap[tab.color] || colorMap.cyan;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabSwitch(tab.id)}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 active:scale-95 min-w-[80px] ${
+                  isActive ? colors.active : `${colors.inactive} hover:text-white hover:bg-white/5`
+                }`}
+              >
+                <Icon size={14} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* My Stickers Tab */}
-        {activeAssetTab === "stickers" && (
-          <div className="space-y-1 max-h-80 overflow-y-auto">
-            {loadingStickers || loadingListedStickers ? (
-              <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
-            ) : (stickers.length === 0 && listedStickers.length === 0) ? (
-              <div className="text-center py-4 text-gray-400 text-sm">
-                No stickers yet. <a href="#/marketplace" className="text-cyan-400 hover:underline">Buy some!</a>
-              </div>
-            ) : (
-              <>
-                {stickers.length > 0 && (
+        {/* ═══════ TAB CONTENT with slide animation ═══════ */}
+        <div className="overflow-hidden border-t border-white/10">
+          <div
+            className={`p-3 transition-all duration-200 ease-out ${
+              isAnimating
+                ? `opacity-0 ${slideDirection === "right" ? "translate-x-4" : "-translate-x-4"}`
+                : "opacity-100 translate-x-0"
+            }`}
+          >
+
+            {/* ═══════ STICKERS TAB ═══════ */}
+            {activeProfileTab === "stickers" && (
+              <div className="space-y-1 max-h-[60vh] overflow-y-auto">
+                {loadingStickers ? (
+                  <div className="text-center py-8 text-gray-400 text-sm">Loading stickers...</div>
+                ) : stickers.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400 text-sm">
+                    <Package size={32} className="mx-auto mb-2 opacity-30" />
+                    No stickers yet. Buy some on the Market!
+                  </div>
+                ) : (
                   <div>
-                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5">PURCHASED ({stickers.length})</div>
+                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5 mb-1">MY STICKERS ({stickers.length})</div>
                     {stickers.map((st) => (
                       <div key={st.id} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-white/10">
-                        <div className="w-16 h-16 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
-                          <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />
+                        <div className="w-14 h-14 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
+                          {st.image_url && <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-semibold text-white truncate">{st.pack_name}</div>
@@ -705,168 +617,279 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                     ))}
                   </div>
                 )}
-                {listedStickers.length > 0 && (
-                  <div className="mt-2">
-                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5">FOR SALE ({listedStickers.length})</div>
-                    {listedStickers.map((st) => (
-                      <div key={st.id} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-green-500/30">
-                        <div className="w-16 h-16 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-green-500/30">
-                          <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold text-white truncate">{st.pack_name}</div>
-                          <div className="text-[10px] text-gray-400">#{st.sticker_number} • {st.rarity}</div>
-                        </div>
-                        <div className="text-xs font-bold text-green-400 flex-shrink-0">{st.price.toFixed(2)} TON</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* My Collections Tab */}
-        {activeAssetTab === "collections" && (
-          <div className="space-y-1 max-h-80 overflow-y-auto">
-            {!user?.wallet_address ? (
-              <div className="text-center py-6 text-gray-400 text-sm border border-blue-500/30 rounded p-3">
-                <p className="mb-1">🔗 Connect your wallet to see NFT collections</p>
-                <p className="text-[10px] text-gray-500">NFT from other markets will appear here</p>
               </div>
-            ) : loadingNftCollections ? (
-              <div className="text-center py-4 text-gray-400 text-sm">Loading NFTs...</div>
-            ) : (
-              <>
-                {(nftCollections?.available_for_sale?.length || 0) > 0 && (
+            )}
+
+            {/* ═══════ LISTED TAB ═══════ */}
+            {activeProfileTab === "listed" && (
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                {/* Listed for Sale */}
+                <div>
+                  <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5 mb-1">FOR SALE ({listedStickers.length})</div>
+                  {loadingListedStickers ? (
+                    <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
+                  ) : listedStickers.length === 0 ? (
+                    <div className="text-center py-4 text-gray-400 text-sm">
+                      <DollarSign size={24} className="mx-auto mb-2 opacity-30" />
+                      No stickers listed for sale
+                    </div>
+                  ) : (
+                    listedStickers.map((st) => (
+                      <div key={st.id} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-green-500/30">
+                        <div className="w-14 h-14 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-green-500/30">
+                          {st.image_url && <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-white truncate">{st.pack_name}</div>
+                          <div className="text-[10px] text-gray-400">#{st.sticker_number} • {st.rarity}</div>
+                        </div>
+                        <div className="text-xs font-bold text-green-400 flex-shrink-0">{st.price?.toFixed(2)} TON</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* NFT Collections */}
+                {user?.wallet_address && (
                   <div>
-                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5">AVAILABLE ({nftCollections.available_for_sale.length})</div>
-                    {nftCollections.available_for_sale.map((nft, idx) => (
-                      <div key={idx} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-green-500/30">
-                        <div className="w-16 h-16 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
-                          <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold text-white truncate">{nft.name}</div>
-                          <div className="text-[10px] text-gray-400">{nft.collection} • {nft.rarity}</div>
-                        </div>
-                        <Button size="sm" className="bg-cyan-500 hover:bg-cyan-600 text-white h-7 text-[10px] flex-shrink-0">
-                          List
-                        </Button>
-                      </div>
-                    ))}
+                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5 mb-1">NFT COLLECTIONS</div>
+                    {loadingNftCollections ? (
+                      <div className="text-center py-4 text-gray-400 text-sm">Loading NFTs...</div>
+                    ) : (
+                      <>
+                        {(nftCollections?.available_for_sale?.length || 0) > 0 && (
+                          <div className="mb-2">
+                            <div className="text-[10px] text-green-400/60 px-1 mb-0.5">AVAILABLE ({nftCollections.available_for_sale.length})</div>
+                            {nftCollections.available_for_sale.map((nft, idx) => (
+                              <div key={idx} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors">
+                                <div className="w-14 h-14 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
+                                  <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-semibold text-white truncate">{nft.name}</div>
+                                  <div className="text-[10px] text-gray-400">{nft.collection} • {nft.rarity}</div>
+                                </div>
+                                <Button size="sm" className="bg-cyan-500 hover:bg-cyan-600 text-white h-7 text-[10px] flex-shrink-0">List</Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {(nftCollections?.listed?.length || 0) > 0 && (
+                          <div className="mb-2">
+                            <div className="text-[10px] text-green-400/60 px-1 mb-0.5">LISTED ({nftCollections.listed.length})</div>
+                            {nftCollections.listed.map((nft, idx) => (
+                              <div key={idx} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors">
+                                <div className="w-14 h-14 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-green-500/30">
+                                  <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-semibold text-white truncate">{nft.name}</div>
+                                  <div className="text-[10px] text-gray-400">{nft.collection} • {nft.rarity}</div>
+                                </div>
+                                <div className="text-xs font-bold text-green-400 flex-shrink-0">{nft.price} {nft.currency}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {!nftCollections?.available_for_sale?.length && !nftCollections?.listed?.length && (
+                          <div className="text-center py-3 text-gray-400 text-sm">No NFT collections</div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
-                {(nftCollections?.listed?.length || 0) > 0 && (
-                  <div className="mt-2">
-                    <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5">LISTED ({nftCollections.listed.length})</div>
-                    {nftCollections.listed.map((nft, idx) => (
-                      <div key={idx} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-green-500/30">
-                        <div className="w-16 h-16 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-green-500/30">
-                          <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold text-white truncate">{nft.name}</div>
-                          <div className="text-[10px] text-gray-400">{nft.collection} • {nft.rarity}</div>
-                        </div>
-                        <div className="text-xs font-bold text-green-400 flex-shrink-0">{nft.price} {nft.currency}</div>
-                      </div>
+
+                {/* Transaction History */}
+                <div>
+                  <div className="text-[10px] text-gray-500 font-semibold px-1 py-0.5 mb-1">HISTORY</div>
+                  <div className="flex gap-1 mb-2">
+                    {["purchases", "sales", "earnings"].map(type => (
+                      <button
+                        key={type}
+                        className={`flex-1 px-2 py-1 rounded text-[11px] font-medium transition-all ${
+                          activeTransactionTab === type ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
+                        }`}
+                        onClick={() => handleTransactionTab(type)}
+                      >
+                        {type === "purchases" && <Clock size={11} className="inline mr-1" />}
+                        {type === "sales" && <DollarSign size={11} className="inline mr-1" />}
+                        {type === "earnings" && <TrendingUp size={11} className="inline mr-1" />}
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </button>
                     ))}
                   </div>
-                )}
-                {(nftCollections?.not_whitelisted?.length || 0) > 0 && (
-                  <details className="mt-3 text-xs text-gray-500">
-                    <summary className="font-semibold px-1 py-0.5 cursor-pointer hover:text-gray-400 transition-colors text-[10px]">⊕ NOT SUPPORTED ({nftCollections.not_whitelisted.length})</summary>
-                    <div className="mt-1.5 space-y-1">
-                      {nftCollections.not_whitelisted.map((nft, idx) => (
-                        <div key={idx} className="flex items-center gap-2 p-1.5 opacity-50 border border-yellow-500/20 rounded">
-                          <div className="w-12 h-12 rounded flex-shrink-0 overflow-hidden bg-slate-700 border border-white/10">
-                            <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
+                  {loadingTransactions ? (
+                    <div className="text-center py-3 text-gray-400 text-sm">{t.profile.loading}</div>
+                  ) : transactions.length === 0 ? (
+                    <div className="text-center py-3 text-gray-400 text-sm">{t.profile.noTransactions}</div>
+                  ) : (
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {transactions.map((tx) => (
+                        <div key={tx.id} className="p-2 bg-white/5 rounded border border-white/10 text-xs">
+                          <div className="flex justify-between items-start mb-0.5">
+                            <span className="font-semibold truncate mr-2">{tx.sticker?.pack_name || "Pack Transfer"}</span>
+                            <span className={`flex-shrink-0 ${tx.is_seller ? "text-green-400" : "text-red-400"}`}>
+                              {tx.is_seller ? "+" : "-"}{tx.amount.toFixed(2)} {tx.currency}
+                            </span>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-semibold text-white truncate">{nft.name}</div>
-                            <div className="text-[10px] text-yellow-400">Unsupported collection</div>
-                          </div>
+                          {tx.sticker && <p className="text-gray-400 text-[10px]">#{tx.sticker.number} {tx.sticker.rarity}</p>}
+                          <p className="text-gray-500 text-[10px]">{new Date(tx.created_at).toLocaleDateString()}</p>
                         </div>
                       ))}
                     </div>
-                  </details>
-                )}
-                {!nftCollections?.available_for_sale?.length && !nftCollections?.listed?.length && !nftCollections?.not_whitelisted?.length && (
-                  <div className="text-center py-4 text-gray-400 text-sm">
-                    No NFT collections in your wallet
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* History Tab */}
-        {activeAssetTab === "history" && (
-          <div>
-            {/* Transaction type selector */}
-            <div className="flex gap-1 mb-2">
-              <button 
-                className={`flex-1 px-2 py-1 rounded text-[11px] font-medium transition-all ${
-                  activeTransactionTab === "purchases" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
-                }`}
-                data-testid="history-purchases-btn"
-                onClick={() => handleTransactionTab("purchases")}
-              >
-                <Clock size={11} className="inline mr-1" />
-                {t.profile.purchases}
-              </button>
-              <button 
-                className={`flex-1 px-2 py-1 rounded text-[11px] font-medium transition-all ${
-                  activeTransactionTab === "sales" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
-                }`}
-                data-testid="history-sales-btn"
-                onClick={() => handleTransactionTab("sales")}
-              >
-                <DollarSign size={11} className="inline mr-1" />
-                {t.profile.sales}
-              </button>
-              <button 
-                className={`flex-1 px-2 py-1 rounded text-[11px] font-medium transition-all ${
-                  activeTransactionTab === "earnings" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
-                }`}
-                data-testid="history-earnings-btn"
-                onClick={() => handleTransactionTab("earnings")}
-              >
-                <TrendingUp size={11} className="inline mr-1" />
-                {t.profile.earnings}
-              </button>
-            </div>
-
-            {/* Transactions List */}
-            {loadingTransactions ? (
-              <div className="text-center py-4 text-gray-400 text-sm">{t.profile.loading}</div>
-            ) : transactions.length === 0 ? (
-              <div className="text-center py-4 text-gray-400 text-sm">{t.profile.noTransactions}</div>
-            ) : (
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {transactions.map((tx) => (
-                  <div key={tx.id} className="p-2 bg-white/5 rounded border border-white/10 text-xs">
-                    <div className="flex justify-between items-start mb-0.5">
-                      <span className="font-semibold truncate mr-2">
-                        {tx.sticker?.pack_name || "Pack Transfer"}
-                      </span>
-                      <span className={`flex-shrink-0 ${tx.is_seller ? "text-green-400" : "text-red-400"}`}>
-                        {tx.is_seller ? "+" : "-"}{tx.amount.toFixed(2)} {tx.currency}
-                      </span>
-                    </div>
-                    {tx.sticker && (
-                      <p className="text-gray-400 text-[10px]">#{tx.sticker.number} {tx.sticker.rarity}</p>
-                    )}
-                    <p className="text-gray-500 text-[10px]">{new Date(tx.created_at).toLocaleDateString()}</p>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
             )}
+
+            {/* ═══════ REWARDS TAB ═══════ */}
+            {activeProfileTab === "rewards" && (
+              <div className="space-y-4">
+                {/* Daily Reward */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Gift size={16} className="text-amber-400" />
+                      <div>
+                        <div className="text-xs font-bold text-white">Daily Reward</div>
+                        {dailyStatus && (
+                          <div className="text-[10px] text-gray-400">Streak: {dailyStatus.streak} • Day {dailyStatus.day_in_cycle}/7</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {dailyStatus && !dailyStatus.available && dailyStatus.remaining_seconds > 0 && (
+                        <span className="text-[10px] text-gray-500">
+                          {Math.floor(dailyStatus.remaining_seconds / 3600)}h {Math.floor((dailyStatus.remaining_seconds % 3600) / 60)}m
+                        </span>
+                      )}
+                      <Button
+                        size="sm"
+                        disabled={loadingDaily || claimingDaily || (dailyStatus && !dailyStatus.available)}
+                        onClick={handleClaimDaily}
+                        className={`h-7 text-[11px] px-3 ${
+                          dailyStatus?.available
+                            ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white btn-animated"
+                            : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                        }`}
+                      >
+                        {claimingDaily ? "..." : dailyStatus?.available ? `Claim ${dailyStatus?.next_reward || 50} SXTON` : "Claimed"}
+                      </Button>
+                    </div>
+                  </div>
+                  {dailyStatus && (
+                    <div className="flex gap-1 justify-center">
+                      {[1, 2, 3, 4, 5, 6, 7].map(day => (
+                        <div
+                          key={day}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold border ${
+                            day <= (dailyStatus.streak % 7 || (dailyStatus.streak > 0 ? 7 : 0))
+                              ? "bg-amber-500/30 border-amber-500 text-amber-400"
+                              : day === ((dailyStatus.streak % 7) + 1) && dailyStatus.available
+                                ? "bg-amber-500/10 border-amber-500/50 text-amber-400 animate-pulse"
+                                : "bg-white/5 border-white/10 text-gray-600"
+                          }`}
+                        >
+                          {day * 50}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Promo Code */}
+                <div className="border-t border-white/10 pt-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gem size={14} className="text-purple-400" />
+                    <div className="text-xs font-bold text-white">Promo Code</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter code..."
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      className="flex-1 bg-slate-700/50 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-400/50 transition min-w-0"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        if (!promoCode.trim()) { toast.error("Enter a code"); return; }
+                        try {
+                          const response = await axios.post(`${API}/promo-codes/validate?code=${promoCode}&user_id=${user?.id || ""}`);
+                          let message = "Code applied!";
+                          if (response.data.promoType === "discount") {
+                            message = `${response.data.discount}${response.data.discountType === "percent" ? "%" : " TON"} discount applied!`;
+                          } else if (response.data.promoType === "sxton_token") {
+                            message = `${response.data.sxtonAmount} SXTON tokens added to your balance!`;
+                          } else if (response.data.promoType === "guaranteed_sticker") {
+                            const rarity = response.data.stickerRarity.charAt(0).toUpperCase() + response.data.stickerRarity.slice(1);
+                            message = `${rarity} sticker reward granted!`;
+                          }
+                          try { const userRes = await axios.get(`${API}/user/${user.id}`); setUser(userRes.data); } catch (e) {}
+                          toast.success(message);
+                          setPromoCode("");
+                        } catch (error) {
+                          toast.error(error.response?.data?.detail || "Invalid code");
+                        }
+                      }}
+                      className="bg-purple-500 hover:bg-purple-600 text-xs h-7 px-3 flex-shrink-0"
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ═══════ REFERRALS TAB ═══════ */}
+            {activeProfileTab === "referrals" && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <Users size={32} className="mx-auto mb-2 text-blue-400 opacity-60" />
+                  <div className="text-xs font-bold text-white mb-0.5">Invite Friends, Earn SXTON!</div>
+                  <div className="text-[10px] text-gray-400">500 SXTON for every friend who joins</div>
+                </div>
+
+                {loadingReferral ? (
+                  <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
+                ) : referralInfo ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-white/5 rounded-lg py-2">
+                        <div className="text-lg font-bold text-blue-400">{referralInfo.referral_count}</div>
+                        <div className="text-[10px] text-gray-500">Invited</div>
+                      </div>
+                      <div className="bg-white/5 rounded-lg py-2">
+                        <div className="text-lg font-bold text-purple-400">{referralInfo.total_earned || 0}</div>
+                        <div className="text-[10px] text-gray-500">SXTON Earned</div>
+                      </div>
+                      <div className="bg-white/5 rounded-lg py-2">
+                        <div className="text-lg font-bold text-green-400">500</div>
+                        <div className="text-[10px] text-gray-500">Per Friend</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-white/5 rounded-lg p-2 border border-white/10">
+                      <span className="text-[10px] text-gray-400 truncate flex-1 font-mono">
+                        {referralInfo.referral_link}
+                      </span>
+                      <button onClick={handleCopyReferral} className="p-1.5 hover:bg-white/10 rounded transition flex-shrink-0">
+                        <Copy size={14} className="text-cyan-400" />
+                      </button>
+                      <button onClick={handleShareReferral} className="p-1.5 hover:bg-white/10 rounded transition flex-shrink-0">
+                        <Share2 size={14} className="text-blue-400" />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-gray-400 text-sm">Referral info unavailable</div>
+                )}
+              </div>
+            )}
+
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -29,6 +29,10 @@ const MiniApp = ({ isAdmin }) => {
       try {
         // Try to get real Telegram WebApp data
         const tg = window.Telegram?.WebApp;
+        if (tg) {
+          tg.expand();
+          tg.enableClosingConfirmation();
+        }
         const tgUser = tg?.initDataUnsafe?.user;
 
         let telegramId, username;

@@ -332,8 +332,12 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
         {/* Row: Avatar + User Info + Language */}
         <div className="p-3 pb-2">
           <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-xl">👤</span>
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {user?.photo_url ? (
+                <img src={user.photo_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xl">👤</span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-base font-bold neon-cyan leading-tight" style={{ fontFamily: 'Space Grotesk' }}>

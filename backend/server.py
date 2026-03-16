@@ -342,6 +342,7 @@ class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     telegram_id: Optional[str] = None
     username: Optional[str] = None
+    photo_url: Optional[str] = None
     wallet_address: Optional[str] = None
     ton_balance: float = 0.0
     stars_balance: float = 0.0
@@ -556,6 +557,7 @@ class SystemLog(BaseModel):
 class TelegramAuthRequest(BaseModel):
     telegram_id: str
     username: Optional[str] = None
+    photo_url: Optional[str] = None
     referrer_id: Optional[str] = None
 
 @api_router.post("/auth/telegram")
@@ -575,10 +577,19 @@ async def telegram_auth(request: TelegramAuthRequest):
             user_doc["ton_balance"] = 0.0
             user_doc["stars_balance"] = 0.0
             user_doc["sxton_points"] = 0.0
+        # Update photo_url and username if changed
+        updates = {}
+        if request.photo_url and request.photo_url != user_doc.get("photo_url"):
+            updates["photo_url"] = request.photo_url
+        if request.username and request.username != user_doc.get("username"):
+            updates["username"] = request.username
+        if updates:
+            await db.users.update_one({"telegram_id": request.telegram_id}, {"$set": updates})
+            user_doc.update(updates)
         return {"user": user_doc, "is_new": False}
     
     # Create new user
-    user = User(telegram_id=request.telegram_id, username=request.username, referrer_id=request.referrer_id)
+    user = User(telegram_id=request.telegram_id, username=request.username, photo_url=request.photo_url, referrer_id=request.referrer_id)
     doc = user.model_dump()
     await db.users.insert_one(doc)
     

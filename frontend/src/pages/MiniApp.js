@@ -44,6 +44,7 @@ const MiniApp = ({ isAdmin }) => {
           // Real Telegram environment
           telegramId = String(tgUser.id);
           username = tgUser.username || tgUser.first_name || "tg_user";
+          var photoUrl = tgUser.photo_url || null;
         } else {
           // Browser testing — use stable ID from localStorage
           telegramId = localStorage.getItem("tg_sxton_telegram_id");
@@ -56,7 +57,8 @@ const MiniApp = ({ isAdmin }) => {
 
         const response = await axios.post(`${API}/auth/telegram`, {
           telegram_id: telegramId,
-          username: username
+          username: username,
+          photo_url: typeof photoUrl !== 'undefined' ? photoUrl : null
         });
         setUser(response.data.user);
       } catch (error) {

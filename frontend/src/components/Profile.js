@@ -3,7 +3,7 @@ import axios from "axios";
 import { API } from "../App";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Wallet, LogOut, Clock, Star, Shield, Package, TrendingUp, DollarSign, Bell, Globe, Gem, Gift, Users, Copy, Share2, Plus, Info, Gamepad2, X } from "lucide-react";
+import { Wallet, LogOut, Clock, Star, Shield, Package, TrendingUp, DollarSign, Globe, Gem, Gift, Users, Copy, Share2, Plus, Info, Gamepad2, X } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useEffect } from "react";
@@ -22,7 +22,7 @@ const PROFILE_TABS = [
   { id: "referrals", label: "Referrals", icon: Users, color: "blue" },
 ];
 
-const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
+const Profile = ({ user, setUser, language, setLanguage }) => {
   const { wallet, connectWallet, disconnectWallet, isConnecting } = useTonConnect();
   const [walletConnected, setWalletConnected] = useState(false);
   const [stickers, setStickers] = useState([]);
@@ -39,9 +39,6 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
   const [loadingListedStickers, setLoadingListedStickers] = useState(false);
   const [sellerStats, setSellerStats] = useState(null);
   const [loadingSellerStats, setLoadingSellerStats] = useState(false);
-  
-  // Notifications setting
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   
   // NFT Collections
   const [nftCollections, setNftCollections] = useState(null);
@@ -158,10 +155,6 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
     };
     fetchSellerStats();
     
-    // Load notifications preference from user
-    if (user) {
-      setNotificationsEnabled(user.notifications_enabled !== false);
-    }
   }, [user]);
 
   // Fetch daily reward status
@@ -293,21 +286,6 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
     fetchTransactions(type);
   };
 
-  const handleToggleNotifications = async (enabled) => {
-    if (!user || !user.id) return;
-    try {
-      await axios.put(`${API}/user/${user.id}/settings`, {
-        notifications_enabled: enabled
-      });
-      setNotificationsEnabled(enabled);
-      setUser({ ...user, notifications_enabled: enabled });
-      toast.success(enabled ? "Notifications enabled" : "Notifications disabled");
-    } catch (error) {
-      console.error('Failed to update notifications', error);
-      toast.error("Failed to update notifications");
-    }
-  };
-
   const handleConnectWallet = async () => {
     try {
       await connectWallet();
@@ -432,7 +410,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
           </div>
         </div>
 
-        {/* Wallet Row + Notification + Logout */}
+        {/* Wallet Row */}
         <div className="px-3 py-2 bg-white/[0.03] border-t border-white/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 min-w-0">
@@ -466,32 +444,7 @@ const Profile = ({ user, setUser, language, setLanguage, onLogout }) => {
                 </Button>
               )}
             </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="p-1.5 hover:bg-white/10 rounded-lg transition">
-                    <Bell size={16} className={notificationsEnabled ? "text-cyan-400" : "text-gray-500"} />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="glass-card border-white/10">
-                  <DropdownMenuItem
-                    onClick={() => handleToggleNotifications(true)}
-                    className={`cursor-pointer ${notificationsEnabled ? "bg-cyan-500/20 text-cyan-400" : ""}`}
-                  >
-                    🔔 Enable
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleToggleNotifications(false)}
-                    className={`cursor-pointer ${!notificationsEnabled ? "bg-cyan-500/20 text-cyan-400" : ""}`}
-                  >
-                    🔕 Disable
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <button className="p-1.5 hover:bg-white/10 rounded-lg transition" onClick={onLogout}>
-                <LogOut size={16} className="text-red-400" />
-              </button>
-            </div>
+            
           </div>
         </div>
 

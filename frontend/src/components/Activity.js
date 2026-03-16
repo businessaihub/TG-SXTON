@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Gift, TrendingUp, DollarSign, Filter, Package, Share2, Eye, Sparkles } from "lucide-react";
+import { Gift, TrendingUp, DollarSign, Filter, Package, Share2, Star, Sparkles } from "lucide-react";
 import { translations } from "../utils/translations";
 import { toast } from "sonner";
 
@@ -408,7 +408,7 @@ const Activity = ({ language, user }) => {
       {previewSticker && (
         <div className="fixed inset-0 bg-black/70 z-[9999] flex items-end justify-center" onClick={() => setPreviewSticker(null)}>
           <div
-            className="bg-[#1a1a2e] rounded-t-3xl w-full max-w-md overflow-hidden"
+            className="bg-[#0d0d1a]/95 backdrop-blur-xl border-t border-white/10 rounded-t-3xl w-full max-w-md overflow-hidden"
             style={{ animation: "slideUp 0.3s ease-out" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -418,18 +418,56 @@ const Activity = ({ language, user }) => {
               <div className="w-9 h-1 rounded-full bg-gray-600" />
             </div>
 
-            <div className="flex items-center justify-center px-8 py-6">
-              <div className="w-48 h-48 rounded-2xl overflow-hidden bg-slate-800/50 flex-shrink-0">
-                {previewSticker.image_url ? (
-                  <img src={previewSticker.image_url} alt={previewSticker.pack_name} className="w-full h-full object-contain" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-500">
-                    <Package size={56} />
-                  </div>
-                )}
+            {/* Image area with floating action icons */}
+            <div className="relative px-8 py-6">
+              {/* Floating action icons - top right */}
+              <div className="absolute top-4 right-4 flex flex-col gap-2.5 z-20">
+                <button
+                  onClick={() => { handleBuySticker(previewSticker); setPreviewSticker(null); }}
+                  className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all shadow-lg"
+                  title="Collected"
+                >
+                  <Star size={18} className="text-yellow-400" />
+                </button>
+                <button
+                  onClick={async () => {
+                    const shareData = {
+                      title: `${previewSticker.pack_name} #${previewSticker.sticker_number}`,
+                      text: `Check out this sticker: ${previewSticker.pack_name} #${previewSticker.sticker_number} — ${previewSticker.price?.toFixed(2)} TON`,
+                      url: window.location.href
+                    };
+                    try {
+                      if (navigator.share) {
+                        await navigator.share(shareData);
+                      } else {
+                        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+                        toast.success("Link copied!");
+                      }
+                    } catch (err) {
+                      if (err.name !== 'AbortError') toast.error("Failed to share");
+                    }
+                  }}
+                  className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all shadow-lg"
+                  title="Send"
+                >
+                  <Share2 size={18} className="text-blue-400" />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-center">
+                <div className="w-48 h-48 rounded-2xl overflow-hidden bg-slate-800/30 border border-white/5 flex-shrink-0">
+                  {previewSticker.image_url ? (
+                    <img src={previewSticker.image_url} alt={previewSticker.pack_name} className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-500">
+                      <Package size={56} />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
+            {/* Collection row */}
             <div className="flex items-center justify-center gap-2 px-4">
               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
                 {previewSticker.image_url ? (
@@ -445,59 +483,27 @@ const Activity = ({ language, user }) => {
               </svg>
             </div>
 
+            {/* Sticker info */}
             <div className="text-center px-4 pt-3 pb-1">
               <h3 className="text-lg font-bold text-white">{previewSticker.pack_name}</h3>
               <p className="text-sm text-gray-500 mt-0.5">#{previewSticker.sticker_number}</p>
             </div>
 
-            <div className="flex gap-3 px-5 pt-4 pb-2">
-              <button
-                onClick={() => { handleBuySticker(previewSticker); setPreviewSticker(null); }}
-                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-[#2a3a2a] hover:bg-[#334433] transition-colors text-green-400 text-sm font-medium"
-              >
-                <Eye size={16} />
-                <span>Check</span>
-              </button>
-              <button
-                onClick={async () => {
-                  const shareData = {
-                    title: `${previewSticker.pack_name} #${previewSticker.sticker_number}`,
-                    text: `Check out this sticker: ${previewSticker.pack_name} #${previewSticker.sticker_number} — ${previewSticker.price?.toFixed(2)} TON`,
-                    url: window.location.href
-                  };
-                  try {
-                    if (navigator.share) {
-                      await navigator.share(shareData);
-                    } else {
-                      await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-                      toast.success("Link copied to clipboard!");
-                    }
-                  } catch (err) {
-                    if (err.name !== 'AbortError') {
-                      toast.error("Failed to share");
-                    }
-                  }
-                }}
-                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-[#2a3a2a] hover:bg-[#334433] transition-colors text-green-400 text-sm font-medium"
-              >
-                <Share2 size={16} />
-                <span>Share</span>
-              </button>
-            </div>
-
-            <div className="px-5 pt-1 pb-3">
+            {/* Description */}
+            <div className="px-5 pt-2 pb-3">
               <p className="text-[11px] text-gray-500 text-center leading-relaxed">
                 {previewSticker.rarity} sticker from the {previewSticker.pack_name} collection.
               </p>
             </div>
 
+            {/* Buy button */}
             <div className="px-5 pb-5">
               <button
                 disabled={buyingStickerIds[previewSticker.id] || previewSticker.owner_id === user?.id}
                 onClick={() => { handleBuySticker(previewSticker); setPreviewSticker(null); }}
                 className={`w-full h-12 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
                   previewSticker.owner_id === user?.id
-                    ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                    ? "bg-gray-700/50 text-gray-400 cursor-not-allowed border border-white/5"
                     : "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/20"
                 }`}
               >

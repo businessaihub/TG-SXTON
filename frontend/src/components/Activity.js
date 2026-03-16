@@ -262,7 +262,7 @@ const Activity = ({ language, user }) => {
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-3">
             <DollarSign size={16} className="text-green-400" />
-            <h2 className="text-sm font-bold text-white" style={{ fontFamily: 'Space Grotesk' }}>User Listings</h2>
+            <h2 className="text-sm font-bold text-white" style={{ fontFamily: 'Space Grotesk' }}>For Sale</h2>
             <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">
               {resaleListings.length} for sale
             </Badge>

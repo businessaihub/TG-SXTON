@@ -32,6 +32,9 @@ const MiniApp = ({ isAdmin }) => {
         if (tg) {
           tg.expand();
           tg.enableClosingConfirmation();
+          if (tg.disableVerticalSwipes) {
+            tg.disableVerticalSwipes();
+          }
         }
         const tgUser = tg?.initDataUnsafe?.user;
 

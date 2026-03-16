@@ -345,7 +345,7 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
               </h1>
               <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
                 <Globe size={11} className="text-cyan-400" />
-                <span>ID: {user?.id?.substring(0, 8) || "N/A"}...</span>
+                <span>ID: {user?.telegram_id || "N/A"}</span>
               </div>
               <div className="flex items-center gap-3 mt-1">
                 <div className="flex items-center gap-1 text-[11px]">

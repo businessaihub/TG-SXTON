@@ -6,7 +6,7 @@ import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package, ChevronLeft, ChevronRight, DollarSign, Share2, Eye } from "lucide-react";
+import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package, ChevronLeft, ChevronRight, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useTonConnect } from "../context/TonConnectContext";
@@ -64,10 +64,6 @@ const Marketplace = ({ user, language }) => {
   const [loadingNftCollections, setLoadingNftCollections] = useState(false);
   const [criticalError, setCriticalError] = useState(null);
   const [featuredIndex, setFeaturedIndex] = useState(0);
-  const [resaleListings, setResaleListings] = useState([]);
-  const [loadingResale, setLoadingResale] = useState(false);
-  const [buyingStickerIds, setBuyingStickerIds] = useState({});
-  const [previewSticker, setPreviewSticker] = useState(null);
   const featuredTimerRef = useRef(null);
   const touchStartRef = useRef(0);
   const t = translations[language] || translations.en;
@@ -131,38 +127,6 @@ const Marketplace = ({ user, language }) => {
       fetchNftCollections();
     }
   }, [filter, user?.id]);
-
-  // Fetch resale listings once on mount, independently from filter
-  useEffect(() => {
-    fetchResaleListings();
-  }, []);
-
-  const fetchResaleListings = async () => {
-    setLoadingResale(true);
-    try {
-      const res = await axios.get(`${API}/marketplace/listings`);
-      setResaleListings(res.data || []);
-    } catch (e) {
-      console.error('Failed to fetch resale listings', e);
-    } finally {
-      setLoadingResale(false);
-    }
-  };
-
-  const handleBuySticker = async (sticker) => {
-    if (!user?.id) { toast.error("Please login first"); return; }
-    if (sticker.owner_id === user.id) { toast.error("Can't buy your own sticker"); return; }
-    setBuyingStickerIds(prev => ({ ...prev, [sticker.id]: true }));
-    try {
-      const res = await axios.post(`${API}/buy/sticker?sticker_id=${sticker.id}&buyer_id=${user.id}`);
-      toast.success(res.data.message || "Sticker purchased!");
-      fetchResaleListings();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Purchase failed");
-    } finally {
-      setBuyingStickerIds(prev => ({ ...prev, [sticker.id]: false }));
-    }
-  };
 
   const fetchActivityStats = async () => {
     try {
@@ -894,187 +858,6 @@ const Marketplace = ({ user, language }) => {
         <div className="text-center py-12 relative z-10">
           <div className="glass-card p-8 border border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-orange-500/10">
             <p className="text-yellow-400">{t.marketplace.noPacks}</p>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════ RESALE SECTION ═══════ */}
-      {filter === "all" && (
-        <div className="relative z-10 mt-4">
-          <div className="flex items-center gap-2 mb-3">
-            <DollarSign size={16} className="text-green-400" />
-            <h2 className="text-sm font-bold text-white" style={{ fontFamily: 'Space Grotesk' }}>User Listings</h2>
-            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">
-              {resaleListings.length} for sale
-            </Badge>
-          </div>
-          {loadingResale ? (
-            <div className="text-center py-4 text-gray-400 text-sm">Loading listings...</div>
-          ) : resaleListings.length === 0 ? (
-            <div className="glass-card p-4 text-center border border-white/10">
-              <p className="text-gray-400 text-sm">No stickers listed for sale yet</p>
-              <p className="text-[10px] text-gray-500 mt-1">List your stickers from Profile → Stickers tab</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {resaleListings.map((st) => (
-                <div
-                  key={st.id}
-                  className="glass-card border border-green-500/20 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg overflow-hidden hover:border-green-500/50 transition-colors cursor-pointer"
-                  onClick={() => setPreviewSticker(st)}
-                >
-                  <div className="relative w-full aspect-square overflow-hidden bg-slate-700">
-                    {st.image_url ? (
-                      <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500">
-                        <Package size={32} />
-                      </div>
-                    )}
-                    <Badge className={`absolute top-1 left-1 text-[8px] leading-tight px-1 py-0 ${getRarityColor(st.rarity)}`}>
-                      {st.rarity?.toUpperCase()}
-                    </Badge>
-                  </div>
-                  <div className="p-2">
-                    <div className="text-[11px] font-semibold text-white truncate">{st.pack_name}</div>
-                    <div className="text-[9px] text-gray-400">#{st.sticker_number}</div>
-                    <div className="mt-1.5">
-                      <Button
-                        size="sm"
-                        disabled={buyingStickerIds[st.id] || st.owner_id === user?.id}
-                        onClick={(e) => { e.stopPropagation(); handleBuySticker(st); }}
-                        className={`w-full h-7 text-[10px] ${
-                          st.owner_id === user?.id
-                            ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                            : "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
-                        }`}
-                      >
-                        {buyingStickerIds[st.id] ? "..." : st.owner_id === user?.id ? "Yours" : `${st.price?.toFixed(2)} TON`}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ═══════ STICKER PREVIEW MODAL ═══════ */}
-      {previewSticker && (
-        <div className="fixed inset-0 bg-black/70 z-[9999] flex items-end justify-center" onClick={() => setPreviewSticker(null)}>
-          <div
-            className="bg-[#1a1a2e] rounded-t-3xl w-full max-w-md overflow-hidden"
-            style={{ animation: "slideUp 0.3s ease-out" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
-
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-9 h-1 rounded-full bg-gray-600" />
-            </div>
-
-            {/* ── 1. Large sticker image ── */}
-            <div className="flex items-center justify-center px-8 py-6">
-              <div className="w-48 h-48 rounded-2xl overflow-hidden bg-slate-800/50 flex-shrink-0">
-                {previewSticker.image_url ? (
-                  <img src={previewSticker.image_url} alt={previewSticker.pack_name} className="w-full h-full object-contain" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-500">
-                    <Package size={56} />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ── 2. Collection row ── */}
-            <div className="flex items-center justify-center gap-2 px-4">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {previewSticker.image_url ? (
-                  <img src={previewSticker.image_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <Package size={12} className="text-white" />
-                )}
-              </div>
-              <span className="text-sm text-gray-300 font-medium">{previewSticker.pack_name}</span>
-              {/* Telegram-style verified badge */}
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
-                <circle cx="12" cy="12" r="10" fill="#3390EC" />
-                <path d="M9.5 12.5L11 14L15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-
-            {/* ── 3. Sticker info ── */}
-            <div className="text-center px-4 pt-3 pb-1">
-              <h3 className="text-lg font-bold text-white">{previewSticker.pack_name}</h3>
-              <p className="text-sm text-gray-500 mt-0.5">#{previewSticker.sticker_number}</p>
-            </div>
-
-            {/* ── 4. Action buttons row ── */}
-            <div className="flex gap-3 px-5 pt-4 pb-2">
-              <button
-                onClick={() => { handleBuySticker(previewSticker); setPreviewSticker(null); }}
-                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-[#2a3a2a] hover:bg-[#334433] transition-colors text-green-400 text-sm font-medium"
-              >
-                <Eye size={16} />
-                <span>Check</span>
-              </button>
-              <button
-                onClick={async () => {
-                  const shareData = {
-                    title: `${previewSticker.pack_name} #${previewSticker.sticker_number}`,
-                    text: `Check out this sticker: ${previewSticker.pack_name} #${previewSticker.sticker_number} — ${previewSticker.price?.toFixed(2)} TON`,
-                    url: window.location.href
-                  };
-                  try {
-                    if (navigator.share) {
-                      await navigator.share(shareData);
-                    } else {
-                      await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-                      toast.success("Link copied to clipboard!");
-                    }
-                  } catch (err) {
-                    if (err.name !== 'AbortError') {
-                      toast.error("Failed to share");
-                    }
-                  }
-                }}
-                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-[#2a3a2a] hover:bg-[#334433] transition-colors text-green-400 text-sm font-medium"
-              >
-                <Share2 size={16} />
-                <span>Share</span>
-              </button>
-            </div>
-
-            {/* ── 5. Description ── */}
-            <div className="px-5 pt-1 pb-3">
-              <p className="text-[11px] text-gray-500 text-center leading-relaxed">
-                {previewSticker.rarity} sticker from the {previewSticker.pack_name} collection. Listed by {previewSticker.seller_name || "Anonymous"}.
-              </p>
-            </div>
-
-            {/* ── 6. Buy button ── */}
-            <div className="px-5 pb-5">
-              <button
-                disabled={buyingStickerIds[previewSticker.id] || previewSticker.owner_id === user?.id}
-                onClick={() => { handleBuySticker(previewSticker); setPreviewSticker(null); }}
-                className={`w-full h-12 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                  previewSticker.owner_id === user?.id
-                    ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/20"
-                }`}
-              >
-                {buyingStickerIds[previewSticker.id] ? (
-                  <Sparkles size={16} className="animate-spin" />
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-                {buyingStickerIds[previewSticker.id] ? "Processing..." : previewSticker.owner_id === user?.id ? "This is yours" : `Buy for ${previewSticker.price?.toFixed(2)} TON`}
-              </button>
-            </div>
           </div>
         </div>
       )}

@@ -6,7 +6,7 @@ import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package, ChevronLeft, ChevronRight, DollarSign, CheckCircle, Share2 } from "lucide-react";
+import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package, ChevronLeft, ChevronRight, DollarSign, Share2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useTonConnect } from "../context/TonConnectContext";
@@ -962,55 +962,65 @@ const Marketplace = ({ user, language }) => {
 
       {/* ═══════ STICKER PREVIEW MODAL ═══════ */}
       {previewSticker && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-end justify-center backdrop-blur-sm" onClick={() => setPreviewSticker(null)}>
+        <div className="fixed inset-0 bg-black/70 z-[9999] flex items-end justify-center" onClick={() => setPreviewSticker(null)}>
           <div
-            className="bg-gradient-to-br from-slate-900 to-slate-950 border-t border-x border-white/10 rounded-t-2xl w-full max-w-md overflow-hidden animate-in slide-in-from-bottom duration-300"
+            className="bg-[#1a1a2e] rounded-t-3xl w-full max-w-md overflow-hidden"
+            style={{ animation: "slideUp 0.3s ease-out" }}
             onClick={(e) => e.stopPropagation()}
           >
+            <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+
             {/* Drag handle */}
-            <div className="flex justify-center pt-2 pb-1">
-              <div className="w-10 h-1 rounded-full bg-gray-600" />
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-9 h-1 rounded-full bg-gray-600" />
             </div>
 
-            {/* Large sticker image */}
-            <div className="relative w-full aspect-square overflow-hidden bg-slate-800">
-              {previewSticker.image_url ? (
-                <img src={previewSticker.image_url} alt={previewSticker.pack_name} className="w-full h-full object-contain" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-500">
-                  <Package size={64} />
-                </div>
-              )}
-            </div>
-
-            {/* Info */}
-            <div className="px-4 pt-3 pb-2 space-y-1">
-              {/* Collection name + verified */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-400">{previewSticker.pack_name}</span>
-                <CheckCircle size={13} className="text-blue-400" />
+            {/* ── 1. Large sticker image ── */}
+            <div className="flex items-center justify-center px-8 py-6">
+              <div className="w-48 h-48 rounded-2xl overflow-hidden bg-slate-800/50 flex-shrink-0">
+                {previewSticker.image_url ? (
+                  <img src={previewSticker.image_url} alt={previewSticker.pack_name} className="w-full h-full object-contain" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-500">
+                    <Package size={56} />
+                  </div>
+                )}
               </div>
-              {/* Sticker name */}
-              <h3 className="text-base font-bold text-white">{previewSticker.pack_name} #{previewSticker.sticker_number}</h3>
-              {/* Sticker number */}
-              <p className="text-xs text-gray-500">#{previewSticker.sticker_number} • {previewSticker.rarity}</p>
             </div>
 
-            {/* Buttons */}
-            <div className="px-4 pb-4 pt-2 flex gap-2">
-              <Button
-                disabled={buyingStickerIds[previewSticker.id] || previewSticker.owner_id === user?.id}
+            {/* ── 2. Collection row ── */}
+            <div className="flex items-center justify-center gap-2 px-4">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {previewSticker.image_url ? (
+                  <img src={previewSticker.image_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <Package size={12} className="text-white" />
+                )}
+              </div>
+              <span className="text-sm text-gray-300 font-medium">{previewSticker.pack_name}</span>
+              {/* Telegram-style verified badge */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+                <circle cx="12" cy="12" r="10" fill="#3390EC" />
+                <path d="M9.5 12.5L11 14L15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+
+            {/* ── 3. Sticker info ── */}
+            <div className="text-center px-4 pt-3 pb-1">
+              <h3 className="text-lg font-bold text-white">{previewSticker.pack_name}</h3>
+              <p className="text-sm text-gray-500 mt-0.5">#{previewSticker.sticker_number}</p>
+            </div>
+
+            {/* ── 4. Action buttons row ── */}
+            <div className="flex gap-3 px-5 pt-4 pb-2">
+              <button
                 onClick={() => { handleBuySticker(previewSticker); setPreviewSticker(null); }}
-                className={`flex-1 h-10 text-sm font-semibold ${
-                  previewSticker.owner_id === user?.id
-                    ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
-                }`}
+                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-[#2a3a2a] hover:bg-[#334433] transition-colors text-green-400 text-sm font-medium"
               >
-                {buyingStickerIds[previewSticker.id] ? "..." : previewSticker.owner_id === user?.id ? "Yours" : `Buy for ${previewSticker.price?.toFixed(2)} TON`}
-              </Button>
-              <Button
-                variant="outline"
+                <Eye size={16} />
+                <span>Check</span>
+              </button>
+              <button
                 onClick={async () => {
                   const shareData = {
                     title: `${previewSticker.pack_name} #${previewSticker.sticker_number}`,
@@ -1030,10 +1040,40 @@ const Marketplace = ({ user, language }) => {
                     }
                   }
                 }}
-                className="h-10 px-4 border-white/20 text-white hover:bg-white/10"
+                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-[#2a3a2a] hover:bg-[#334433] transition-colors text-green-400 text-sm font-medium"
               >
                 <Share2 size={16} />
-              </Button>
+                <span>Share</span>
+              </button>
+            </div>
+
+            {/* ── 5. Description ── */}
+            <div className="px-5 pt-1 pb-3">
+              <p className="text-[11px] text-gray-500 text-center leading-relaxed">
+                {previewSticker.rarity} sticker from the {previewSticker.pack_name} collection. Listed by {previewSticker.seller_name || "Anonymous"}.
+              </p>
+            </div>
+
+            {/* ── 6. Buy button ── */}
+            <div className="px-5 pb-5">
+              <button
+                disabled={buyingStickerIds[previewSticker.id] || previewSticker.owner_id === user?.id}
+                onClick={() => { handleBuySticker(previewSticker); setPreviewSticker(null); }}
+                className={`w-full h-12 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                  previewSticker.owner_id === user?.id
+                    ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/20"
+                }`}
+              >
+                {buyingStickerIds[previewSticker.id] ? (
+                  <Sparkles size={16} className="animate-spin" />
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+                {buyingStickerIds[previewSticker.id] ? "Processing..." : previewSticker.owner_id === user?.id ? "This is yours" : `Buy for ${previewSticker.price?.toFixed(2)} TON`}
+              </button>
             </div>
           </div>
         </div>

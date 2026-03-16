@@ -6,7 +6,7 @@ import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package, ChevronLeft, ChevronRight, DollarSign } from "lucide-react";
+import { ShoppingCart, Star, Sparkles, Clock, Flame, Activity as ActivityIcon, ArrowUpDown, Wallet, X, Info, Package, ChevronLeft, ChevronRight, DollarSign, CheckCircle, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "../utils/translations";
 import { useTonConnect } from "../context/TonConnectContext";
@@ -67,6 +67,7 @@ const Marketplace = ({ user, language }) => {
   const [resaleListings, setResaleListings] = useState([]);
   const [loadingResale, setLoadingResale] = useState(false);
   const [buyingStickerIds, setBuyingStickerIds] = useState({});
+  const [previewSticker, setPreviewSticker] = useState(null);
   const featuredTimerRef = useRef(null);
   const touchStartRef = useRef(0);
   const t = translations[language] || translations.en;
@@ -917,7 +918,11 @@ const Marketplace = ({ user, language }) => {
           ) : (
             <div className="grid grid-cols-2 gap-2">
               {resaleListings.map((st) => (
-                <div key={st.id} className="glass-card border border-green-500/20 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg overflow-hidden hover:border-green-500/50 transition-colors">
+                <div
+                  key={st.id}
+                  className="glass-card border border-green-500/20 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg overflow-hidden hover:border-green-500/50 transition-colors cursor-pointer"
+                  onClick={() => setPreviewSticker(st)}
+                >
                   <div className="relative w-full aspect-square overflow-hidden bg-slate-700">
                     {st.image_url ? (
                       <img src={st.image_url} alt={st.pack_name} className="w-full h-full object-cover" />
@@ -932,20 +937,19 @@ const Marketplace = ({ user, language }) => {
                   </div>
                   <div className="p-2">
                     <div className="text-[11px] font-semibold text-white truncate">{st.pack_name}</div>
-                    <div className="text-[9px] text-gray-400">#{st.sticker_number} • by {st.seller_name}</div>
-                    <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-xs font-bold text-green-400">{st.price?.toFixed(2)} TON</span>
+                    <div className="text-[9px] text-gray-400">#{st.sticker_number}</div>
+                    <div className="mt-1.5">
                       <Button
                         size="sm"
                         disabled={buyingStickerIds[st.id] || st.owner_id === user?.id}
-                        onClick={() => handleBuySticker(st)}
-                        className={`h-6 text-[10px] px-2 ${
+                        onClick={(e) => { e.stopPropagation(); handleBuySticker(st); }}
+                        className={`w-full h-7 text-[10px] ${
                           st.owner_id === user?.id
                             ? "bg-gray-600 text-gray-400 cursor-not-allowed"
                             : "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
                         }`}
                       >
-                        {buyingStickerIds[st.id] ? "..." : st.owner_id === user?.id ? "Yours" : "Buy"}
+                        {buyingStickerIds[st.id] ? "..." : st.owner_id === user?.id ? "Yours" : `${st.price?.toFixed(2)} TON`}
                       </Button>
                     </div>
                   </div>
@@ -953,6 +957,85 @@ const Marketplace = ({ user, language }) => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ═══════ STICKER PREVIEW MODAL ═══════ */}
+      {previewSticker && (
+        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-end justify-center backdrop-blur-sm" onClick={() => setPreviewSticker(null)}>
+          <div
+            className="bg-gradient-to-br from-slate-900 to-slate-950 border-t border-x border-white/10 rounded-t-2xl w-full max-w-md overflow-hidden animate-in slide-in-from-bottom duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-2 pb-1">
+              <div className="w-10 h-1 rounded-full bg-gray-600" />
+            </div>
+
+            {/* Large sticker image */}
+            <div className="relative w-full aspect-square overflow-hidden bg-slate-800">
+              {previewSticker.image_url ? (
+                <img src={previewSticker.image_url} alt={previewSticker.pack_name} className="w-full h-full object-contain" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-500">
+                  <Package size={64} />
+                </div>
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="px-4 pt-3 pb-2 space-y-1">
+              {/* Collection name + verified */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-400">{previewSticker.pack_name}</span>
+                <CheckCircle size={13} className="text-blue-400" />
+              </div>
+              {/* Sticker name */}
+              <h3 className="text-base font-bold text-white">{previewSticker.pack_name} #{previewSticker.sticker_number}</h3>
+              {/* Sticker number */}
+              <p className="text-xs text-gray-500">#{previewSticker.sticker_number} • {previewSticker.rarity}</p>
+            </div>
+
+            {/* Buttons */}
+            <div className="px-4 pb-4 pt-2 flex gap-2">
+              <Button
+                disabled={buyingStickerIds[previewSticker.id] || previewSticker.owner_id === user?.id}
+                onClick={() => { handleBuySticker(previewSticker); setPreviewSticker(null); }}
+                className={`flex-1 h-10 text-sm font-semibold ${
+                  previewSticker.owner_id === user?.id
+                    ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                }`}
+              >
+                {buyingStickerIds[previewSticker.id] ? "..." : previewSticker.owner_id === user?.id ? "Yours" : `Buy for ${previewSticker.price?.toFixed(2)} TON`}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const shareData = {
+                    title: `${previewSticker.pack_name} #${previewSticker.sticker_number}`,
+                    text: `Check out this sticker: ${previewSticker.pack_name} #${previewSticker.sticker_number} — ${previewSticker.price?.toFixed(2)} TON`,
+                    url: window.location.href
+                  };
+                  try {
+                    if (navigator.share) {
+                      await navigator.share(shareData);
+                    } else {
+                      await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+                      toast.success("Link copied to clipboard!");
+                    }
+                  } catch (err) {
+                    if (err.name !== 'AbortError') {
+                      toast.error("Failed to share");
+                    }
+                  }
+                }}
+                className="h-10 px-4 border-white/20 text-white hover:bg-white/10"
+              >
+                <Share2 size={16} />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

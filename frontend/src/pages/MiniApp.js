@@ -19,6 +19,7 @@ const MiniApp = ({ isAdmin }) => {
   const [splashTimerDone, setSplashTimerDone] = useState(false);
   const [currentTab, setCurrentTab] = useState("marketplace");
   const [user, setUser] = useState(null);
+  const [deepLinkStickerId, setDeepLinkStickerId] = useState(null);
   const [language, setLanguage] = useState(() => {
     const savedLanguage = localStorage.getItem('language');
     return savedLanguage || 'en';
@@ -37,6 +38,17 @@ const MiniApp = ({ isAdmin }) => {
           }
         }
         const tgUser = tg?.initDataUnsafe?.user;
+
+        // Handle deep link start_param (e.g. sticker_<id>)
+        const startParam = tg?.initDataUnsafe?.start_param;
+        if (startParam && startParam.startsWith("sticker_")) {
+          const sId = startParam.replace("sticker_", "");
+          if (sId) {
+            setDeepLinkStickerId(sId);
+            setCurrentTab("activity");
+            navigate("/activity");
+          }
+        }
 
         let telegramId, username;
 
@@ -130,7 +142,7 @@ const MiniApp = ({ isAdmin }) => {
       case "marketplace":
         return <Marketplace user={user} language={language} />;
       case "activity":
-        return <Activity language={language} user={user} />;
+        return <Activity language={language} user={user} deepLinkStickerId={deepLinkStickerId} onDeepLinkHandled={() => setDeepLinkStickerId(null)} />;
       case "hot":
         return <Hot language={language} />;
       case "game":

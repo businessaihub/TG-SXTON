@@ -870,6 +870,27 @@ async def unlist_sticker(sticker_id: str):
         raise HTTPException(status_code=404, detail="Listed sticker not found")
     return {"success": True, "message": "Sticker removed from sale"}
 
+@api_router.get("/sticker/{sticker_id}")
+async def get_sticker_by_id(sticker_id: str):
+    """Get a single sticker by ID (for deep linking)."""
+    sticker = await db.stickers.find_one({"id": sticker_id}, {"_id": 0})
+    if not sticker:
+        raise HTTPException(status_code=404, detail="Sticker not found")
+    pack = await db.sticker_packs.find_one({"id": sticker.get("pack_id")}, {"_id": 0})
+    owner = await db.users.find_one({"id": sticker.get("owner_id")}, {"_id": 0})
+    return {
+        "id": sticker.get("id"),
+        "pack_id": sticker.get("pack_id"),
+        "pack_name": pack.get("name") if pack else None,
+        "sticker_number": sticker.get("sticker_number") or sticker.get("position"),
+        "rarity": sticker.get("rarity", "Common"),
+        "image_url": sticker.get("image_url"),
+        "price": sticker.get("price", 0),
+        "is_listed": sticker.get("is_listed", False),
+        "owner_id": sticker.get("owner_id"),
+        "seller_name": owner.get("username", "Anonymous") if owner else "Anonymous"
+    }
+
 @api_router.get("/marketplace/listings")
 async def get_marketplace_listings():
     """Get all stickers listed for sale by users (for the marketplace resale section)."""

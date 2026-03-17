@@ -19,7 +19,7 @@ const getRarityColor = (rarity) => {
   }
 };
 
-const Activity = ({ language, user }) => {
+const Activity = ({ language, user, deepLinkStickerId, onDeepLinkHandled }) => {
   const [activities, setActivities] = useState([]);
   const [packs, setPacks] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -57,6 +57,25 @@ const Activity = ({ language, user }) => {
       fetchResaleListings();
     }
   }, [filter]);
+
+  // Deep link: auto-open sticker preview
+  useEffect(() => {
+    if (!deepLinkStickerId) return;
+    const fetchDeepLinkSticker = async () => {
+      try {
+        const res = await axios.get(`${API}/sticker/${deepLinkStickerId}`);
+        if (res.data) {
+          setPreviewSticker(res.data);
+          setFilter("listings");
+        }
+      } catch (e) {
+        console.error("Deep link sticker not found", e);
+      } finally {
+        onDeepLinkHandled?.();
+      }
+    };
+    fetchDeepLinkSticker();
+  }, [deepLinkStickerId]);
 
   const fetchResaleListings = async () => {
     setLoadingResale(true);
@@ -430,14 +449,14 @@ const Activity = ({ language, user }) => {
                 </div>
                 <button
                   onClick={async () => {
+                    const deepLink = `https://t.me/stickersxton_bot?start=sticker_${previewSticker.id}`;
                     const text = `Check out this sticker: ${previewSticker.pack_name} #${previewSticker.sticker_number} — ${previewSticker.price?.toFixed(2)} TON`;
-                    const url = window.location.href;
                     const tg = window.Telegram?.WebApp;
                     if (tg?.openTelegramLink) {
-                      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
+                      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(text)}`);
                     } else {
                       try {
-                        await navigator.clipboard.writeText(`${text} ${url}`);
+                        await navigator.clipboard.writeText(`${text} ${deepLink}`);
                         toast.success("Link copied!");
                       } catch (err) {
                         toast.error("Failed to share");

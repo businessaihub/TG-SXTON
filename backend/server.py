@@ -1277,6 +1277,14 @@ async def daily_reward_status(user_id: str):
 
 # ============ REFERRAL ============
 
+@api_router.get("/user/by-telegram/{telegram_id}")
+async def get_user_by_telegram_id(telegram_id: str):
+    """Lookup user by telegram_id (for referral deep links)."""
+    user = await db.users.find_one({"telegram_id": telegram_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"id": user.get("id")}
+
 @api_router.get("/user/{user_id}/referral-info")
 async def get_referral_info(user_id: str):
     """Get referral link and stats"""
@@ -1285,7 +1293,7 @@ async def get_referral_info(user_id: str):
         raise HTTPException(status_code=404, detail="User not found")
     
     telegram_id = user.get("telegram_id", user_id)
-    referral_link = f"https://t.me/StickerXtonBot?start=ref_{telegram_id}"
+    referral_link = f"https://t.me/stickersxton_bot?startapp=ref_{telegram_id}"
     
     # Count referred users
     referral_count = await db.users.count_documents({"referrer_id": user_id})

@@ -39,8 +39,9 @@ const MiniApp = ({ isAdmin }) => {
         }
         const tgUser = tg?.initDataUnsafe?.user;
 
-        // Handle deep link start_param (e.g. sticker_<id>)
+        // Handle deep link start_param (e.g. sticker_<id> or ref_<telegram_id>)
         const startParam = tg?.initDataUnsafe?.start_param;
+        let referrerId = null;
         if (startParam && startParam.startsWith("sticker_")) {
           const sId = startParam.replace("sticker_", "");
           if (sId) {
@@ -48,6 +49,9 @@ const MiniApp = ({ isAdmin }) => {
             setCurrentTab("activity");
             navigate("/activity");
           }
+        } else if (startParam && startParam.startsWith("ref_")) {
+          // Save referrer telegram_id for auth
+          referrerId = startParam.replace("ref_", "");
         }
 
         let telegramId, username;
@@ -67,10 +71,20 @@ const MiniApp = ({ isAdmin }) => {
           username = "dev_user";
         }
 
+        // Look up referrer user by telegram_id if we have one
+        let referrerUserId = null;
+        if (referrerId) {
+          try {
+            const refRes = await axios.get(`${API}/user/by-telegram/${referrerId}`);
+            referrerUserId = refRes.data?.id || null;
+          } catch (e) { /* referrer not found, skip */ }
+        }
+
         const response = await axios.post(`${API}/auth/telegram`, {
           telegram_id: telegramId,
           username: username,
-          photo_url: typeof photoUrl !== 'undefined' ? photoUrl : null
+          photo_url: typeof photoUrl !== 'undefined' ? photoUrl : null,
+          referrer_id: referrerUserId
         });
         setUser(response.data.user);
       } catch (error) {

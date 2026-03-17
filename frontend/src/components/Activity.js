@@ -449,7 +449,7 @@ const Activity = ({ language, user, deepLinkStickerId, onDeepLinkHandled }) => {
                 </div>
                 <button
                   onClick={async () => {
-                    const deepLink = `https://t.me/stickersxton_bot?start=sticker_${previewSticker.id}`;
+                    const deepLink = `https://t.me/stickersxton_bot?startapp=sticker_${previewSticker.id}`;
                     const text = `Check out this sticker: ${previewSticker.pack_name} #${previewSticker.sticker_number} — ${previewSticker.price?.toFixed(2)} TON`;
                     const tg = window.Telegram?.WebApp;
                     if (tg?.openTelegramLink) {

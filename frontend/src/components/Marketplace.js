@@ -870,15 +870,15 @@ const Marketplace = ({ user, language }) => {
             </div>
 
             {/* Image with floating close button */}
-            <div className="relative px-8 py-4">
+            <div className="relative px-8 py-3">
               <button
                 onClick={() => setShowPackDetails(false)}
-                className="absolute top-2 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all z-20"
+                className="absolute top-2 right-3 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all z-20"
               >
-                <X size={16} className="text-gray-300" />
+                <X size={14} className="text-gray-300" />
               </button>
               <div className="flex items-center justify-center">
-                <div className="w-48 h-48 rounded-2xl overflow-hidden bg-slate-800/30 border border-white/5 flex-shrink-0">
+                <div className="w-36 h-36 rounded-2xl overflow-hidden bg-slate-800/30 border border-white/5 flex-shrink-0">
                   <img
                     src={selectedPack.image_url || FALLBACK_IMAGE}
                     alt={selectedPack.name}
@@ -906,8 +906,8 @@ const Marketplace = ({ user, language }) => {
             </div>
 
             {/* Pack info */}
-            <div className="text-center px-4 pt-3 pb-1">
-              <h3 className="text-lg font-bold text-white">{selectedPack.name}</h3>
+            <div className="text-center px-4 pt-2 pb-1">
+              <h3 className="text-base font-bold text-white">{selectedPack.name}</h3>
               <div className="flex items-center justify-center gap-2 mt-1">
                 {selectedPack.rarity && (
                   <Badge className={`text-[10px] px-1.5 py-0 ${getRarityColor(selectedPack.rarity)}`}>
@@ -916,8 +916,8 @@ const Marketplace = ({ user, language }) => {
                 )}
                 <span className="text-xs text-gray-500">{selectedPack.sticker_count} stickers</span>
               </div>
-              <div className="flex items-baseline justify-center gap-1.5 mt-2">
-                <span className={`text-base font-bold ${getPriceColor(selectedPack.price_type)}`}>
+              <div className="flex items-baseline justify-center gap-1.5 mt-1">
+                <span className={`text-sm font-bold ${getPriceColor(selectedPack.price_type)}`}>
                   {selectedPack.price} {selectedPack.price_type}
                 </span>
                 <span className="text-[11px] text-gray-500">≈ ${convertPrice(selectedPack.price, selectedPack.price_type)}</span>
@@ -926,14 +926,14 @@ const Marketplace = ({ user, language }) => {
 
             {/* Description */}
             {selectedPack.description && (
-              <div className="px-5 pt-2">
+              <div className="px-5 pt-1">
                 <p className="text-[11px] text-gray-500 text-center leading-relaxed">{selectedPack.description}</p>
               </div>
             )}
 
             {/* Rarity Distribution */}
             {Object.keys(getRarityDistribution(selectedPack)).length > 0 && (
-              <div className="px-5 pt-3">
+              <div className="px-5 pt-2">
                 <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1.5">Rarity Distribution</p>
                 <div className="space-y-1">
                   {Object.entries(getRarityDistribution(selectedPack)).map(([rarity, count]) => (
@@ -960,7 +960,7 @@ const Marketplace = ({ user, language }) => {
 
             {/* Preview Stickers */}
             {selectedPack.image_urls && selectedPack.image_urls.length > 0 && (
-              <div className="px-5 pt-3">
+              <div className="px-5 pt-2">
                 <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1.5">Preview</p>
                 <div className="flex flex-wrap gap-1.5">
                   {selectedPack.image_urls.slice(0, 8).map((url, idx) => (
@@ -979,7 +979,7 @@ const Marketplace = ({ user, language }) => {
 
             {/* Coming Soon */}
             {selectedPack.is_upcoming && (
-              <div className="px-5 pt-3">
+              <div className="px-5 pt-2">
                 <div className="px-3 py-1.5 rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex items-center justify-center gap-1.5">
                   <Clock size={12} className="text-yellow-400" />
                   <span className="text-[11px] text-yellow-400 font-semibold">Coming Soon</span>
@@ -991,11 +991,11 @@ const Marketplace = ({ user, language }) => {
             )}
 
             {/* Buy button */}
-            <div className="px-5 pt-3 pb-5">
+            <div className="px-5 pt-2 pb-4">
               <button
                 onClick={() => { setShowPackDetails(false); handleBuy(selectedPack); }}
                 disabled={selectedPack.is_upcoming || buyingPackId === selectedPack.id || isConnecting}
-                className={`w-full h-12 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                className={`w-full h-10 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
                   selectedPack.is_upcoming
                     ? "bg-gray-700/50 text-gray-400 cursor-not-allowed border border-white/5"
                     : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/20"

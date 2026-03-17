@@ -422,29 +422,26 @@ const Activity = ({ language, user }) => {
             <div className="relative px-8 py-6">
               {/* Floating action icons - top right */}
               <div className="absolute top-4 right-4 flex flex-col gap-2.5 z-20">
-                <button
-                  onClick={() => { handleBuySticker(previewSticker); setPreviewSticker(null); }}
-                  className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all shadow-lg"
-                  title="Collected"
+                <div
+                  className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg"
+                  title={previewSticker.rarity || "Rarity"}
                 >
                   <Star size={18} className="text-yellow-400" />
-                </button>
+                </div>
                 <button
                   onClick={async () => {
-                    const shareData = {
-                      title: `${previewSticker.pack_name} #${previewSticker.sticker_number}`,
-                      text: `Check out this sticker: ${previewSticker.pack_name} #${previewSticker.sticker_number} — ${previewSticker.price?.toFixed(2)} TON`,
-                      url: window.location.href
-                    };
-                    try {
-                      if (navigator.share) {
-                        await navigator.share(shareData);
-                      } else {
-                        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+                    const text = `Check out this sticker: ${previewSticker.pack_name} #${previewSticker.sticker_number} — ${previewSticker.price?.toFixed(2)} TON`;
+                    const url = window.location.href;
+                    const tg = window.Telegram?.WebApp;
+                    if (tg?.openTelegramLink) {
+                      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
+                    } else {
+                      try {
+                        await navigator.clipboard.writeText(`${text} ${url}`);
                         toast.success("Link copied!");
+                      } catch (err) {
+                        toast.error("Failed to share");
                       }
-                    } catch (err) {
-                      if (err.name !== 'AbortError') toast.error("Failed to share");
                     }
                   }}
                   className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all shadow-lg"

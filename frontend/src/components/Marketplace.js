@@ -856,7 +856,7 @@ const Marketplace = ({ user, language }) => {
 
       {/* Pack Details Modal — slide-up bottom sheet */}
       {showPackDetails && selectedPack && (
-        <div className="fixed inset-0 bg-black/70 z-[9999] flex items-end justify-center" onClick={() => setShowPackDetails(false)}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-end justify-center" onClick={() => setShowPackDetails(false)}>
           <div
             className="bg-[#0d0d1a]/95 backdrop-blur-xl border-t border-white/10 rounded-t-3xl w-full max-w-md overflow-hidden"
             style={{ animation: "slideUp 0.3s ease-out" }}
@@ -869,14 +869,8 @@ const Marketplace = ({ user, language }) => {
               <div className="w-9 h-1 rounded-full bg-gray-600" />
             </div>
 
-            {/* Image with floating close button */}
+            {/* Image */}
             <div className="relative px-8 py-3">
-              <button
-                onClick={() => setShowPackDetails(false)}
-                className="absolute top-2 right-3 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all z-20"
-              >
-                <X size={14} className="text-gray-300" />
-              </button>
               <div className="flex items-center justify-center">
                 <div className="w-36 h-36 rounded-2xl overflow-hidden bg-slate-800/30 border border-white/5 flex-shrink-0">
                   <img

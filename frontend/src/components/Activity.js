@@ -406,9 +406,9 @@ const Activity = ({ language, user }) => {
 
       {/* ═══════ STICKER PREVIEW MODAL ═══════ */}
       {previewSticker && (
-        <div className="fixed inset-0 bg-black/70 z-[9999] flex items-end justify-center" onClick={() => setPreviewSticker(null)}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-end justify-center" onClick={() => setPreviewSticker(null)}>
           <div
-            className="bg-[#0d0d1a]/95 backdrop-blur-xl border-t border-white/10 rounded-t-3xl w-full max-w-md overflow-hidden"
+            className="bg-[#0d0d1a] border-t border-white/10 rounded-t-3xl w-full max-w-md overflow-hidden"
             style={{ animation: "slideUp 0.3s ease-out" }}
             onClick={(e) => e.stopPropagation()}
           >

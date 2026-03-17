@@ -771,7 +771,8 @@ const Marketplace = ({ user, language }) => {
             <div
               key={pack.id}
               data-testid={`pack-card-${pack.id}`}
-              className="glass-card flex flex-col border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 transition-colors duration-300 relative overflow-hidden group rounded-lg"
+              className="glass-card flex flex-col border border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:border-cyan-500/50 transition-colors duration-300 relative overflow-hidden group rounded-lg cursor-pointer"
+              onClick={() => handleOpenPackDetails(pack)}
             >
               <div className="cosmic-particles"></div>
               {/* Image - fixed aspect ratio */}
@@ -798,16 +799,7 @@ const Marketplace = ({ user, language }) => {
                     <span className="text-[10px] text-yellow-400 font-semibold">Soon</span>
                   </div>
                 )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenPackDetails(pack);
-                  }}
-                  className="absolute bottom-1 right-1 p-1 rounded bg-black/50 hover:bg-blue-500/60 transition-colors"
-                  title="View Details"
-                >
-                  <Info size={12} className="text-blue-300" />
-                </button>
+
               </div>
 
               {/* Info - fixed structure */}
@@ -825,7 +817,7 @@ const Marketplace = ({ user, language }) => {
                 <div className="mt-auto pt-1.5">
                   <Button
                     size="sm"
-                    onClick={() => handleBuy(pack)}
+                    onClick={(e) => { e.stopPropagation(); handleBuy(pack); }}
                     data-testid={`buy-pack-${pack.id}`}
                     disabled={pack.is_upcoming || buyingPackId === pack.id || isConnecting}
                     className={`w-full transition-colors shadow-lg h-7 text-[11px] ${
@@ -862,115 +854,164 @@ const Marketplace = ({ user, language }) => {
         </div>
       )}
 
-      {/* Pack Details Modal */}
+      {/* Pack Details Modal — slide-up bottom sheet */}
       {showPackDetails && selectedPack && (
-        <div className="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center backdrop-blur-sm px-4" onClick={() => setShowPackDetails(false)}>
-          <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-xl w-full max-w-xs max-h-[70vh] overflow-y-auto z-[10000]" onClick={(e) => e.stopPropagation()}>
-            {/* Header Row */}
-            <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Info size={14} className="text-blue-400 flex-shrink-0" />
-                <h2 className="text-sm font-bold text-white truncate">{selectedPack.name}</h2>
-              </div>
-              <button onClick={() => setShowPackDetails(false)} className="text-gray-400 hover:text-white transition-colors p-0.5 flex-shrink-0">
-                <X size={18} />
-              </button>
+        <div className="fixed inset-0 bg-black/70 z-[9999] flex items-end justify-center" onClick={() => setShowPackDetails(false)}>
+          <div
+            className="bg-[#0d0d1a]/95 backdrop-blur-xl border-t border-white/10 rounded-t-3xl w-full max-w-md overflow-hidden"
+            style={{ animation: "slideUp 0.3s ease-out" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-9 h-1 rounded-full bg-gray-600" />
             </div>
 
-            {/* Compact Content */}
-            <div className="px-3 pb-3 space-y-2">
-              {/* Image + Price Row */}
-              <div className="flex gap-2">
-                <div className="relative w-20 h-20 rounded overflow-hidden border border-white/10 bg-slate-700 flex-shrink-0">
+            {/* Image with floating close button */}
+            <div className="relative px-8 py-4">
+              <button
+                onClick={() => setShowPackDetails(false)}
+                className="absolute top-2 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all z-20"
+              >
+                <X size={16} className="text-gray-300" />
+              </button>
+              <div className="flex items-center justify-center">
+                <div className="w-48 h-48 rounded-2xl overflow-hidden bg-slate-800/30 border border-white/5 flex-shrink-0">
                   <img
                     src={selectedPack.image_url || FALLBACK_IMAGE}
                     alt={selectedPack.name}
                     className="w-full h-full object-cover"
-                    onError={(e) => {e.target.src = FALLBACK_IMAGE}}
+                    onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
                   />
-                  {selectedPack.rarity && (
-                    <Badge className={`absolute top-0.5 right-0.5 text-[9px] leading-tight px-0.5 py-0 ${getRarityColor(selectedPack.rarity)}`}>
-                      {selectedPack.rarity.toUpperCase()}
-                    </Badge>
-                  )}
                 </div>
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className={`text-sm font-bold ${getPriceColor(selectedPack.price_type)}`}>
-                      {selectedPack.price} {selectedPack.price_type}
-                    </span>
-                    <span className="text-[10px] text-gray-500">≈ ${convertPrice(selectedPack.price, selectedPack.price_type)}</span>
-                  </div>
-                  <div className="text-[11px] text-gray-400">
-                    {selectedPack.sticker_count} stickers
-                  </div>
-                  {selectedPack.description && (
-                    <p className="text-[10px] text-gray-500 line-clamp-2 leading-tight">{selectedPack.description}</p>
+              </div>
+            </div>
+
+            {/* Collection row with verified badge */}
+            <div className="flex items-center justify-center gap-2 px-4">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {selectedPack.image_url ? (
+                  <img src={selectedPack.image_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <Package size={12} className="text-white" />
+                )}
+              </div>
+              <span className="text-sm text-gray-300 font-medium">{selectedPack.name}</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+                <circle cx="12" cy="12" r="10" fill="#3390EC" />
+                <path d="M9.5 12.5L11 14L15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+
+            {/* Pack info */}
+            <div className="text-center px-4 pt-3 pb-1">
+              <h3 className="text-lg font-bold text-white">{selectedPack.name}</h3>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                {selectedPack.rarity && (
+                  <Badge className={`text-[10px] px-1.5 py-0 ${getRarityColor(selectedPack.rarity)}`}>
+                    {selectedPack.rarity}
+                  </Badge>
+                )}
+                <span className="text-xs text-gray-500">{selectedPack.sticker_count} stickers</span>
+              </div>
+              <div className="flex items-baseline justify-center gap-1.5 mt-2">
+                <span className={`text-base font-bold ${getPriceColor(selectedPack.price_type)}`}>
+                  {selectedPack.price} {selectedPack.price_type}
+                </span>
+                <span className="text-[11px] text-gray-500">≈ ${convertPrice(selectedPack.price, selectedPack.price_type)}</span>
+              </div>
+            </div>
+
+            {/* Description */}
+            {selectedPack.description && (
+              <div className="px-5 pt-2">
+                <p className="text-[11px] text-gray-500 text-center leading-relaxed">{selectedPack.description}</p>
+              </div>
+            )}
+
+            {/* Rarity Distribution */}
+            {Object.keys(getRarityDistribution(selectedPack)).length > 0 && (
+              <div className="px-5 pt-3">
+                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1.5">Rarity Distribution</p>
+                <div className="space-y-1">
+                  {Object.entries(getRarityDistribution(selectedPack)).map(([rarity, count]) => (
+                    <div key={rarity} className="flex items-center gap-2 text-[11px]">
+                      <span className="capitalize text-gray-400 w-16">{rarity}</span>
+                      <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            rarity === 'legendary' ? 'bg-gradient-to-r from-yellow-500 to-orange-500'
+                            : rarity === 'epic' ? 'bg-gradient-to-r from-purple-500 to-pink-500'
+                            : rarity === 'rare' ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                            : rarity === 'uncommon' ? 'bg-green-500'
+                            : 'bg-gray-500'
+                          }`}
+                          style={{ width: `${Math.max(3, (count / selectedPack.sticker_count) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-gray-500 w-6 text-right">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Preview Stickers */}
+            {selectedPack.image_urls && selectedPack.image_urls.length > 0 && (
+              <div className="px-5 pt-3">
+                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1.5">Preview</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedPack.image_urls.slice(0, 8).map((url, idx) => (
+                    <div key={idx} className="w-10 h-10 rounded-lg border border-white/10 bg-slate-800/50 overflow-hidden">
+                      <img src={url} alt={`Sticker ${idx + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                  {selectedPack.image_urls.length > 8 && (
+                    <div className="w-10 h-10 rounded-lg border border-white/10 bg-slate-800/50 flex items-center justify-center text-[10px] text-gray-400">
+                      +{selectedPack.image_urls.length - 8}
+                    </div>
                   )}
                 </div>
               </div>
+            )}
 
-              {/* Rarity Distribution - Compact */}
-              {Object.keys(getRarityDistribution(selectedPack)).length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-[10px] text-gray-500 font-semibold uppercase">Rarity</p>
-                  <div className="space-y-0.5">
-                    {Object.entries(getRarityDistribution(selectedPack)).map(([rarity, count]) => (
-                      <div key={rarity} className="flex items-center gap-1.5 text-[11px]">
-                        <span className="capitalize text-gray-400 w-14 truncate">{rarity}</span>
-                        <div className="flex-1 h-1 bg-slate-700 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${rarity === 'legendary' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : rarity === 'epic' ? 'bg-gradient-to-r from-purple-500 to-pink-500' : rarity === 'rare' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 'bg-gray-500'}`}
-                            style={{ width: `${(count / selectedPack.sticker_count) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-gray-500 w-4 text-right">{count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Preview Stickers */}
-              {selectedPack.image_urls && selectedPack.image_urls.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-[10px] text-gray-500 font-semibold uppercase">Preview</p>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedPack.image_urls.slice(0, 6).map((url, idx) => (
-                      <div key={idx} className="w-8 h-8 rounded border border-white/10 bg-slate-700 overflow-hidden">
-                        <img src={url} alt={`Sticker ${idx + 1}`} className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                    {selectedPack.image_urls.length > 6 && (
-                      <div className="w-8 h-8 rounded border border-white/10 bg-slate-700 flex items-center justify-center text-[10px] text-gray-400">
-                        +{selectedPack.image_urls.length - 6}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Coming Soon Status */}
-              {selectedPack.is_upcoming && (
-                <div className="px-2 py-1 rounded border border-yellow-500/30 bg-yellow-500/10 flex items-center gap-1.5">
-                  <span className="text-[11px] text-yellow-400 font-semibold">🕒 Coming Soon</span>
+            {/* Coming Soon */}
+            {selectedPack.is_upcoming && (
+              <div className="px-5 pt-3">
+                <div className="px-3 py-1.5 rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex items-center justify-center gap-1.5">
+                  <Clock size={12} className="text-yellow-400" />
+                  <span className="text-[11px] text-yellow-400 font-semibold">Coming Soon</span>
                   {selectedPack.countdown_date && (
-                    <span className="text-[10px] text-yellow-300">{new Date(selectedPack.countdown_date).toLocaleDateString()}</span>
+                    <span className="text-[10px] text-yellow-300">— {new Date(selectedPack.countdown_date).toLocaleDateString()}</span>
                   )}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Buy Button */}
-              <Button
-                onClick={() => {
-                  setShowPackDetails(false);
-                  handleBuy(selectedPack);
-                }}
+            {/* Buy button */}
+            <div className="px-5 pt-3 pb-5">
+              <button
+                onClick={() => { setShowPackDetails(false); handleBuy(selectedPack); }}
                 disabled={selectedPack.is_upcoming || buyingPackId === selectedPack.id || isConnecting}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white h-8 text-xs"
+                className={`w-full h-12 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                  selectedPack.is_upcoming
+                    ? "bg-gray-700/50 text-gray-400 cursor-not-allowed border border-white/5"
+                    : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/20"
+                }`}
               >
-                {buyingPackId === selectedPack.id ? 'Processing...' : selectedPack.is_upcoming ? 'Coming Soon' : t.marketplace.buy}
-              </Button>
+                {buyingPackId === selectedPack.id ? (
+                  <Sparkles size={16} className="animate-spin" />
+                ) : selectedPack.is_upcoming ? (
+                  <Clock size={16} />
+                ) : wallet ? (
+                  <ShoppingCart size={16} />
+                ) : (
+                  <Wallet size={16} />
+                )}
+                {buyingPackId === selectedPack.id ? 'Processing...' : selectedPack.is_upcoming ? 'Coming Soon' : wallet ? `${t.marketplace.buy} — ${selectedPack.price} ${selectedPack.price_type}` : 'Connect Wallet'}
+              </button>
             </div>
           </div>
         </div>

@@ -985,30 +985,32 @@ const Marketplace = ({ user, language }) => {
             )}
 
             {/* Quantity + Buy */}
-            <div className="px-5 pt-2 pb-4 flex items-center gap-2">
-              {/* Quantity selector */}
-              <div className="flex items-center bg-white/5 border border-white/10 rounded-xl h-10 flex-shrink-0">
-                <button
-                  onClick={() => setBuyQuantity(q => Math.max(1, q - 1))}
-                  disabled={buyQuantity <= 1}
-                  className="w-9 h-full flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 transition-colors text-lg font-bold"
-                >
-                  −
-                </button>
-                <span className="w-7 text-center text-sm font-bold text-white">{buyQuantity}</span>
-                <button
-                  onClick={() => setBuyQuantity(q => Math.min(5, q + 1))}
-                  disabled={buyQuantity >= 5}
-                  className="w-9 h-full flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 transition-colors text-lg font-bold"
-                >
-                  +
-                </button>
+            <div className="px-5 pt-2 pb-4 space-y-2">
+              {/* Quantity selector - centered row */}
+              <div className="flex items-center justify-center">
+                <div className="flex items-center bg-white/5 border border-white/10 rounded-xl h-9">
+                  <button
+                    onClick={() => setBuyQuantity(q => Math.max(1, q - 1))}
+                    disabled={buyQuantity <= 1}
+                    className="w-10 h-full flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 transition-colors text-lg font-bold rounded-l-xl hover:bg-white/5"
+                  >
+                    −
+                  </button>
+                  <span className="w-8 text-center text-sm font-bold text-white">{buyQuantity}</span>
+                  <button
+                    onClick={() => setBuyQuantity(q => Math.min(5, q + 1))}
+                    disabled={buyQuantity >= 5}
+                    className="w-10 h-full flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 transition-colors text-lg font-bold rounded-r-xl hover:bg-white/5"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              {/* Buy button */}
+              {/* Buy button - full width */}
               <button
                 onClick={() => { setShowPackDetails(false); handleBuy(selectedPack, buyQuantity); }}
                 disabled={selectedPack.is_upcoming || buyingPackId === selectedPack.id || isConnecting}
-                className={`flex-1 h-10 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                className={`w-full h-10 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
                   selectedPack.is_upcoming
                     ? "bg-gray-700/50 text-gray-400 cursor-not-allowed border border-white/5"
                     : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/20"

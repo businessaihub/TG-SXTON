@@ -223,9 +223,12 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
 
   // Share referral link handler
   const handleShareReferral = () => {
-    if (referralInfo?.referral_link && navigator.share) {
-      navigator.share({ title: "Join StickerXton!", url: referralInfo.referral_link }).catch(() => {});
-    } else if (referralInfo?.referral_link) {
+    if (!referralInfo?.referral_link) return;
+    const text = "Join StickerXton! Collect, trade & earn with sticker NFTs 🎨";
+    const tg = window.Telegram?.WebApp;
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralInfo.referral_link)}&text=${encodeURIComponent(text)}`);
+    } else {
       handleCopyReferral();
     }
   };

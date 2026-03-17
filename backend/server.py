@@ -1507,7 +1507,7 @@ async def get_game_settings(authorization: Optional[str] = Header(None)):
     except:
         raise HTTPException(status_code=401, detail="Invalid token format")
     
-    settings = await db.game_settings.find_one({"id": "game_settings"})
+    settings = await db.game_settings.find_one({"id": "game_settings"}, {"_id": 0})
     if not settings:
         # Return defaults
         settings = {

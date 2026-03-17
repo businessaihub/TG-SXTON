@@ -23,7 +23,7 @@ const PROFILE_TABS = [
 ];
 
 const Profile = ({ user, setUser, language, setLanguage }) => {
-  const { wallet, connectWallet, disconnectWallet, isConnecting } = useTonConnect();
+  const { wallet, connectWallet, disconnectWallet, sendTransaction, isConnecting } = useTonConnect();
   const [walletConnected, setWalletConnected] = useState(false);
   const [stickers, setStickers] = useState([]);
   const [loadingStickers, setLoadingStickers] = useState(false);
@@ -51,6 +51,9 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const tabBarRef = useRef(null);
   const [showGameBalanceInfo, setShowGameBalanceInfo] = useState(false);
+  const [showTopUp, setShowTopUp] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState(1);
+  const [topUpProcessing, setTopUpProcessing] = useState(false);
   
   // Sell modal
   const [sellStickerId, setSellStickerId] = useState(null);
@@ -294,6 +297,43 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
     }
   };
 
+  const handleTopUp = async () => {
+    if (!user?.id || !wallet || topUpProcessing) return;
+    if (topUpAmount <= 0 || topUpAmount > 100) {
+      toast.error("Invalid amount");
+      return;
+    }
+    setTopUpProcessing(true);
+    try {
+      const commentText = `deposit:${user.id}:${topUpAmount}`;
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{
+          address: process.env.REACT_APP_ADMIN_WALLET || "EQDrzVBj0qF2cBkuGyy0D-ChwQJpIcqLkf5_DvyXqgOTMwt8",
+          amount: String(Math.floor(topUpAmount * 1e9)),
+          payload: btoa(commentText),
+        }],
+      };
+      const result = await sendTransaction(transaction);
+      const txHash = result?.boc || result || "";
+      const res = await axios.post(
+        `${API}/deposit/ton?user_id=${encodeURIComponent(user.id)}&amount=${topUpAmount}&transaction_hash=${encodeURIComponent(txHash)}`
+      );
+      if (res.data?.user) setUser(res.data.user);
+      toast.success(`+${topUpAmount} TON deposited to Game Balance!`);
+      setShowTopUp(false);
+      setTopUpAmount(1);
+    } catch (error) {
+      if (error?.message?.includes("Interrupted") || error?.message?.includes("Cancel")) {
+        toast.info("Transaction cancelled");
+      } else {
+        toast.error(error.response?.data?.detail || "Deposit failed");
+      }
+    } finally {
+      setTopUpProcessing(false);
+    }
+  };
+
   const handleDisconnect = async () => {
     try {
       await disconnectWallet();
@@ -501,7 +541,7 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
             {(wallet || user?.wallet_address) ? (
               <Button
                 size="sm"
-                onClick={() => toast.info("Send TON to your connected wallet address to top up.")}
+                onClick={() => setShowTopUp(true)}
                 className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white h-7 text-xs px-3 btn-animated"
               >
                 <Plus size={12} className="mr-1" />
@@ -546,6 +586,82 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
           )}
         </div>
       </div>
+
+      {/* ═══════ TOP-UP MODAL ═══════ */}
+      {showTopUp && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-end justify-center" onClick={() => { if (!topUpProcessing) setShowTopUp(false); }}>
+          <div
+            className="bg-[#0d0d1a]/95 backdrop-blur-xl border-t border-white/10 rounded-t-3xl w-full max-w-md overflow-hidden"
+            style={{ animation: "slideUp 0.3s ease-out" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-9 h-1 rounded-full bg-gray-600" />
+            </div>
+
+            <div className="px-5 pt-2 pb-1 text-center">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-2">
+                <Gamepad2 size={24} className="text-white" />
+              </div>
+              <h3 className="text-base font-bold text-white">Top-Up Game Balance</h3>
+              <p className="text-[11px] text-gray-500 mt-1">Select amount and confirm via TonConnect</p>
+            </div>
+
+            {/* Amount presets */}
+            <div className="px-5 pt-3">
+              <div className="grid grid-cols-4 gap-2">
+                {[0.5, 1, 2, 5].map((amt) => (
+                  <button
+                    key={amt}
+                    onClick={() => setTopUpAmount(amt)}
+                    className={`h-10 rounded-xl text-sm font-bold transition-all ${
+                      topUpAmount === amt
+                        ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/20"
+                        : "bg-white/5 border border-white/10 text-gray-400 hover:border-green-500/50 hover:text-white"
+                    }`}
+                  >
+                    {amt} TON
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Current balance */}
+            <div className="px-5 pt-3">
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>Current balance</span>
+                <span className="text-green-400 font-bold">{user?.ton_balance?.toFixed(2) || "0.00"} TON</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+                <span>After top-up</span>
+                <span className="text-white font-bold">{((user?.ton_balance || 0) + topUpAmount).toFixed(2)} TON</span>
+              </div>
+            </div>
+
+            {/* Deposit button */}
+            <div className="px-5 pt-3 pb-5">
+              <button
+                onClick={handleTopUp}
+                disabled={topUpProcessing}
+                className="w-full h-11 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/20 disabled:opacity-50"
+              >
+                {topUpProcessing ? (
+                  <>
+                    <Star size={16} className="animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Wallet size={16} />
+                    Deposit {topUpAmount} TON
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══════ ANIMATED TAB BAR ═══════ */}
       <div className="glass-card rounded-lg border border-white/10 overflow-hidden">

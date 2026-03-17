@@ -499,6 +499,7 @@ class GameSettings(BaseModel):
     id: str = "game_settings"
     theft_cost_ton: float = 0.2
     theft_cooldown_hours: int = 6
+    bomb_cost_ton: float = 0.0
     bomb_expiration_hours: int = 24
     raid_entry_cost_ton: float = 0.1
     raid_max_players: int = 10
@@ -507,6 +508,10 @@ class GameSettings(BaseModel):
     puzzle_fragments_needed: int = 4
     puzzle_reward_sticker_pack_id: Optional[str] = None
     puzzle_reward_points: float = 200.0
+    spin_cost_ton: float = 1.0
+    battle_cost_ton: float = 0.0
+    craft_cost_ton: float = 0.0
+    guessing_cost_ton: float = 0.0
     simulation_daily_volume: int = 50
     simulation_min_volume_ton: float = 500.0
     hot_mode: str = "manual"
@@ -641,6 +646,34 @@ async def mock_balance_update(user_id: str, ton: float = 0, stars: float = 0, po
         {"$inc": {"ton_balance": ton, "stars_balance": stars, "sxton_points": points}}
     )
     return {"success": True}
+
+@api_router.post("/deposit/ton")
+async def deposit_ton(user_id: str, amount: float, transaction_hash: str = ""):
+    """Deposit TON to game balance after TonConnect payment"""
+    if amount <= 0 or amount > 100:
+        raise HTTPException(status_code=400, detail="Invalid amount")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await db.users.update_one(
+        {"id": user_id},
+        {"$inc": {"ton_balance": amount}}
+    )
+    updated_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    # Log activity
+    await db.activities.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "pack_name": "TON Deposit",
+        "action": "deposit",
+        "price": amount,
+        "price_type": "TON",
+        "is_free": False,
+        "is_simulation": False,
+        "transaction_hash": transaction_hash,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    return {"success": True, "user": updated_user}
 
 @api_router.post("/user/subscribe")
 async def subscribe_channel(user_id: str, channel_id: str):
@@ -1481,6 +1514,7 @@ async def get_game_settings(authorization: Optional[str] = Header(None)):
             "id": "game_settings",
             "theft_cost_ton": 0.2,
             "theft_cooldown_hours": 6,
+            "bomb_cost_ton": 0.0,
             "bomb_expiration_hours": 24,
             "raid_entry_cost_ton": 0.1,
             "raid_max_players": 10,
@@ -1488,8 +1522,18 @@ async def get_game_settings(authorization: Optional[str] = Header(None)):
             "puzzle_fragment_drop_chance": 0.3,
             "puzzle_fragments_needed": 4,
             "puzzle_reward_sticker_pack_id": None,
-            "puzzle_reward_points": 200.0
+            "puzzle_reward_points": 200.0,
+            "spin_cost_ton": 1.0,
+            "battle_cost_ton": 0.0,
+            "craft_cost_ton": 0.0,
+            "guessing_cost_ton": 0.0
         }
+    else:
+        # Ensure new fields have defaults for existing records
+        defaults = {"bomb_cost_ton": 0.0, "spin_cost_ton": 1.0, "battle_cost_ton": 0.0, "craft_cost_ton": 0.0, "guessing_cost_ton": 0.0}
+        for k, v in defaults.items():
+            if k not in settings:
+                settings[k] = v
     return settings
 
 @api_router.post("/admin/game-settings")

@@ -119,15 +119,16 @@ const GameManagement = ({ adminToken }) => {
         </div>
       )}
 
-      {/* Sticker Theft Settings */}
+      {/* Game Entry Prices (TON) */}
       <Card className="bg-[#1a1a2e]/80 border-cyan-500/30 p-6">
         <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-          🎯 Sticker Theft
+          💎 Game Prices (TON)
         </h3>
+        <p className="text-xs text-gray-500 mb-4">Set the entry cost in TON for each game. Set 0 for free games.</p>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-gray-400 mb-2">
-              Cost (TON)
+              🎯 Theft
             </label>
             <Input
               type="number"
@@ -137,6 +138,99 @@ const GameManagement = ({ adminToken }) => {
               className="bg-white/5 border-white/10 text-white"
             />
           </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">
+              ⚔️ Raid Entry
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              value={settings.raid_entry_cost_ton}
+              onChange={(e) => handleNumberChange("raid_entry_cost_ton", e.target.value)}
+              className="bg-white/5 border-white/10 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">
+              🎡 Daily Spin
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              value={settings.spin_cost_ton}
+              onChange={(e) => handleNumberChange("spin_cost_ton", e.target.value)}
+              className="bg-white/5 border-white/10 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">
+              💣 Bomb
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              value={settings.bomb_cost_ton}
+              onChange={(e) => handleNumberChange("bomb_cost_ton", e.target.value)}
+              className="bg-white/5 border-white/10 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">
+              ⚔️ Battle
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              value={settings.battle_cost_ton}
+              onChange={(e) => handleNumberChange("battle_cost_ton", e.target.value)}
+              className="bg-white/5 border-white/10 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">
+              🧩 Craft
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              value={settings.craft_cost_ton}
+              onChange={(e) => handleNumberChange("craft_cost_ton", e.target.value)}
+              className="bg-white/5 border-white/10 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">
+              🎯 Guess Price
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              value={settings.guessing_cost_ton}
+              onChange={(e) => handleNumberChange("guessing_cost_ton", e.target.value)}
+              className="bg-white/5 border-white/10 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">
+              🧩 Puzzle Fragment
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              value={settings.puzzle_fragment_cost_ton}
+              onChange={(e) => handleNumberChange("puzzle_fragment_cost_ton", e.target.value)}
+              className="bg-white/5 border-white/10 text-white"
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Sticker Theft Settings */}
+      <Card className="bg-[#1a1a2e]/80 border-cyan-500/30 p-6">
+        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          🎯 Sticker Theft
+        </h3>
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-gray-400 mb-2">
               Cooldown (hours)
@@ -174,30 +268,16 @@ const GameManagement = ({ adminToken }) => {
         <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
           ⚔️ Raid
         </h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">
-              Entry Cost (TON)
-            </label>
-            <Input
-              type="number"
-              step="0.01"
-              value={settings.raid_entry_cost_ton}
-              onChange={(e) => handleNumberChange("raid_entry_cost_ton", e.target.value)}
-              className="bg-white/5 border-white/10 text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">
-              Max Players
-            </label>
-            <Input
-              type="number"
-              value={settings.raid_max_players}
-              onChange={(e) => handleNumberChange("raid_max_players", e.target.value)}
-              className="bg-white/5 border-white/10 text-white"
-            />
-          </div>
+        <div>
+          <label className="block text-sm text-gray-400 mb-2">
+            Max Players
+          </label>
+          <Input
+            type="number"
+            value={settings.raid_max_players}
+            onChange={(e) => handleNumberChange("raid_max_players", e.target.value)}
+            className="bg-white/5 border-white/10 text-white"
+          />
         </div>
       </Card>
 
@@ -208,18 +288,6 @@ const GameManagement = ({ adminToken }) => {
         </h3>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">
-                Fragment Cost (TON)
-              </label>
-              <Input
-                type="number"
-                step="0.01"
-                value={settings.puzzle_fragment_cost_ton}
-                onChange={(e) => handleNumberChange("puzzle_fragment_cost_ton", e.target.value)}
-                className="bg-white/5 border-white/10 text-white"
-              />
-            </div>
             <div>
               <label className="block text-sm text-gray-400 mb-2">
                 Drop Chance (0-1)

@@ -577,8 +577,8 @@ const Profile = ({ user, setUser, language, setLanguage }) => {
               <div className="space-y-1.5 text-[11px] text-gray-300">
                 <p>🎮 <span className="text-white font-medium">Game Balance</span> is your TON balance used across all mini-games:</p>
                 <div className="grid grid-cols-2 gap-1 pl-4">
-                  <span>• Sticker Theft (0.2 TON)</span>
-                  <span>• Raid Entry (0.1 TON)</span>
+                  <span>• Sticker Theft</span>
+                  <span>• Raid Entry</span>
                   <span>• Sticker Battle</span>
                   <span>• Bomb Pass</span>
                 </div>
